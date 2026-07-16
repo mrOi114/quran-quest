@@ -64,7 +64,7 @@ V1 is defined by the approved roadmap (Features 001–015) and locked account de
 | Smart Revision | Memory score per verse, weak verse detection, daily plan, lifetime tracking, Hifz Health Score |
 | Games | Listen and repeat, tap correct word, arrange words, fill missing word, age-based difficulty |
 | AI Hifz Companion | Anytime practice, patient teacher behaviour, encouragement, corrections, progress tracking |
-| AI Hifz Circle | Max 7 learners, Mr OI as AI Teacher, public/private circles, AI-controlled turns, verse assignment, live checking, scoring, smart revision after mistakes, no learner text/voice chat, child-safe moderation |
+| AI Hifz Circle | Max 7 learners, Abu Hafidul Qur'an as AI Teacher, public/private circles, AI-controlled turns, verse assignment, live checking, scoring, smart revision after mistakes, no learner text/voice chat, child-safe moderation |
 | Leaderboards | Age, Juz, weekly, monthly, global, personal ranking — consistency-focused |
 | Parent Dashboard | Progress reports, learning time, achievement notifications, child safety controls, AI summaries |
 | Admin Dashboard | Users, content, reports, leaderboards, system monitoring |
@@ -221,7 +221,7 @@ Reasoning: Consistency reduces review time and prevents each feature from invent
 | DB tables / columns | snake_case | `preferred_language`, `parent_id` |
 | Routes | Expo Router conventions | `/(auth)/login`, `/(app)/home` |
 | Feature folders | kebab or short noun | `auth`, `hifz-circle` |
-| AI persona | Product name **Mr OI** in user-facing copy | — |
+| AI persona | Product name **Abu Hafidul Qur'an** in user-facing copy | — |
 
 ### Naming principles
 
@@ -297,7 +297,7 @@ Reasoning: This app serves children. Security failures are product failures.
 - Children do **not** need email addresses.
 - No learner-to-learner private messaging.
 - **AI Hifz Circle:** no text chat and no voice chat between learners.
-- All social/learning interaction in circles is mediated by **Mr OI**.
+- All social/learning interaction in circles is mediated by **Abu Hafidul Qur'an**.
 - Content, avatars, and copy must be age-appropriate.
 - Child-safe moderation is required for circle participation and any user-generated labels/names.
 - Guests and children must not access parent management surfaces.
@@ -327,14 +327,17 @@ Reasoning: Parent trust unlocks family adoption. Controls must be real capabilit
 
 ---
 
-## 15. AI Teacher Behaviour (Mr OI)
+## 15. AI Teacher Behaviour (Abu Hafidul Qur'an)
 
-**Mr OI** is the AI Teacher persona for guided learning and Hifz Circles.
+**Abu Hafidul Qur'an** is the permanent AI Hifz Teacher and Companion of Qur'an Quest — the persona for guided learning and Hifz Circles.
 
-Mr OI must:
+He always speaks with wisdom, patience, kindness, encouragement, and respect. He never shames, pressures, or embarrasses a learner. He always encourages learners with positive Islamic manners and uplifting words.
+
+Abu Hafidul Qur'an must:
 
 - Be patient, respectful, and encouraging.
-- Correct mistakes clearly without shaming.
+- Help learners memorize the Qur'an, improve Tajweed, build confidence, stay consistent with daily revision, and develop love for the Qur'an.
+- Correct mistakes clearly and gently without shaming.
 - Keep focus on the assigned verse/lesson.
 - Control turn order and activity flow in Hifz Circles.
 - Assign verses and report scores in a calm, fair way.
@@ -370,7 +373,7 @@ Reasoning: Companion mode is the private practice loop. If it drifts into chatbo
 AI Hifz Circle is a **signature V1 feature**. Rules are strict:
 
 - Maximum **7 learners** per circle.
-- **Mr OI** is the teacher and controls every turn.
+- **Abu Hafidul Qur'an** is the teacher and controls every turn.
 - Circles may be **public or private**.
 - AI assigns verses, runs live recitation checking, scores automatically, and schedules revision after mistakes.
 - **No text chat** between learners.
@@ -561,7 +564,7 @@ Future versions may expand juz’ coverage, platforms, or pedagogy — but only 
 4. **Smart Revision and recitation integrity remain central** as more content is added.
 5. **Data migrations must preserve learner progress** and verse identity.
 6. **Amend this constitution first**, then build.
-7. Reuse V1 architecture (feature folders, Supabase RLS, Mr OI rules) unless there is a documented reason to change.
+7. Reuse V1 architecture (feature folders, Supabase RLS, Abu Hafidul Qur'an rules) unless there is a documented reason to change.
 
 Reasoning: Expansion should compound the foundation, not rewrite the product’s ethics or architecture every cycle.
 
@@ -577,7 +580,7 @@ These rules cannot be bypassed for convenience, deadlines, or demos:
 4. **Children have no email requirement**; parents create children; PIN on approved devices.  
 5. **Adult = learner; Parent = learner + family controls.**  
 6. **Guest trial must be genuinely usable** before hard account walls (soft milestone prompts only).  
-7. **AI Hifz Circle: max 7, Mr OI controls turns, no learner text/voice chat.**  
+7. **AI Hifz Circle: max 7, Abu Hafidul Qur'an controls turns, no learner text/voice chat.**  
 8. **Child safety and parent controls are mandatory**, not optional polish.  
 9. **Never store or log PINs/passwords in plaintext.**  
 10. **RLS and server-side authorization are required** for privileged actions.  
