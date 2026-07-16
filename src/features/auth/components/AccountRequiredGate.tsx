@@ -20,7 +20,8 @@ const defaultCopy: Record<
 > = {
   ai_hifz_circle: {
     title: 'AI Hifz Circles need an account',
-    description: 'Create a free account to join Circles with Mr OI and other learners.',
+    description:
+      "Create a free account to join Circles with Abu Hafidul Qur'an and other learners.",
   },
   cloud_backup: {
     title: 'Cloud backup needs an account',

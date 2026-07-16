@@ -62,6 +62,13 @@ export async function requestPasswordReset(email: string): Promise<void> {
   }
 }
 
+export async function updatePassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export async function resendVerificationEmail(email: string): Promise<void> {
   const { error } = await supabase.auth.resend({
     type: 'signup',

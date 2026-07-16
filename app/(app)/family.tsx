@@ -14,9 +14,19 @@ export default function FamilyPickerScreen() {
     signOut,
     refreshChildren,
     isGuest,
+    canManageFamily,
+    activeLearner,
+    clearActiveLearner,
   } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Leaving a child session via family picker clears the child learner first.
+    if (activeLearner?.role === 'child') {
+      void clearActiveLearner();
+    }
+  }, [activeLearner?.role, clearActiveLearner]);
 
   useEffect(() => {
     void ensureDeviceRegistered().catch(() => undefined);
@@ -55,7 +65,8 @@ export default function FamilyPickerScreen() {
       {profile ? (
         <Pressable
           onPress={() => void chooseSelf()}
-          className="mb-3 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-4"
+          accessibilityRole="button"
+          className="mb-3 min-h-14 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-4"
         >
           <Text className="text-lg font-semibold text-brand-800">
             {profile.display_name}
@@ -71,13 +82,14 @@ export default function FamilyPickerScreen() {
         <Pressable
           key={child.id}
           onPress={() => chooseChild(child.id)}
-          className="mb-3 rounded-2xl border border-brand-100 bg-white px-4 py-4"
+          accessibilityRole="button"
+          className="mb-3 min-h-14 rounded-2xl border border-brand-100 bg-white px-4 py-4"
         >
           <Text className="text-lg font-semibold text-brand-800">
             {child.display_name}
           </Text>
           <Text className="mt-1 text-sm text-brand-500">
-            Child · Age {child.age ?? '—'} · PIN required
+            Child · Age {child.age ?? '—'} · {child.country_code} · PIN required
           </Text>
         </Pressable>
       ))}
@@ -90,7 +102,7 @@ export default function FamilyPickerScreen() {
 
       {error ? <Text className="mb-3 text-sm text-red-600">{error}</Text> : null}
 
-      {profile?.role === 'parent' ? (
+      {canManageFamily ? (
         <PrimaryButton
           label="Manage children"
           onPress={() => router.push('/(app)/parent/children')}

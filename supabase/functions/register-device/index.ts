@@ -46,11 +46,9 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: 'Profile not found' }, 404);
     }
 
-    if (profile.role !== 'parent' && profile.role !== 'adult') {
-      return jsonResponse(
-        { error: 'Only adult or parent accounts can register devices' },
-        403,
-      );
+    // Child unlock is parent-only; adults do not need an approved-device row.
+    if (profile.role !== 'parent') {
+      return jsonResponse({ error: 'Only parent accounts can register devices' }, 403);
     }
 
     const { data, error } = await service

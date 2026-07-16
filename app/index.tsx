@@ -4,8 +4,15 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/features/auth';
 
 export default function Index() {
-  const { isBootstrapping, session, user, isEmailVerified, activeLearner, isGuest } =
-    useAuth();
+  const {
+    isBootstrapping,
+    session,
+    user,
+    isEmailVerified,
+    activeLearner,
+    isGuest,
+    needsPasswordReset,
+  } = useAuth();
 
   if (isBootstrapping) {
     return (
@@ -13,6 +20,10 @@ export default function Index() {
         <ActivityIndicator color="#FFFFFF" size="large" />
       </View>
     );
+  }
+
+  if (needsPasswordReset && session) {
+    return <Redirect href="/(auth)/reset-password" />;
   }
 
   if (isGuest && activeLearner) {

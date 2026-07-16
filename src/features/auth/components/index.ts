@@ -1,5 +1,8 @@
 export { AccountRequiredGate } from './AccountRequiredGate';
 export { AuthScreen } from './AuthScreen';
+export { AvatarPicker } from './AvatarPicker';
+export { CountryPicker } from './CountryPicker';
+export { LanguagePicker } from './LanguagePicker';
 export { MilestonePrompt } from './MilestonePrompt';
 export { PinInput } from './PinInput';
 export { PrimaryButton } from './PrimaryButton';

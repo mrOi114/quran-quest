@@ -1,10 +1,18 @@
-import { Redirect, Stack } from 'expo-router';
+import { Redirect, Stack, usePathname } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useAuth } from '@/features/auth';
 
 export default function AuthLayout() {
-  const { isBootstrapping, session, isEmailVerified, activeLearner, isGuest } = useAuth();
+  const pathname = usePathname();
+  const {
+    isBootstrapping,
+    session,
+    isEmailVerified,
+    activeLearner,
+    isGuest,
+    needsPasswordReset,
+  } = useAuth();
 
   if (isBootstrapping) {
     return (
@@ -14,17 +22,28 @@ export default function AuthLayout() {
     );
   }
 
+  const onResetPassword =
+    pathname.includes('reset-password') || pathname.includes('callback');
+
+  if (needsPasswordReset && session && !onResetPassword) {
+    return <Redirect href="/(auth)/reset-password" />;
+  }
+
+  if (needsPasswordReset && onResetPassword) {
+    return <Stack screenOptions={{ headerShown: false }} />;
+  }
+
   // Guests may open register/login from milestone prompts; only auto-redirect when
   // they land on auth without intentionally navigating to create an account.
   if (isGuest && activeLearner) {
     return <Stack screenOptions={{ headerShown: false }} />;
   }
 
-  if (session && isEmailVerified && activeLearner) {
+  if (session && isEmailVerified && activeLearner && !onResetPassword) {
     return <Redirect href="/(app)/home" />;
   }
 
-  if (session && isEmailVerified && !activeLearner) {
+  if (session && isEmailVerified && !activeLearner && !onResetPassword) {
     return <Redirect href="/(app)/family" />;
   }
 
