@@ -20,6 +20,7 @@ export default function HomeStubScreen() {
     guestProgress,
     showMilestonePrompt,
     isGuestAtLimit,
+    canManageFamily,
     clearActiveLearner,
     dismissGuestMilestone,
     endGuestSession,
@@ -30,6 +31,8 @@ export default function HomeStubScreen() {
   if (!activeLearner) {
     return <Redirect href={isGuest ? '/(auth)/welcome' : '/(app)/family'} />;
   }
+
+  const isChildSession = activeLearner.role === 'child';
 
   return (
     <AuthScreen
@@ -66,13 +69,15 @@ export default function HomeStubScreen() {
         </View>
       ) : (
         <>
-          <View className="mb-4 rounded-2xl bg-brand-50 px-4 py-4">
-            <Text className="text-sm text-brand-500">Signed-in account</Text>
-            <Text className="mt-1 text-lg font-semibold text-brand-800">
-              {profile?.display_name ?? '—'}
-            </Text>
-            <Text className="mt-1 capitalize text-brand-600">{profile?.role}</Text>
-          </View>
+          {!isChildSession ? (
+            <View className="mb-4 rounded-2xl bg-brand-50 px-4 py-4">
+              <Text className="text-sm text-brand-500">Signed-in account</Text>
+              <Text className="mt-1 text-lg font-semibold text-brand-800">
+                {profile?.display_name ?? '—'}
+              </Text>
+              <Text className="mt-1 capitalize text-brand-600">{profile?.role}</Text>
+            </View>
+          ) : null}
 
           <View className="mb-6 rounded-2xl bg-brand-50 px-4 py-4">
             <Text className="text-sm text-brand-500">Active learner</Text>
@@ -106,13 +111,13 @@ export default function HomeStubScreen() {
       ) : (
         <>
           <PrimaryButton
-            label="Switch learner"
+            label={isChildSession ? 'Switch learner (parent)' : 'Switch learner'}
             onPress={() => {
               void clearActiveLearner().then(() => router.replace('/(app)/family'));
             }}
           />
 
-          {profile?.role === 'parent' ? (
+          {canManageFamily ? (
             <PrimaryButton
               label="Manage children"
               onPress={() => router.push('/(app)/parent/children')}
@@ -120,13 +125,15 @@ export default function HomeStubScreen() {
             />
           ) : null}
 
-          <PrimaryButton
-            label="Log out"
-            onPress={() => {
-              void signOut().then(() => router.replace('/(auth)/welcome'));
-            }}
-            variant="secondary"
-          />
+          {!isChildSession ? (
+            <PrimaryButton
+              label="Log out"
+              onPress={() => {
+                void signOut().then(() => router.replace('/(auth)/welcome'));
+              }}
+              variant="secondary"
+            />
+          ) : null}
         </>
       )}
 

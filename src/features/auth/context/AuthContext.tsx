@@ -18,13 +18,16 @@ import {
   clearGuestProfile,
   clearStoredActiveLearnerId,
   createChildProfile,
+  deleteChildProfile,
   dismissMilestonePrompt,
   fetchChildren,
   fetchProfile,
   getGuestProfile,
   getGuestProgress,
+  getInitialAuthUrl,
   getSession,
   getStoredActiveLearnerId,
+  handleAuthRedirectUrl,
   hasReachedGuestLimit,
   hasReachedGuestMilestone,
   isEmailVerified,
@@ -34,7 +37,9 @@ import {
   saveGuestProfile,
   setChildPin,
   setStoredActiveLearnerId,
+  subscribeToAuthUrls,
   transferGuestProgressToAccount,
+  updateChildProfile,
   verifyChildPin,
   type GuestProfile,
   type GuestProgress,
@@ -44,7 +49,9 @@ import type {
   CreateChildInput,
   FamilyMember,
   GuestLearner,
+  UpdateChildInput,
 } from '../types';
+import { canManageFamily } from '../utils/access';
 
 type AuthContextValue = {
   isBootstrapping: boolean;
@@ -59,12 +66,17 @@ type AuthContextValue = {
   guestProgress: GuestProgress | null;
   showMilestonePrompt: boolean;
   isGuestAtLimit: boolean;
+  /** True after a password-recovery deep link until the new password is saved. */
+  needsPasswordReset: boolean;
+  canManageFamily: boolean;
   refreshProfile: () => Promise<void>;
   refreshChildren: () => Promise<void>;
   selectSelfAsLearner: () => Promise<void>;
   unlockChild: (childId: string, pin: string) => Promise<void>;
   clearActiveLearner: () => Promise<void>;
   createChild: (input: CreateChildInput) => Promise<Profile>;
+  updateChild: (childId: string, input: UpdateChildInput) => Promise<Profile>;
+  deleteChild: (childId: string) => Promise<void>;
   resetChildPin: (childId: string, pin: string) => Promise<void>;
   signOut: () => Promise<void>;
   ensureDeviceRegistered: () => Promise<void>;
@@ -74,6 +86,7 @@ type AuthContextValue = {
   simulateGuestProgress: (delta?: number) => Promise<void>;
   dismissGuestMilestone: () => Promise<void>;
   migrateGuestProgressAfterRegister: () => Promise<void>;
+  clearPasswordResetFlag: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -115,6 +128,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [guestProfile, setGuestProfile] = useState<GuestProfile | null>(null);
   const [guestProgress, setGuestProgress] = useState<GuestProgress | null>(null);
   const [showMilestonePrompt, setShowMilestonePrompt] = useState(false);
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
 
   const syncGuestMilestone = useCallback(async (progress: GuestProgress | null) => {
     if (!progress) {
@@ -125,8 +139,12 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     setShowMilestonePrompt(hasReachedGuestMilestone(progress) && !dismissed);
   }, []);
 
+  /**
+   * Restore adult/parent self as active learner across restarts.
+   * Child learners always require a fresh PIN unlock (shared-device safety).
+   */
   const hydrateActiveLearner = useCallback(
-    async (currentProfile: Profile | null, kids: Profile[]) => {
+    async (currentProfile: Profile | null, _kids: Profile[]) => {
       const storedId = await getStoredActiveLearnerId();
       if (!storedId || !currentProfile) {
         setActiveLearner(null);
@@ -138,12 +156,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         return;
       }
 
-      const child = kids.find((item) => item.id === storedId);
-      if (child) {
-        setActiveLearner(toFamilyMember(child));
-        return;
-      }
-
+      // Stored child id from a previous unlock — clear and require PIN again.
       await clearStoredActiveLearnerId();
       setActiveLearner(null);
     },
@@ -181,17 +194,34 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   }, [guestProfile, syncGuestMilestone]);
 
   const ensureDeviceRegistered = useCallback(async () => {
-    if (!session || !isEmailVerified(user)) {
+    if (!session || !isEmailVerified(user) || profile?.role !== 'parent') {
       return;
     }
     await registerCurrentDevice();
-  }, [session, user]);
+  }, [profile?.role, session, user]);
+
+  const processAuthUrl = useCallback(async (url: string) => {
+    const result = await handleAuthRedirectUrl(url);
+    if (result.handled && result.kind === 'recovery') {
+      setNeedsPasswordReset(true);
+    }
+    return result;
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
     async function bootstrap() {
       try {
+        const initialUrl = await getInitialAuthUrl();
+        if (initialUrl && mounted) {
+          try {
+            await processAuthUrl(initialUrl);
+          } catch {
+            // Invalid/expired link — continue normal bootstrap.
+          }
+        }
+
         const currentSession = await getSession();
         if (!mounted) {
           return;
@@ -218,7 +248,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
           await hydrateActiveLearner(nextProfile, kids);
 
-          if (isEmailVerified(currentSession.user)) {
+          if (isEmailVerified(currentSession.user) && nextProfile?.role === 'parent') {
             try {
               await registerCurrentDevice();
             } catch {
@@ -250,8 +280,16 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
     void bootstrap();
 
+    const unsubscribeLinks = subscribeToAuthUrls((url) => {
+      void processAuthUrl(url).catch(() => undefined);
+    });
+
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, nextSession) => {
+      async (event, nextSession) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setNeedsPasswordReset(true);
+        }
+
         setSession(nextSession);
         setUser(nextSession?.user ?? null);
 
@@ -259,6 +297,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           setProfile(null);
           setChildProfiles([]);
           setActiveLearner(null);
+          setNeedsPasswordReset(false);
           await clearStoredActiveLearnerId();
 
           const guest = await getGuestProfile();
@@ -298,9 +337,10 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
     return () => {
       mounted = false;
+      unsubscribeLinks();
       authListener.subscription.unsubscribe();
     };
-  }, [hydrateActiveLearner, syncGuestMilestone]);
+  }, [hydrateActiveLearner, processAuthUrl, syncGuestMilestone]);
 
   const selectSelfAsLearner = useCallback(async () => {
     if (!profile) {
@@ -336,6 +376,34 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       const created = await createChildProfile(user.id, input);
       await refreshChildren();
       return created;
+    },
+    [profile?.role, refreshChildren, user],
+  );
+
+  const updateChild = useCallback(
+    async (childId: string, input: UpdateChildInput) => {
+      if (!user || profile?.role !== 'parent') {
+        throw new Error('Only parents can update child accounts');
+      }
+      const updated = await updateChildProfile(childId, input);
+      await refreshChildren();
+      return updated;
+    },
+    [profile?.role, refreshChildren, user],
+  );
+
+  const deleteChild = useCallback(
+    async (childId: string) => {
+      if (!user || profile?.role !== 'parent') {
+        throw new Error('Only parents can delete child accounts');
+      }
+      await deleteChildProfile(childId);
+      const storedId = await getStoredActiveLearnerId();
+      if (storedId === childId) {
+        await clearStoredActiveLearnerId();
+        setActiveLearner(null);
+      }
+      await refreshChildren();
     },
     [profile?.role, refreshChildren, user],
   );
@@ -400,11 +468,16 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     setShowMilestonePrompt(false);
   }, [user]);
 
+  const clearPasswordResetFlag = useCallback(() => {
+    setNeedsPasswordReset(false);
+  }, []);
+
   const signOut = useCallback(async () => {
     await clearStoredActiveLearnerId();
     setActiveLearner(null);
     setProfile(null);
     setChildProfiles([]);
+    setNeedsPasswordReset(false);
     await logoutAccount();
 
     const guest = await getGuestProfile();
@@ -419,6 +492,10 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
   const isGuest = Boolean(guestProfile) && !session;
   const isGuestAtLimit = Boolean(guestProgress && hasReachedGuestLimit(guestProgress));
+  const familyManageAllowed = canManageFamily({
+    profileRole: profile?.role,
+    activeLearner,
+  });
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -434,12 +511,16 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       guestProgress,
       showMilestonePrompt: isGuest && showMilestonePrompt,
       isGuestAtLimit: isGuest && isGuestAtLimit,
+      needsPasswordReset,
+      canManageFamily: familyManageAllowed,
       refreshProfile,
       refreshChildren,
       selectSelfAsLearner,
       unlockChild,
       clearActiveLearner,
       createChild,
+      updateChild,
+      deleteChild,
       resetChildPin,
       signOut,
       ensureDeviceRegistered,
@@ -449,21 +530,26 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       simulateGuestProgress,
       dismissGuestMilestone,
       migrateGuestProgressAfterRegister,
+      clearPasswordResetFlag,
     }),
     [
       activeLearner,
       childProfiles,
       clearActiveLearner,
+      clearPasswordResetFlag,
       createChild,
+      deleteChild,
       dismissGuestMilestone,
       endGuestSession,
       ensureDeviceRegistered,
+      familyManageAllowed,
       guestProfile,
       guestProgress,
       isBootstrapping,
       isGuest,
       isGuestAtLimit,
       migrateGuestProgressAfterRegister,
+      needsPasswordReset,
       profile,
       refreshChildren,
       refreshGuestProgress,
@@ -476,6 +562,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       simulateGuestProgress,
       startGuest,
       unlockChild,
+      updateChild,
       user,
     ],
   );

@@ -49,3 +49,11 @@ export type CreateChildInput = {
   preferredLanguage: string;
   pin: string;
 };
+
+export type UpdateChildInput = {
+  displayName: string;
+  age: number;
+  avatarKey: string;
+  countryCode: string;
+  preferredLanguage: string;
+};

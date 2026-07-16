@@ -4,7 +4,8 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/features/auth';
 
 export default function AppLayout() {
-  const { isBootstrapping, session, isEmailVerified, isGuest } = useAuth();
+  const { isBootstrapping, session, isEmailVerified, isGuest, needsPasswordReset } =
+    useAuth();
 
   if (isBootstrapping) {
     return (
@@ -12,6 +13,10 @@ export default function AppLayout() {
         <ActivityIndicator color="#FFFFFF" size="large" />
       </View>
     );
+  }
+
+  if (needsPasswordReset && session) {
+    return <Redirect href="/(auth)/reset-password" />;
   }
 
   if (!session && !isGuest) {
