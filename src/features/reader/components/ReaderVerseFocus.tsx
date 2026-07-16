@@ -4,7 +4,7 @@ import type { AgeGroupId } from '@/features/auth';
 import type { AudioRepeatCount } from '@/types';
 
 import { useVerseAudio } from '../hooks/useVerseAudio';
-import type { ReaderMode, ReaderVerseViewModel } from '../types';
+import type { ReaderFontScale, ReaderMode, ReaderVerseViewModel } from '../types';
 import { ArabicVerseText } from './ArabicVerseText';
 import { TranslationPanel } from './TranslationPanel';
 import { VerseAudioControls } from './VerseAudioControls';
@@ -15,6 +15,7 @@ type ReaderVerseFocusProps = {
   mode: ReaderMode;
   showTranslation: boolean;
   repeatCount: AudioRepeatCount;
+  fontScale?: ReaderFontScale | null;
   onToggleTranslation: () => void;
   onCycleRepeat: () => void;
   onPlayedOnce?: () => void;
@@ -26,6 +27,7 @@ export function ReaderVerseFocus({
   mode: _mode,
   showTranslation,
   repeatCount,
+  fontScale = null,
   onToggleTranslation,
   onCycleRepeat,
   onPlayedOnce,
@@ -43,6 +45,7 @@ export function ReaderVerseFocus({
         ayahNumber={verse.ayahNumber}
         ageGroup={ageGroup}
         isLearned={verse.isLearned}
+        fontScale={fontScale}
       />
 
       <VerseAudioControls

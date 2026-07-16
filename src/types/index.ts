@@ -1,6 +1,7 @@
 export type {
   ApprovedDevice,
   AudioRepeatCount,
+  ReaderFontScale,
   ContentApprovalStatus,
   Database,
   Json,

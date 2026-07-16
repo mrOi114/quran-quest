@@ -197,6 +197,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
               mode="lesson"
               showTranslation={preferences.showTranslation}
               repeatCount={preferences.repeatCount}
+              fontScale={preferences.fontScale}
               onToggleTranslation={() => {
                 void setShowTranslation(!preferences.showTranslation);
               }}

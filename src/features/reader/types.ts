@@ -3,11 +3,29 @@ import type { AudioRepeatCount } from '@/types';
 
 export type ReaderMode = 'lesson' | 'browse' | 'practice';
 
+/** Optional Arabic size override; null means age-group default. Never changes Uthmani text. */
+export type ReaderFontScale = 'default' | 'large' | 'xlarge';
+
 export type ReaderPreferences = {
   showTranslation: boolean;
   repeatCount: AudioRepeatCount;
   preferredReciterKey: string;
   preferredTranslationId: string | null;
+  fontScale: ReaderFontScale | null;
+};
+
+/**
+ * Cloud preference snapshot for field-by-field empty-only merge.
+ * `null` / empty string on a field means that field is empty and may take the guest value.
+ * `rowExists: false` means every field is empty.
+ */
+export type CloudReaderPreferenceFields = {
+  rowExists: boolean;
+  showTranslation: boolean | null;
+  repeatCount: AudioRepeatCount | null;
+  preferredReciterKey: string | null;
+  preferredTranslationId: string | null;
+  fontScale: ReaderFontScale | null;
 };
 
 export type ReaderBrowseState = {

@@ -108,6 +108,14 @@ assert(
   guestMigration.includes('mergeMigratedGuestReaderSettings'),
   'registration merge entrypoint required',
 );
+assert(
+  guestMigration.includes('qq.reader.migration_complete.'),
+  'migration-complete marker required',
+);
+assert(
+  guestMigration.includes('markGuestReaderMigrationComplete'),
+  'must mark local guest prefs migrated after success',
+);
 
 const guestService = readFileSync(
   join(ROOT, 'src/features/auth/services/guestService.ts'),
@@ -118,18 +126,31 @@ assert(
   'guest transfer must stage reader prefs for merge',
 );
 
+const fontMigration = readFileSync(
+  join(ROOT, 'supabase/migrations/20260716230100_feature_005_reader_font_scale.sql'),
+  'utf8',
+);
+assert(fontMigration.includes('font_scale'), 'font_scale column migration required');
+
+function isBlank(value) {
+  return value == null || String(value).trim().length === 0;
+}
+
 function mergeReaderPreferencesEmptyOnly(cloud, guest) {
-  if (!cloud) {
+  if (!cloud || !cloud.rowExists) {
     return { ...guest };
   }
   return {
-    showTranslation: cloud.showTranslation,
-    repeatCount: cloud.repeatCount,
-    preferredReciterKey: cloud.preferredReciterKey.trim()
-      ? cloud.preferredReciterKey
-      : guest.preferredReciterKey,
-    preferredTranslationId:
-      cloud.preferredTranslationId ?? guest.preferredTranslationId,
+    showTranslation:
+      cloud.showTranslation === null ? guest.showTranslation : cloud.showTranslation,
+    repeatCount: cloud.repeatCount === null ? guest.repeatCount : cloud.repeatCount,
+    preferredReciterKey: isBlank(cloud.preferredReciterKey)
+      ? guest.preferredReciterKey
+      : cloud.preferredReciterKey,
+    preferredTranslationId: isBlank(cloud.preferredTranslationId)
+      ? guest.preferredTranslationId
+      : cloud.preferredTranslationId,
+    fontScale: cloud.fontScale === null ? guest.fontScale : cloud.fontScale,
   };
 }
 
@@ -138,33 +159,47 @@ const guestPrefs = {
   repeatCount: '3',
   preferredReciterKey: 'husary_128',
   preferredTranslationId: null,
+  fontScale: 'large',
 };
 const fromGuestOnly = mergeReaderPreferencesEmptyOnly(null, guestPrefs);
 assert(fromGuestOnly.showTranslation === false, 'no cloud row → take guest showTranslation');
 assert(fromGuestOnly.repeatCount === '3', 'no cloud row → take guest repeatCount');
+assert(fromGuestOnly.fontScale === 'large', 'no cloud row → take guest fontScale');
 
 const cloudExisting = {
+  rowExists: true,
   showTranslation: true,
   repeatCount: '1',
   preferredReciterKey: 'other_qari',
   preferredTranslationId: 'en-sahih-international',
+  fontScale: 'default',
 };
 const keepCloud = mergeReaderPreferencesEmptyOnly(cloudExisting, guestPrefs);
 assert(keepCloud.showTranslation === true, 'existing cloud showTranslation must win');
 assert(keepCloud.repeatCount === '1', 'existing cloud repeatCount must win');
 assert(keepCloud.preferredReciterKey === 'other_qari', 'existing cloud reciter must win');
+assert(keepCloud.fontScale === 'default', 'existing cloud fontScale must win');
 
-const cloudEmptyReciter = {
+const cloudPartialEmpty = {
+  rowExists: true,
   showTranslation: true,
   repeatCount: 'loop',
   preferredReciterKey: '',
   preferredTranslationId: null,
+  fontScale: null,
 };
-const fillEmpty = mergeReaderPreferencesEmptyOnly(cloudEmptyReciter, guestPrefs);
+const fillEmpty = mergeReaderPreferencesEmptyOnly(cloudPartialEmpty, guestPrefs);
 assert(
   fillEmpty.preferredReciterKey === 'husary_128',
   'empty cloud reciter fills from guest',
 );
+assert(fillEmpty.fontScale === 'large', 'null cloud fontScale fills from guest');
 assert(fillEmpty.repeatCount === 'loop', 'non-empty cloud repeat must not be overwritten');
+
+// Integrity: merge helper only returns preference fields (never verse text).
+assert(
+  !('textUthmani' in fillEmpty) && !('translationEn' in fillEmpty),
+  'prefs merge must not carry Qur’an content fields',
+);
 
 console.log('Feature 005 verify: OK');

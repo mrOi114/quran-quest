@@ -2,10 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ActiveLearner } from '@/features/auth';
 import { isGuestLearner } from '@/features/auth';
-import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
 import { JUZ_30_SURAH_START } from '@/features/learning/constants';
+import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
 import { supabase } from '@/lib/supabase';
-import type { AudioRepeatCount } from '@/types';
+import type { AudioRepeatCount, ReaderFontScale } from '@/types';
 
 import {
   DEFAULT_RECITER_KEY,
@@ -25,6 +25,13 @@ function guestStateKey(learnerId: string): string {
   return `${READER_STATE_STORAGE_KEY}.${learnerId}`;
 }
 
+function parseFontScale(value: string | null | undefined): ReaderFontScale | null {
+  if (value === 'default' || value === 'large' || value === 'xlarge') {
+    return value;
+  }
+  return null;
+}
+
 export function buildDefaultPreferences(learner: ActiveLearner): ReaderPreferences {
   const ageGroup = resolveAgeGroup(learner);
   return {
@@ -32,6 +39,7 @@ export function buildDefaultPreferences(learner: ActiveLearner): ReaderPreferenc
     repeatCount: defaultRepeatForAgeGroup(ageGroup),
     preferredReciterKey: DEFAULT_RECITER_KEY,
     preferredTranslationId: null,
+    fontScale: null,
   };
 }
 
@@ -63,7 +71,7 @@ export async function loadReaderPreferences(
   const { data, error } = await supabase
     .from('learner_reader_preferences')
     .select(
-      'show_translation, repeat_count, preferred_reciter_key, preferred_translation_id',
+      'show_translation, repeat_count, preferred_reciter_key, preferred_translation_id, font_scale',
     )
     .eq('learner_id', learner.id)
     .maybeSingle();
@@ -81,6 +89,7 @@ export async function loadReaderPreferences(
         : defaults.repeatCount,
     preferredReciterKey: data.preferred_reciter_key || DEFAULT_RECITER_KEY,
     preferredTranslationId: data.preferred_translation_id,
+    fontScale: parseFontScale(data.font_scale),
   };
 }
 
@@ -102,6 +111,7 @@ export async function saveReaderPreferences(
       repeat_count: validated.repeatCount,
       preferred_reciter_key: validated.preferredReciterKey,
       preferred_translation_id: validated.preferredTranslationId,
+      font_scale: validated.fontScale,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'learner_id' },

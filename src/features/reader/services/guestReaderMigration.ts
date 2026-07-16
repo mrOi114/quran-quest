@@ -2,13 +2,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ActiveLearner } from '@/features/auth';
 import { supabase } from '@/lib/supabase';
-import type { AudioRepeatCount } from '@/types';
+import type { AudioRepeatCount, ReaderFontScale } from '@/types';
 
 import { DEFAULT_RECITER_KEY } from '../constants';
 import { readerBrowseStateSchema, readerPreferencesSchema } from '../schemas';
-import type { ReaderBrowseState, ReaderPreferences } from '../types';
+import type {
+  CloudReaderPreferenceFields,
+  ReaderBrowseState,
+  ReaderPreferences,
+} from '../types';
 
 export const GUEST_READER_MIGRATION_PREFIX = 'qq.migrated_reader.';
+/** Set after a successful cloud merge so prefs are never migrated twice. */
+export const GUEST_READER_MIGRATION_DONE_PREFIX = 'qq.reader.migration_complete.';
 
 type StagedGuestReaderPayload = {
   readerPreferences: unknown | null;
@@ -18,27 +24,30 @@ type StagedGuestReaderPayload = {
 };
 
 /**
- * Merge guest reader prefs into cloud prefs.
- * - No cloud row → take guest values (repeat, translation visibility, reciter, etc.).
- * - Existing cloud row → fill only empty fields; never overwrite set values.
- *
- * Font size is age-derived (not persisted); it follows the learner age group after register.
+ * Field-by-field empty-only merge.
+ * For each preference: copy guest when cloud field is empty/null; otherwise keep cloud.
+ * Never overwrites a set cloud value. Safe to run repeatedly with the same inputs.
  */
 export function mergeReaderPreferencesEmptyOnly(
-  cloud: ReaderPreferences | null,
+  cloud: CloudReaderPreferenceFields | null,
   guest: ReaderPreferences,
 ): ReaderPreferences {
-  if (!cloud) {
+  if (!cloud || !cloud.rowExists) {
     return { ...guest };
   }
 
+  const cloudReciter = cloud.preferredReciterKey?.trim() ?? '';
+  const cloudTranslation = cloud.preferredTranslationId?.trim() ?? '';
+
   return {
-    showTranslation: cloud.showTranslation,
-    repeatCount: cloud.repeatCount,
-    preferredReciterKey: cloud.preferredReciterKey.trim()
-      ? cloud.preferredReciterKey
-      : guest.preferredReciterKey,
-    preferredTranslationId: cloud.preferredTranslationId ?? guest.preferredTranslationId,
+    showTranslation:
+      cloud.showTranslation === null ? guest.showTranslation : cloud.showTranslation,
+    repeatCount: cloud.repeatCount === null ? guest.repeatCount : cloud.repeatCount,
+    preferredReciterKey:
+      cloudReciter.length > 0 ? cloudReciter : guest.preferredReciterKey,
+    preferredTranslationId:
+      cloudTranslation.length > 0 ? cloudTranslation : guest.preferredTranslationId,
+    fontScale: cloud.fontScale === null ? guest.fontScale : cloud.fontScale,
   };
 }
 
@@ -51,6 +60,19 @@ export function mergeReaderBrowseStateEmptyOnly(
     return cloud;
   }
   return guest ? { ...guest } : null;
+}
+
+export function readerMigrationDoneKey(userId: string): string {
+  return `${GUEST_READER_MIGRATION_DONE_PREFIX}${userId}`;
+}
+
+export async function isGuestReaderMigrationComplete(userId: string): Promise<boolean> {
+  const value = await AsyncStorage.getItem(readerMigrationDoneKey(userId));
+  return value === 'true';
+}
+
+export async function markGuestReaderMigrationComplete(userId: string): Promise<void> {
+  await AsyncStorage.setItem(readerMigrationDoneKey(userId), 'true');
 }
 
 function parseGuestPreferences(raw: unknown): ReaderPreferences | null {
@@ -69,13 +91,20 @@ function parseGuestBrowseState(raw: unknown): ReaderBrowseState | null {
   return parsed.success ? parsed.data : null;
 }
 
-async function loadCloudPreferencesRow(
+function parseFontScale(value: string | null): ReaderFontScale | null {
+  if (value === 'default' || value === 'large' || value === 'xlarge') {
+    return value;
+  }
+  return null;
+}
+
+async function loadCloudPreferenceFields(
   learnerId: string,
-): Promise<ReaderPreferences | null> {
+): Promise<CloudReaderPreferenceFields | null> {
   const { data, error } = await supabase
     .from('learner_reader_preferences')
     .select(
-      'show_translation, repeat_count, preferred_reciter_key, preferred_translation_id',
+      'show_translation, repeat_count, preferred_reciter_key, preferred_translation_id, font_scale',
     )
     .eq('learner_id', learnerId)
     .maybeSingle();
@@ -86,10 +115,15 @@ async function loadCloudPreferencesRow(
 
   const repeat = data.repeat_count as AudioRepeatCount;
   return {
+    rowExists: true,
+    // Row present ⇒ these non-null columns are treated as set (never overwritten).
     showTranslation: data.show_translation,
-    repeatCount: repeat === '1' || repeat === '3' || repeat === 'loop' ? repeat : '1',
-    preferredReciterKey: data.preferred_reciter_key || DEFAULT_RECITER_KEY,
+    repeatCount: repeat === '1' || repeat === '3' || repeat === 'loop' ? repeat : null,
+    preferredReciterKey: data.preferred_reciter_key?.trim()
+      ? data.preferred_reciter_key
+      : null,
     preferredTranslationId: data.preferred_translation_id,
+    fontScale: parseFontScale(data.font_scale),
   };
 }
 
@@ -113,29 +147,36 @@ async function loadCloudBrowseStateRow(
 }
 
 function preferencesChanged(
-  before: ReaderPreferences | null,
+  before: CloudReaderPreferenceFields | null,
   after: ReaderPreferences,
 ): boolean {
-  if (!before) {
+  if (!before || !before.rowExists) {
     return true;
   }
   return (
     before.showTranslation !== after.showTranslation ||
     before.repeatCount !== after.repeatCount ||
-    before.preferredReciterKey !== after.preferredReciterKey ||
-    before.preferredTranslationId !== after.preferredTranslationId
+    (before.preferredReciterKey ?? '') !== after.preferredReciterKey ||
+    (before.preferredTranslationId ?? null) !== after.preferredTranslationId ||
+    (before.fontScale ?? null) !== after.fontScale
   );
 }
 
 /**
  * Consumes staged guest reader prefs/state into cloud tables.
- * Safe to call multiple times — removes the staged key after success.
- * Does not overwrite non-empty cloud preference fields.
+ * Idempotent: skips when migration_complete marker is set; marks complete after success.
+ * Does not overwrite non-empty cloud preference fields. Does not touch Qur'an content.
  */
 export async function mergeMigratedGuestReaderSettings(
   userId: string,
   _learner: ActiveLearner,
 ): Promise<boolean> {
+  if (await isGuestReaderMigrationComplete(userId)) {
+    const stagedKey = `${GUEST_READER_MIGRATION_PREFIX}${userId}`;
+    await AsyncStorage.removeItem(stagedKey);
+    return false;
+  }
+
   const key = `${GUEST_READER_MIGRATION_PREFIX}${userId}`;
   const raw = await AsyncStorage.getItem(key);
   if (!raw) {
@@ -148,10 +189,10 @@ export async function mergeMigratedGuestReaderSettings(
     const guestBrowse = parseGuestBrowseState(staged.readerBrowseState);
 
     if (guestPrefs) {
-      const cloudPrefs = await loadCloudPreferencesRow(userId);
-      const mergedPrefs = mergeReaderPreferencesEmptyOnly(cloudPrefs, guestPrefs);
+      const cloudFields = await loadCloudPreferenceFields(userId);
+      const mergedPrefs = mergeReaderPreferencesEmptyOnly(cloudFields, guestPrefs);
 
-      if (preferencesChanged(cloudPrefs, mergedPrefs)) {
+      if (preferencesChanged(cloudFields, mergedPrefs)) {
         const { error: prefsError } = await supabase
           .from('learner_reader_preferences')
           .upsert(
@@ -159,8 +200,10 @@ export async function mergeMigratedGuestReaderSettings(
               learner_id: userId,
               show_translation: mergedPrefs.showTranslation,
               repeat_count: mergedPrefs.repeatCount,
-              preferred_reciter_key: mergedPrefs.preferredReciterKey,
+              preferred_reciter_key:
+                mergedPrefs.preferredReciterKey || DEFAULT_RECITER_KEY,
               preferred_translation_id: mergedPrefs.preferredTranslationId,
+              font_scale: mergedPrefs.fontScale,
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'learner_id' },
@@ -189,6 +232,7 @@ export async function mergeMigratedGuestReaderSettings(
     }
 
     await AsyncStorage.removeItem(key);
+    await markGuestReaderMigrationComplete(userId);
     return true;
   } catch {
     return false;

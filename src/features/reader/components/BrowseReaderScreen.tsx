@@ -123,6 +123,7 @@ export function BrowseReaderScreen({ surah, ayah }: BrowseReaderScreenProps) {
             mode="browse"
             showTranslation={preferences.showTranslation}
             repeatCount={preferences.repeatCount}
+            fontScale={preferences.fontScale}
             onToggleTranslation={() => {
               void setShowTranslation(!preferences.showTranslation);
             }}

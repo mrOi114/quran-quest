@@ -2,14 +2,21 @@ import { Text, View } from 'react-native';
 
 import type { AgeGroupId } from '@/features/auth';
 
-import { ARABIC_FONT_FAMILY, ARABIC_FONT_SIZE } from '../constants';
+import {
+  ARABIC_FONT_FAMILY,
+  ARABIC_FONT_SIZE,
+  FONT_SCALE_MULTIPLIER,
+} from '../constants';
 import { toEasternNumerals } from '../services/numerals';
+import type { ReaderFontScale } from '../types';
 
 type ArabicVerseTextProps = {
   textUthmani: string;
   ayahNumber: number;
   ageGroup: AgeGroupId;
   isLearned?: boolean;
+  /** Display-only size override; never alters Arabic content. */
+  fontScale?: ReaderFontScale | null;
 };
 
 export function ArabicVerseText({
@@ -17,8 +24,11 @@ export function ArabicVerseText({
   ayahNumber,
   ageGroup,
   isLearned = false,
+  fontScale = null,
 }: ArabicVerseTextProps) {
-  const fontSize = ARABIC_FONT_SIZE[ageGroup];
+  const baseSize = ARABIC_FONT_SIZE[ageGroup];
+  const multiplier = fontScale ? FONT_SCALE_MULTIPLIER[fontScale] : 1;
+  const fontSize = Math.round(baseSize * multiplier);
 
   return (
     <View accessible accessibilityRole="text">

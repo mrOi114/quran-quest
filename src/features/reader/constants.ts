@@ -34,4 +34,11 @@ export const ARABIC_FONT_SIZE: Record<AgeGroupId, number> = {
   adult_18_plus: 28,
 };
 
+/** Multipliers for optional reader fontScale preference (display only). */
+export const FONT_SCALE_MULTIPLIER = {
+  default: 1,
+  large: 1.12,
+  xlarge: 1.25,
+} as const;
+
 export const EASTERN_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'] as const;

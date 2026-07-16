@@ -196,6 +196,7 @@ export type LearningEvent = {
 };
 
 export type AudioRepeatCount = '1' | '3' | 'loop';
+export type ReaderFontScale = 'default' | 'large' | 'xlarge';
 
 export type VerseExplanation = {
   verse_id: string;
@@ -214,6 +215,7 @@ export type LearnerReaderPreferences = {
   repeat_count: AudioRepeatCount;
   preferred_reciter_key: string;
   preferred_translation_id: string | null;
+  font_scale: ReaderFontScale | null;
   updated_at: string;
 };
 
@@ -475,6 +477,7 @@ export type Database = {
           repeat_count?: AudioRepeatCount;
           preferred_reciter_key?: string;
           preferred_translation_id?: string | null;
+          font_scale?: ReaderFontScale | null;
           updated_at?: string;
         },
         Partial<LearnerReaderPreferences>
