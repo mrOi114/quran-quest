@@ -1,17 +1,19 @@
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import type { HomeLessonSummary } from '../types';
 
 type TodaysLessonCardProps = {
   lesson: HomeLessonSummary;
+  onPress: () => void;
 };
 
-export function TodaysLessonCard({ lesson }: TodaysLessonCardProps) {
+export function TodaysLessonCard({ lesson, onPress }: TodaysLessonCardProps) {
   return (
-    <View
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Today's lesson. ${lesson.surahArabic}, ${lesson.surahName}. ${lesson.lessonLabel}. Progress ${lesson.progressPercent} percent. Open lesson.`}
+      onPress={onPress}
       className="mb-4 rounded-2xl bg-white/10 px-4 py-4"
-      accessible
-      accessibilityLabel={`Today's lesson. ${lesson.surahArabic}, ${lesson.surahName}. ${lesson.lessonLabel}. Progress ${lesson.progressPercent} percent.`}
     >
       <Text className="text-sm font-semibold uppercase tracking-wide text-brand-200">
         Today&apos;s Lesson
@@ -31,8 +33,8 @@ export function TodaysLessonCard({ lesson }: TodaysLessonCardProps) {
         />
       </View>
       <Text className="mt-2 text-sm text-brand-100">
-        {lesson.progressPercent}% complete
+        {lesson.progressPercent}% complete · Tap to open
       </Text>
-    </View>
+    </Pressable>
   );
 }

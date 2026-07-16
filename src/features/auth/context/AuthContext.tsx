@@ -333,13 +333,13 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
         await hydrateActiveLearner(nextProfile, kids);
 
-        // Feature 004: merge staged guest learning payload into cloud progress.
+        // Feature 005 then 004: merge staged guest reader prefs (empty-only), then learning.
         if (nextProfile) {
+          const learner = toFamilyMember(nextProfile);
+          const { mergeMigratedGuestReaderSettings } = await import('@/features/reader');
+          await mergeMigratedGuestReaderSettings(nextSession.user.id, learner);
           const { mergeMigratedGuestProgress } = await import('@/features/learning');
-          await mergeMigratedGuestProgress(
-            nextSession.user.id,
-            toFamilyMember(nextProfile),
-          );
+          await mergeMigratedGuestProgress(nextSession.user.id, learner);
         }
       },
     );
@@ -476,8 +476,11 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     setGuestProgress(null);
     setShowMilestonePrompt(false);
     if (profile) {
+      const learner = toFamilyMember(profile);
+      const { mergeMigratedGuestReaderSettings } = await import('@/features/reader');
+      await mergeMigratedGuestReaderSettings(user.id, learner);
       const { mergeMigratedGuestProgress } = await import('@/features/learning');
-      await mergeMigratedGuestProgress(user.id, toFamilyMember(profile));
+      await mergeMigratedGuestProgress(user.id, learner);
     }
   }, [profile, user]);
 

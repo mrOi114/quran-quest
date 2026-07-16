@@ -11,6 +11,10 @@ const GUEST_PROFILE_KEY = 'qq.guest.profile';
 const GUEST_PROGRESS_KEY = 'qq.guest.progress';
 const GUEST_MILESTONE_DISMISSED_KEY = 'qq.guest.milestone_dismissed';
 const GUEST_MIGRATION_PREFIX = 'qq.migrated_progress.';
+/** Staged separately so Feature 005 reader merge does not race Feature 004 learning merge. */
+const GUEST_READER_MIGRATION_PREFIX = 'qq.migrated_reader.';
+const GUEST_READER_PREFS_PREFIX = 'qq.reader.prefs.';
+const GUEST_READER_STATE_PREFIX = 'qq.reader.state.';
 
 export type GuestProfile = {
   id: string;
@@ -139,7 +143,7 @@ export async function dismissMilestonePrompt(): Promise<void> {
 
 /**
  * Migration hook: stages local guest progress against a new account id.
- * Learning tables will consume the staged payload in later features.
+ * Also stages Feature 005 reader preferences / browse state for empty-only cloud merge.
  */
 export async function transferGuestProgressToAccount(userId: string): Promise<{
   userId: string;
@@ -154,14 +158,44 @@ export async function transferGuestProgressToAccount(userId: string): Promise<{
     return { userId, progress, guestProfile: null, migrated: false };
   }
 
+  const migratedAt = new Date().toISOString();
+
   await AsyncStorage.setItem(
     `${GUEST_MIGRATION_PREFIX}${userId}`,
     JSON.stringify({
       guestProfile,
       progress,
-      migratedAt: new Date().toISOString(),
+      migratedAt,
     }),
   );
+
+  const prefsKey = `${GUEST_READER_PREFS_PREFIX}${guestProfile.id}`;
+  const stateKey = `${GUEST_READER_STATE_PREFIX}${guestProfile.id}`;
+  const prefsRaw = await AsyncStorage.getItem(prefsKey);
+  const stateRaw = await AsyncStorage.getItem(stateKey);
+  let readerPreferences: unknown | null = null;
+  let readerBrowseState: unknown | null = null;
+  try {
+    readerPreferences = prefsRaw ? (JSON.parse(prefsRaw) as unknown) : null;
+  } catch {
+    readerPreferences = null;
+  }
+  try {
+    readerBrowseState = stateRaw ? (JSON.parse(stateRaw) as unknown) : null;
+  } catch {
+    readerBrowseState = null;
+  }
+
+  await AsyncStorage.setItem(
+    `${GUEST_READER_MIGRATION_PREFIX}${userId}`,
+    JSON.stringify({
+      guestId: guestProfile.id,
+      readerPreferences,
+      readerBrowseState,
+      migratedAt,
+    }),
+  );
+  await AsyncStorage.multiRemove([prefsKey, stateKey]);
 
   await clearGuestProfile();
 

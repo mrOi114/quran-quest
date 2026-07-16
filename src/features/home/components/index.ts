@@ -6,5 +6,6 @@ export { HifzCirclePlaceholder } from './HifzCirclePlaceholder';
 export { HomeDashboard } from './HomeDashboard';
 export { ParentAccessLink } from './ParentAccessLink';
 export { PracticeWithAiButton } from './PracticeWithAiButton';
+export { ReadJuz30Button } from './ReadJuz30Button';
 export { TodaysLessonCard } from './TodaysLessonCard';
 export { WelcomeSection } from './WelcomeSection';

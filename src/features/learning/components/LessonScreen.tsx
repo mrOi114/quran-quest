@@ -1,19 +1,38 @@
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/features/auth';
+import { PrimaryButton, useAuth } from '@/features/auth';
+import {
+  ReaderVerseFocus,
+  lessonVerseToReaderViewModel,
+  useReaderPreferences,
+} from '@/features/reader';
+import type { AudioRepeatCount } from '@/types';
 
 import { useLessonSession } from '../hooks/useLessonSession';
-import { LessonVerseCard } from './LessonVerseCard';
+import { resolveAgeGroup } from '../services/ageGroup';
 
 type LessonScreenProps = {
   lessonKey?: string;
 };
 
+function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
+  if (current === '1') return '3';
+  if (current === '3') return 'loop';
+  return '1';
+}
+
 export function LessonScreen({ lessonKey }: LessonScreenProps) {
   const router = useRouter();
+  const { activeLearner } = useAuth();
+  const {
+    preferences,
+    setShowTranslation,
+    setRepeatCount,
+    isLoading: prefsLoading,
+  } = useReaderPreferences();
   const {
     session,
     isLoading,
@@ -23,6 +42,12 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     markCurrentVerseLearned,
     completeCurrentLesson,
   } = useLessonSession(lessonKey);
+
+  const [playedVerseIds, setPlayedVerseIds] = useState<Record<string, true>>({});
+  const [listenHint, setListenHint] = useState<string | null>(null);
+
+  const ageGroup = activeLearner ? resolveAgeGroup(activeLearner) : 'adult_18_plus';
+  const encourageListenFirst = ageGroup === 'child_3_6';
 
   useEffect(() => {
     if (!session || !lessonKey) {
@@ -36,7 +61,22 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     }
   }, [lessonKey, router, session]);
 
-  if (isLoading && !session) {
+  const handlePlayedOnce = useCallback((verseId: string) => {
+    setPlayedVerseIds((current) =>
+      current[verseId] ? current : { ...current, [verseId]: true },
+    );
+    setListenHint(null);
+  }, []);
+
+  const selectVerse = useCallback(
+    (index: number) => {
+      setListenHint(null);
+      setActiveVerseIndex(index);
+    },
+    [setActiveVerseIndex],
+  );
+
+  if ((isLoading || prefsLoading) && !session) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
@@ -58,7 +98,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     );
   }
 
-  if (!session) {
+  if (!session || !activeLearner || !preferences) {
     return (
       <SafeAreaView className="flex-1 justify-center bg-brand-50 px-6">
         <Text className="mb-6 text-base text-brand-600">No lesson available yet.</Text>
@@ -80,6 +120,11 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     activeVerse?.progress.status === 'learned' ||
     activeVerse?.progress.status === 'mastered';
 
+  const readerVerse = activeVerse
+    ? lessonVerseToReaderViewModel(activeVerse, activeLearner, preferences)
+    : null;
+  const hasPlayedOnce = activeVerse ? Boolean(playedVerseIds[activeVerse.id]) : false;
+
   async function handleComplete() {
     const nextKey = await completeCurrentLesson();
     if (nextKey) {
@@ -90,6 +135,15 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       return;
     }
     router.replace('/(app)/home');
+  }
+
+  function handleMarkLearned() {
+    if (encourageListenFirst && !hasPlayedOnce && !activeLearned) {
+      setListenHint('Listen first, then mark this ayah.');
+      return;
+    }
+    setListenHint(null);
+    void markCurrentVerseLearned();
   }
 
   return (
@@ -135,7 +189,23 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
         </Text>
 
         <View className="mt-5">
-          {activeVerse ? <LessonVerseCard verse={activeVerse} isActive /> : null}
+          {readerVerse ? (
+            <ReaderVerseFocus
+              key={readerVerse.id}
+              verse={readerVerse}
+              ageGroup={ageGroup}
+              mode="lesson"
+              showTranslation={preferences.showTranslation}
+              repeatCount={preferences.repeatCount}
+              onToggleTranslation={() => {
+                void setShowTranslation(!preferences.showTranslation);
+              }}
+              onCycleRepeat={() => {
+                void setRepeatCount(nextRepeat(preferences.repeatCount));
+              }}
+              onPlayedOnce={() => handlePlayedOnce(readerVerse.id)}
+            />
+          ) : null}
         </View>
 
         {session.verses.length > 1 ? (
@@ -150,7 +220,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                   key={verse.id}
                   accessibilityRole="button"
                   accessibilityLabel={`Go to ayah ${verse.ayahNumber}`}
-                  onPress={() => setActiveVerseIndex(index)}
+                  onPress={() => selectVerse(index)}
                   className={`min-h-11 min-w-11 items-center justify-center rounded-xl px-3 ${
                     selected ? 'bg-white' : learned ? 'bg-brand-400' : 'bg-brand-700'
                   }`}
@@ -170,14 +240,15 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
         <View className="mt-6 rounded-2xl bg-brand-50 px-4 py-4">
           {error ? <Text className="mb-3 text-sm text-red-700">{error}</Text> : null}
+          {listenHint ? (
+            <Text className="mb-3 text-center text-sm text-brand-600">{listenHint}</Text>
+          ) : null}
 
           {!isReview && activeVerse && !activeLearned ? (
             <PrimaryButton
               label="I learned this ayah"
               loading={isLoading}
-              onPress={() => {
-                void markCurrentVerseLearned();
-              }}
+              onPress={handleMarkLearned}
             />
           ) : null}
 
@@ -225,16 +296,14 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
               variant="secondary"
               disabled={activeVerseIndex >= session.verses.length - 1}
               onPress={() =>
-                setActiveVerseIndex(
-                  Math.min(activeVerseIndex + 1, session.verses.length - 1),
-                )
+                selectVerse(Math.min(activeVerseIndex + 1, session.verses.length - 1))
               }
             />
           ) : null}
         </View>
 
         <Text className="mt-4 text-center text-xs text-brand-100">
-          Arabic is for memorization. English helps understanding only.
+          Arabic is for memorization. Translation helps understanding only.
         </Text>
       </ScrollView>
     </SafeAreaView>

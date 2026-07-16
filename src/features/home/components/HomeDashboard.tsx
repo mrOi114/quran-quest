@@ -13,6 +13,7 @@ import { GuestAccountReminder } from './GuestAccountReminder';
 import { HifzCirclePlaceholder } from './HifzCirclePlaceholder';
 import { ParentAccessLink } from './ParentAccessLink';
 import { PracticeWithAiButton } from './PracticeWithAiButton';
+import { ReadJuz30Button } from './ReadJuz30Button';
 import { TodaysLessonCard } from './TodaysLessonCard';
 import { WelcomeSection } from './WelcomeSection';
 
@@ -73,7 +74,14 @@ export function HomeDashboard() {
           }}
         />
 
-        <TodaysLessonCard lesson={dashboard.todaysLesson} />
+        <TodaysLessonCard
+          lesson={dashboard.todaysLesson}
+          onPress={() => {
+            void handleContinueLearning();
+          }}
+        />
+
+        <ReadJuz30Button onPress={() => router.push('/(app)/reader')} />
 
         <DailyRevisionCard
           verseCount={dashboard.revisionVerseCount}

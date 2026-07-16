@@ -37,4 +37,4 @@
 
 - [ ] Home Continue Learning opens real lesson (not placeholder)
 - [ ] Guest milestone counters still track completed Juz 30 surahs
-- [ ] Feature 005 Reader not started (no advanced mushaf UI)
+- [ ] Feature 005 Reader may extend lesson UI; Feature 004 unlock rules stay unchanged

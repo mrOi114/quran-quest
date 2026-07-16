@@ -1,12 +1,16 @@
 export type {
   ApprovedDevice,
+  AudioRepeatCount,
   ContentApprovalStatus,
   Database,
   Json,
+  LearnerReaderPreferences,
+  LearnerReaderState,
   LearningEventType,
   Profile,
   ProfileRole,
   RevisionStatus,
   SurahLearningStatus,
+  VerseExplanation,
   VerseLearningStatus,
 } from './database';

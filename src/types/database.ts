@@ -1,5 +1,5 @@
 /**
- * Supabase Database types for Features 001–004.
+ * Supabase Database types for Features 001–005.
  * Regenerate with `supabase gen types typescript` when the remote schema changes.
  */
 export type Json =
@@ -193,6 +193,35 @@ export type LearningEvent = {
   event_type: LearningEventType;
   payload: Json;
   created_at: string;
+};
+
+export type AudioRepeatCount = '1' | '3' | 'loop';
+
+export type VerseExplanation = {
+  verse_id: string;
+  language_code: string;
+  text: string;
+  approval_status: ContentApprovalStatus;
+  approved_at: string | null;
+  content_version: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LearnerReaderPreferences = {
+  learner_id: string;
+  show_translation: boolean;
+  repeat_count: AudioRepeatCount;
+  preferred_reciter_key: string;
+  preferred_translation_id: string | null;
+  updated_at: string;
+};
+
+export type LearnerReaderState = {
+  learner_id: string;
+  last_surah_number: number;
+  last_ayah_number: number;
+  updated_at: string;
 };
 
 type TableDef<Row, Insert, Update> = {
@@ -423,6 +452,42 @@ export type Database = {
           created_at?: string;
         },
         Partial<LearningEvent>
+      >;
+      verse_explanations: TableDef<
+        VerseExplanation,
+        {
+          verse_id: string;
+          language_code: string;
+          text: string;
+          approval_status?: ContentApprovalStatus;
+          approved_at?: string | null;
+          content_version?: number;
+          created_at?: string;
+          updated_at?: string;
+        },
+        Partial<VerseExplanation>
+      >;
+      learner_reader_preferences: TableDef<
+        LearnerReaderPreferences,
+        {
+          learner_id: string;
+          show_translation?: boolean;
+          repeat_count?: AudioRepeatCount;
+          preferred_reciter_key?: string;
+          preferred_translation_id?: string | null;
+          updated_at?: string;
+        },
+        Partial<LearnerReaderPreferences>
+      >;
+      learner_reader_state: TableDef<
+        LearnerReaderState,
+        {
+          learner_id: string;
+          last_surah_number: number;
+          last_ayah_number: number;
+          updated_at?: string;
+        },
+        Partial<LearnerReaderState>
       >;
     };
     Views: Record<string, never>;
