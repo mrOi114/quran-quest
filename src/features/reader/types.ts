@@ -3,15 +3,36 @@ import type { AudioRepeatCount } from '@/types';
 
 export type ReaderMode = 'lesson' | 'browse' | 'practice';
 
-/** Optional Arabic size override; null means age-group default. Never changes Uthmani text. */
+/**
+ * Optional display size override.
+ * V1 Feature 005 keeps Arabic size age-derived (`null`); column reserved for later.
+ * Never changes Uthmani text content.
+ */
 export type ReaderFontScale = 'default' | 'large' | 'xlarge';
+
+/**
+ * Future-ready Reader settings (architecture only — no UI in Feature 005).
+ * `null` / omitted means unset and may be filled by guest→cloud empty-only merge later.
+ */
+export type ReaderFutureSettings = {
+  /** When true, advance to next ayah after playback ends (browse). */
+  autoPlayNextVerse: boolean | null;
+  /** Playback rate; null means platform default (1.0). */
+  playbackSpeed: number | null;
+  /** Visual mushaf presentation preference; Arabic source remains Uthmani. */
+  mushafStyle: 'uthmani_standard' | 'indopak' | null;
+  /** Reader chrome color scheme; null follows system / app theme. */
+  nightMode: 'system' | 'light' | 'dark' | null;
+};
 
 export type ReaderPreferences = {
   showTranslation: boolean;
   repeatCount: AudioRepeatCount;
   preferredReciterKey: string;
   preferredTranslationId: string | null;
+  /** Always null in V1 UI paths — age-derived sizing. Reserved for future. */
   fontScale: ReaderFontScale | null;
+  futureSettings: ReaderFutureSettings;
 };
 
 /**
@@ -25,7 +46,7 @@ export type CloudReaderPreferenceFields = {
   repeatCount: AudioRepeatCount | null;
   preferredReciterKey: string | null;
   preferredTranslationId: string | null;
-  fontScale: ReaderFontScale | null;
+  futureSettings: ReaderFutureSettings | null;
 };
 
 export type ReaderBrowseState = {

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ActiveLearner } from '@/features/auth';
 import { supabase } from '@/lib/supabase';
-import type { AudioRepeatCount, ReaderFontScale } from '@/types';
+import type { AudioRepeatCount, Json } from '@/types';
 
 import { DEFAULT_RECITER_KEY } from '../constants';
 import { readerBrowseStateSchema, readerPreferencesSchema } from '../schemas';
@@ -11,6 +11,11 @@ import type {
   ReaderBrowseState,
   ReaderPreferences,
 } from '../types';
+import {
+  emptyFutureSettings,
+  mergeFutureSettingsEmptyOnly,
+  parseFutureSettings,
+} from './futureSettings';
 
 export const GUEST_READER_MIGRATION_PREFIX = 'qq.migrated_reader.';
 /** Set after a successful cloud merge so prefs are never migrated twice. */
@@ -25,15 +30,20 @@ type StagedGuestReaderPayload = {
 
 /**
  * Field-by-field empty-only merge.
- * For each preference: copy guest when cloud field is empty/null; otherwise keep cloud.
- * Never overwrites a set cloud value. Safe to run repeatedly with the same inputs.
+ * Copy guest only when the cloud field is empty/null. Never overwrite set cloud values.
+ * Font size stays age-derived: `fontScale` is always null (not migrated from guest).
  */
 export function mergeReaderPreferencesEmptyOnly(
   cloud: CloudReaderPreferenceFields | null,
   guest: ReaderPreferences,
 ): ReaderPreferences {
   if (!cloud || !cloud.rowExists) {
-    return { ...guest };
+    return {
+      ...guest,
+      // Age-derived sizing — do not persist guest font overrides in V1.
+      fontScale: null,
+      futureSettings: mergeFutureSettingsEmptyOnly(null, guest.futureSettings),
+    };
   }
 
   const cloudReciter = cloud.preferredReciterKey?.trim() ?? '';
@@ -47,7 +57,11 @@ export function mergeReaderPreferencesEmptyOnly(
       cloudReciter.length > 0 ? cloudReciter : guest.preferredReciterKey,
     preferredTranslationId:
       cloudTranslation.length > 0 ? cloudTranslation : guest.preferredTranslationId,
-    fontScale: cloud.fontScale === null ? guest.fontScale : cloud.fontScale,
+    fontScale: null,
+    futureSettings: mergeFutureSettingsEmptyOnly(
+      cloud.futureSettings,
+      guest.futureSettings,
+    ),
   };
 }
 
@@ -91,20 +105,13 @@ function parseGuestBrowseState(raw: unknown): ReaderBrowseState | null {
   return parsed.success ? parsed.data : null;
 }
 
-function parseFontScale(value: string | null): ReaderFontScale | null {
-  if (value === 'default' || value === 'large' || value === 'xlarge') {
-    return value;
-  }
-  return null;
-}
-
 async function loadCloudPreferenceFields(
   learnerId: string,
 ): Promise<CloudReaderPreferenceFields | null> {
   const { data, error } = await supabase
     .from('learner_reader_preferences')
     .select(
-      'show_translation, repeat_count, preferred_reciter_key, preferred_translation_id, font_scale',
+      'show_translation, repeat_count, preferred_reciter_key, preferred_translation_id, future_settings',
     )
     .eq('learner_id', learnerId)
     .maybeSingle();
@@ -116,14 +123,13 @@ async function loadCloudPreferenceFields(
   const repeat = data.repeat_count as AudioRepeatCount;
   return {
     rowExists: true,
-    // Row present ⇒ these non-null columns are treated as set (never overwritten).
     showTranslation: data.show_translation,
     repeatCount: repeat === '1' || repeat === '3' || repeat === 'loop' ? repeat : null,
     preferredReciterKey: data.preferred_reciter_key?.trim()
       ? data.preferred_reciter_key
       : null,
     preferredTranslationId: data.preferred_translation_id,
-    fontScale: parseFontScale(data.font_scale),
+    futureSettings: parseFutureSettings(data.future_settings),
   };
 }
 
@@ -153,12 +159,16 @@ function preferencesChanged(
   if (!before || !before.rowExists) {
     return true;
   }
+  const beforeFuture = before.futureSettings ?? emptyFutureSettings();
   return (
     before.showTranslation !== after.showTranslation ||
     before.repeatCount !== after.repeatCount ||
     (before.preferredReciterKey ?? '') !== after.preferredReciterKey ||
     (before.preferredTranslationId ?? null) !== after.preferredTranslationId ||
-    (before.fontScale ?? null) !== after.fontScale
+    beforeFuture.autoPlayNextVerse !== after.futureSettings.autoPlayNextVerse ||
+    beforeFuture.playbackSpeed !== after.futureSettings.playbackSpeed ||
+    beforeFuture.mushafStyle !== after.futureSettings.mushafStyle ||
+    beforeFuture.nightMode !== after.futureSettings.nightMode
   );
 }
 
@@ -203,7 +213,8 @@ export async function mergeMigratedGuestReaderSettings(
               preferred_reciter_key:
                 mergedPrefs.preferredReciterKey || DEFAULT_RECITER_KEY,
               preferred_translation_id: mergedPrefs.preferredTranslationId,
-              font_scale: mergedPrefs.fontScale,
+              font_scale: null,
+              future_settings: mergedPrefs.futureSettings as unknown as Json,
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'learner_id' },

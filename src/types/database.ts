@@ -216,6 +216,7 @@ export type LearnerReaderPreferences = {
   preferred_reciter_key: string;
   preferred_translation_id: string | null;
   font_scale: ReaderFontScale | null;
+  future_settings: Json;
   updated_at: string;
 };
 
@@ -478,6 +479,7 @@ export type Database = {
           preferred_reciter_key?: string;
           preferred_translation_id?: string | null;
           font_scale?: ReaderFontScale | null;
+          future_settings?: Json;
           updated_at?: string;
         },
         Partial<LearnerReaderPreferences>

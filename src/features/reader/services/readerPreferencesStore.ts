@@ -5,7 +5,7 @@ import { isGuestLearner } from '@/features/auth';
 import { JUZ_30_SURAH_START } from '@/features/learning/constants';
 import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
 import { supabase } from '@/lib/supabase';
-import type { AudioRepeatCount, ReaderFontScale } from '@/types';
+import type { AudioRepeatCount, Json } from '@/types';
 
 import {
   DEFAULT_RECITER_KEY,
@@ -16,6 +16,7 @@ import {
 } from '../constants';
 import { readerBrowseStateSchema, readerPreferencesSchema } from '../schemas';
 import type { ReaderBrowseState, ReaderPreferences } from '../types';
+import { emptyFutureSettings, parseFutureSettings } from './futureSettings';
 
 function guestPrefsKey(learnerId: string): string {
   return `${READER_PREFS_STORAGE_KEY}.${learnerId}`;
@@ -23,13 +24,6 @@ function guestPrefsKey(learnerId: string): string {
 
 function guestStateKey(learnerId: string): string {
   return `${READER_STATE_STORAGE_KEY}.${learnerId}`;
-}
-
-function parseFontScale(value: string | null | undefined): ReaderFontScale | null {
-  if (value === 'default' || value === 'large' || value === 'xlarge') {
-    return value;
-  }
-  return null;
 }
 
 export function buildDefaultPreferences(learner: ActiveLearner): ReaderPreferences {
@@ -40,6 +34,7 @@ export function buildDefaultPreferences(learner: ActiveLearner): ReaderPreferenc
     preferredReciterKey: DEFAULT_RECITER_KEY,
     preferredTranslationId: null,
     fontScale: null,
+    futureSettings: emptyFutureSettings(),
   };
 }
 
@@ -62,7 +57,14 @@ export async function loadReaderPreferences(
     }
     try {
       const parsed = readerPreferencesSchema.safeParse(JSON.parse(raw));
-      return parsed.success ? parsed.data : defaults;
+      if (!parsed.success) {
+        return defaults;
+      }
+      return {
+        ...parsed.data,
+        // V1: Arabic size stays age-derived.
+        fontScale: null,
+      };
     } catch {
       return defaults;
     }
@@ -71,7 +73,7 @@ export async function loadReaderPreferences(
   const { data, error } = await supabase
     .from('learner_reader_preferences')
     .select(
-      'show_translation, repeat_count, preferred_reciter_key, preferred_translation_id, font_scale',
+      'show_translation, repeat_count, preferred_reciter_key, preferred_translation_id, future_settings',
     )
     .eq('learner_id', learner.id)
     .maybeSingle();
@@ -89,7 +91,8 @@ export async function loadReaderPreferences(
         : defaults.repeatCount,
     preferredReciterKey: data.preferred_reciter_key || DEFAULT_RECITER_KEY,
     preferredTranslationId: data.preferred_translation_id,
-    fontScale: parseFontScale(data.font_scale),
+    fontScale: null,
+    futureSettings: parseFutureSettings(data.future_settings),
   };
 }
 
@@ -97,7 +100,10 @@ export async function saveReaderPreferences(
   learner: ActiveLearner,
   prefs: ReaderPreferences,
 ): Promise<void> {
-  const validated = readerPreferencesSchema.parse(prefs);
+  const validated = readerPreferencesSchema.parse({
+    ...prefs,
+    fontScale: null,
+  });
 
   if (isGuestLearner(learner)) {
     await AsyncStorage.setItem(guestPrefsKey(learner.id), JSON.stringify(validated));
@@ -111,7 +117,8 @@ export async function saveReaderPreferences(
       repeat_count: validated.repeatCount,
       preferred_reciter_key: validated.preferredReciterKey,
       preferred_translation_id: validated.preferredTranslationId,
-      font_scale: validated.fontScale,
+      font_scale: null,
+      future_settings: validated.futureSettings as unknown as Json,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'learner_id' },

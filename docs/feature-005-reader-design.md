@@ -97,8 +97,10 @@ Reuses Feature 004 content + progress tables unchanged for verse identity and le
 - No microphone permission in Feature 005.
 - Guest prefs local (`qq.reader.prefs` / reader state keys).
 - On register, guest reader prefs/state stage to `qq.migrated_reader.<userId>` and merge into cloud **field-by-field** (empty/null cloud fields only; set cloud values never overwritten).
-- After successful merge, local marker `qq.reader.migration_complete.<userId>` prevents re-migration on later sign-ins.
-- Optional `font_scale` is display-only; null uses age-group default. Preference migration never mutates Arabic Uthmani or lesson progress.
+- After successful merge, local marker `qq.reader.migration_complete.<userId>` prevents re-migration on later sign-ins (idempotent).
+- Arabic size is **age-derived** in V1 (`fontScale` always null; not migrated from guest).
+- `future_settings` JSON reserves auto-play next, playback speed, mushaf style, and night mode — architecture only, no UI in 005.
+- Preference migration never mutates Arabic Uthmani or lesson progress.
 
 ---
 
