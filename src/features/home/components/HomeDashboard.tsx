@@ -33,7 +33,7 @@ export function HomeDashboard() {
     if (!activeLearner || !dashboard) {
       return;
     }
-    const lesson = await resolveContinueLesson(activeLearner.id);
+    const lesson = await resolveContinueLesson(activeLearner);
     await refresh();
     router.push({
       pathname: '/(app)/lesson',

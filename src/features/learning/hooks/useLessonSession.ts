@@ -1,0 +1,139 @@
+import { useCallback, useEffect, useState } from 'react';
+
+import { useAuth } from '@/features/auth';
+
+import {
+  completeLesson,
+  markVerseLearned,
+  openLessonSession,
+  resolveContinueLessonKey,
+} from '../services';
+import type { LessonSession } from '../types';
+
+type UseLessonSessionResult = {
+  session: LessonSession | null;
+  isLoading: boolean;
+  error: string | null;
+  activeVerseIndex: number;
+  setActiveVerseIndex: (index: number) => void;
+  markCurrentVerseLearned: () => Promise<void>;
+  completeCurrentLesson: () => Promise<string | null>;
+  reload: () => Promise<void>;
+};
+
+export function useLessonSession(lessonKey: string | undefined): UseLessonSessionResult {
+  const { activeLearner, refreshGuestProgress } = useAuth();
+  const [session, setSession] = useState<LessonSession | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeVerseIndex, setActiveVerseIndex] = useState(0);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      await Promise.resolve();
+      if (cancelled) {
+        return;
+      }
+      if (!activeLearner) {
+        setSession(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+      try {
+        const resolvedKey = lessonKey ?? (await resolveContinueLessonKey(activeLearner));
+        const next = await openLessonSession(activeLearner, resolvedKey);
+        if (!cancelled) {
+          setSession(next);
+          const firstUnlearned = next.verses.findIndex(
+            (verse) =>
+              verse.progress.status !== 'learned' && verse.progress.status !== 'mastered',
+          );
+          setActiveVerseIndex(firstUnlearned >= 0 ? firstUnlearned : 0);
+          await refreshGuestProgress();
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Could not open this lesson.');
+          setSession(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLearner, lessonKey, refreshGuestProgress, reloadKey]);
+
+  const reload = useCallback(async () => {
+    setReloadKey((value) => value + 1);
+  }, []);
+
+  const markCurrentVerseLearned = useCallback(async () => {
+    if (!activeLearner || !session) {
+      return;
+    }
+    const verse = session.verses[activeVerseIndex];
+    if (!verse) {
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const next = await markVerseLearned(
+        activeLearner,
+        verse.id,
+        session.lesson.lessonKey,
+      );
+      setSession(next);
+      await refreshGuestProgress();
+      const nextIndex = Math.min(activeVerseIndex + 1, next.verses.length - 1);
+      setActiveVerseIndex(nextIndex);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save verse progress.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeLearner, activeVerseIndex, refreshGuestProgress, session]);
+
+  const completeCurrentLesson = useCallback(async () => {
+    if (!activeLearner || !session) {
+      return null;
+    }
+    setIsLoading(true);
+    try {
+      const { nextLessonKey, session: nextSession } = await completeLesson(
+        activeLearner,
+        session.lesson,
+      );
+      setSession(nextSession);
+      await refreshGuestProgress();
+      return nextLessonKey;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not complete the lesson.');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeLearner, refreshGuestProgress, session]);
+
+  return {
+    session,
+    isLoading,
+    error,
+    activeVerseIndex,
+    setActiveVerseIndex,
+    markCurrentVerseLearned,
+    completeCurrentLesson,
+    reload,
+  };
+}

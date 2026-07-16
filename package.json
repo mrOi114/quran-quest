@@ -16,6 +16,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
+    "content:juz30": "node ./scripts/generate-juz30-content.mjs",
+    "verify:feature-004": "node ./scripts/verify-feature-004.mjs",
     "postinstall": "node ./scripts/ensure-native-deps.js"
   },
   "dependencies": {
