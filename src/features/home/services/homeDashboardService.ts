@@ -1,39 +1,43 @@
 import type { GuestProgress } from '@/features/auth';
 import { canManageFamily } from '@/features/auth';
 import type { ActiveLearner } from '@/features/auth';
+import {
+  countCompletedLessons,
+  countCompletedSurahs,
+  getCurrentLessonSummary,
+  loadLearningSnapshot,
+} from '@/features/learning';
 import type { Profile } from '@/types';
 
 import { ABU_HAFIDUL_QURAN_ENCOURAGEMENT, GUEST_REMINDER_MIN_SURAHS } from '../constants';
 import type { HomeAchievements, HomeDashboardModel, HomeLessonSummary } from '../types';
-import { getDefaultFirstLesson, getLastLesson } from './lastLessonStorage';
 
 function buildGreeting(nickname: string): string {
   return `Assalamu Alaikum, ${nickname}.`;
 }
 
-function placeholderAchievements(surahsCompleted: number): HomeAchievements {
+function placeholderAchievements(
+  lessonsCompleted: number,
+  surahsCompleted: number,
+): HomeAchievements {
   return {
-    streakDays: surahsCompleted > 0 ? Math.min(surahsCompleted, 7) : 0,
-    lessonsCompleted: surahsCompleted,
+    streakDays: lessonsCompleted > 0 ? Math.min(lessonsCompleted, 7) : 0,
+    lessonsCompleted,
     surahsCompleted,
   };
 }
 
-function lessonFromGuestProgress(
-  base: HomeLessonSummary,
-  guestProgress: GuestProgress | null,
+function toHomeLesson(
+  summary: Awaited<ReturnType<typeof getCurrentLessonSummary>>,
 ): HomeLessonSummary {
-  const completed = guestProgress?.juz30SurahsCompleted ?? 0;
-  if (completed <= 0) {
-    return base;
-  }
-
-  // Guest demo progress maps to a gentle “in progress” state until Feature 004.
   return {
-    ...base,
-    hasStarted: true,
-    progressPercent: Math.min(90, 20 + completed * 5),
-    lessonLabel: `Lesson ${Math.min(completed, 5)}`,
+    lessonId: summary.lessonKey,
+    surahNumber: summary.surahNumber,
+    surahName: summary.surahName,
+    surahArabic: summary.surahArabic,
+    lessonLabel: summary.lessonLabel,
+    progressPercent: summary.progressPercent,
+    hasStarted: summary.hasStarted,
   };
 }
 
@@ -45,14 +49,15 @@ export async function buildHomeDashboard(options: {
 }): Promise<HomeDashboardModel> {
   const { activeLearner, profile, isGuest, guestProgress } = options;
   const nickname = activeLearner.display_name.trim() || 'Friend';
-  const savedLesson = await getLastLesson(activeLearner.id);
-  const baseLesson = savedLesson ?? getDefaultFirstLesson();
 
-  const todaysLesson = isGuest
-    ? lessonFromGuestProgress(baseLesson, guestProgress)
-    : baseLesson;
+  const snapshot = await loadLearningSnapshot(activeLearner);
+  const lessonSummary = await getCurrentLessonSummary(activeLearner);
+  const todaysLesson = toHomeLesson(lessonSummary);
 
-  const surahsCompleted = isGuest ? (guestProgress?.juz30SurahsCompleted ?? 0) : 0;
+  const surahsCompleted = isGuest
+    ? (guestProgress?.juz30SurahsCompleted ?? countCompletedSurahs(snapshot))
+    : countCompletedSurahs(snapshot);
+  const lessonsCompleted = countCompletedLessons(snapshot);
 
   return {
     nickname,
@@ -60,7 +65,7 @@ export async function buildHomeDashboard(options: {
     encouragement: ABU_HAFIDUL_QURAN_ENCOURAGEMENT,
     todaysLesson,
     revisionVerseCount: surahsCompleted > 0 ? Math.min(surahsCompleted * 2, 12) : 0,
-    achievements: placeholderAchievements(surahsCompleted),
+    achievements: placeholderAchievements(lessonsCompleted, surahsCompleted),
     isGuest,
     showGuestReminder: isGuest && surahsCompleted >= GUEST_REMINDER_MIN_SURAHS,
     showParentAccess: canManageFamily({

@@ -332,6 +332,15 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         }
 
         await hydrateActiveLearner(nextProfile, kids);
+
+        // Feature 004: merge staged guest learning payload into cloud progress.
+        if (nextProfile) {
+          const { mergeMigratedGuestProgress } = await import('@/features/learning');
+          await mergeMigratedGuestProgress(
+            nextSession.user.id,
+            toFamilyMember(nextProfile),
+          );
+        }
       },
     );
 
@@ -466,7 +475,11 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     setGuestProfile(null);
     setGuestProgress(null);
     setShowMilestonePrompt(false);
-  }, [user]);
+    if (profile) {
+      const { mergeMigratedGuestProgress } = await import('@/features/learning');
+      await mergeMigratedGuestProgress(user.id, toFamilyMember(profile));
+    }
+  }, [profile, user]);
 
   const clearPasswordResetFlag = useCallback(() => {
     setNeedsPasswordReset(false);
