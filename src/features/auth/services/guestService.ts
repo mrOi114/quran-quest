@@ -1,0 +1,169 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Crypto from 'expo-crypto';
+
+import {
+  GUEST_LIMIT_SURAHS,
+  GUEST_MILESTONE_SURAHS,
+  type AgeGroupId,
+} from '../constants';
+
+const GUEST_PROFILE_KEY = 'qq.guest.profile';
+const GUEST_PROGRESS_KEY = 'qq.guest.progress';
+const GUEST_MILESTONE_DISMISSED_KEY = 'qq.guest.milestone_dismissed';
+const GUEST_MIGRATION_PREFIX = 'qq.migrated_progress.';
+
+export type GuestProfile = {
+  id: string;
+  displayName: string;
+  ageGroup: AgeGroupId;
+  countryCode: string;
+  preferredLanguage: string;
+  createdAt: string;
+};
+
+export type GuestProgress = {
+  /** Count of Juz 30 surahs the guest has meaningfully engaged with. */
+  juz30SurahsCompleted: number;
+  /** Opaque local progress blob for future learning features to merge on register. */
+  learningPayload: Record<string, unknown>;
+  updatedAt: string;
+};
+
+function emptyProgress(): GuestProgress {
+  return {
+    juz30SurahsCompleted: 0,
+    learningPayload: {},
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export async function getGuestProfile(): Promise<GuestProfile | null> {
+  const raw = await AsyncStorage.getItem(GUEST_PROFILE_KEY);
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as GuestProfile;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveGuestProfile(
+  input: Omit<GuestProfile, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
+): Promise<GuestProfile> {
+  const profile: GuestProfile = {
+    id: input.id ?? Crypto.randomUUID(),
+    displayName: input.displayName.trim(),
+    ageGroup: input.ageGroup,
+    countryCode: input.countryCode.toUpperCase(),
+    preferredLanguage: input.preferredLanguage.trim(),
+    createdAt: input.createdAt ?? new Date().toISOString(),
+  };
+  await AsyncStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(profile));
+
+  const existingProgress = await AsyncStorage.getItem(GUEST_PROGRESS_KEY);
+  if (!existingProgress) {
+    await saveGuestProgress(emptyProgress());
+  }
+  await AsyncStorage.removeItem(GUEST_MILESTONE_DISMISSED_KEY);
+
+  return profile;
+}
+
+export async function clearGuestProfile(): Promise<void> {
+  await AsyncStorage.multiRemove([
+    GUEST_PROFILE_KEY,
+    GUEST_PROGRESS_KEY,
+    GUEST_MILESTONE_DISMISSED_KEY,
+  ]);
+}
+
+export async function getGuestProgress(): Promise<GuestProgress> {
+  const raw = await AsyncStorage.getItem(GUEST_PROGRESS_KEY);
+  if (!raw) {
+    return emptyProgress();
+  }
+  try {
+    return JSON.parse(raw) as GuestProgress;
+  } catch {
+    return emptyProgress();
+  }
+}
+
+export async function saveGuestProgress(progress: GuestProgress): Promise<void> {
+  await AsyncStorage.setItem(
+    GUEST_PROGRESS_KEY,
+    JSON.stringify({ ...progress, updatedAt: new Date().toISOString() }),
+  );
+}
+
+/** Used by learning features (and home stub) to update local guest progress. */
+export async function recordGuestSurahProgress(
+  surahsCompleted: number,
+): Promise<GuestProgress> {
+  const current = await getGuestProgress();
+  const next: GuestProgress = {
+    ...current,
+    juz30SurahsCompleted: Math.min(
+      GUEST_LIMIT_SURAHS,
+      Math.max(current.juz30SurahsCompleted, surahsCompleted),
+    ),
+    updatedAt: new Date().toISOString(),
+  };
+  await saveGuestProgress(next);
+  return next;
+}
+
+export async function addGuestSurahProgress(delta = 1): Promise<GuestProgress> {
+  const current = await getGuestProgress();
+  return recordGuestSurahProgress(current.juz30SurahsCompleted + Math.max(0, delta));
+}
+
+export function hasReachedGuestMilestone(progress: GuestProgress): boolean {
+  return progress.juz30SurahsCompleted >= GUEST_MILESTONE_SURAHS;
+}
+
+export function hasReachedGuestLimit(progress: GuestProgress): boolean {
+  return progress.juz30SurahsCompleted >= GUEST_LIMIT_SURAHS;
+}
+
+export async function isMilestoneDismissed(): Promise<boolean> {
+  const value = await AsyncStorage.getItem(GUEST_MILESTONE_DISMISSED_KEY);
+  return value === 'true';
+}
+
+export async function dismissMilestonePrompt(): Promise<void> {
+  await AsyncStorage.setItem(GUEST_MILESTONE_DISMISSED_KEY, 'true');
+}
+
+/**
+ * Migration hook: stages local guest progress against a new account id.
+ * Learning tables will consume the staged payload in later features.
+ */
+export async function transferGuestProgressToAccount(userId: string): Promise<{
+  userId: string;
+  progress: GuestProgress;
+  guestProfile: GuestProfile | null;
+  migrated: boolean;
+}> {
+  const guestProfile = await getGuestProfile();
+  const progress = await getGuestProgress();
+
+  if (!guestProfile) {
+    return { userId, progress, guestProfile: null, migrated: false };
+  }
+
+  await AsyncStorage.setItem(
+    `${GUEST_MIGRATION_PREFIX}${userId}`,
+    JSON.stringify({
+      guestProfile,
+      progress,
+      migratedAt: new Date().toISOString(),
+    }),
+  );
+
+  await clearGuestProfile();
+
+  return { userId, progress, guestProfile, migrated: true };
+}

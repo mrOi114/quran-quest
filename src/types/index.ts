@@ -1,1 +1,1 @@
-export type { Database, Json } from './database';
+export type { ApprovedDevice, Database, Json, Profile, ProfileRole } from './database';
