@@ -1,1 +1,17 @@
-export type { ApprovedDevice, Database, Json, Profile, ProfileRole } from './database';
+export type {
+  ApprovedDevice,
+  AudioRepeatCount,
+  ReaderFontScale,
+  ContentApprovalStatus,
+  Database,
+  Json,
+  LearnerReaderPreferences,
+  LearnerReaderState,
+  LearningEventType,
+  Profile,
+  ProfileRole,
+  RevisionStatus,
+  SurahLearningStatus,
+  VerseExplanation,
+  VerseLearningStatus,
+} from './database';

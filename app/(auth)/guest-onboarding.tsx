@@ -5,7 +5,9 @@ import { Pressable, Text, View } from 'react-native';
 import {
   AGE_GROUPS,
   AuthScreen,
+  CountryPicker,
   guestOnboardingSchema,
+  LanguagePicker,
   PrimaryButton,
   TextField,
   useAuth,
@@ -76,8 +78,10 @@ export default function GuestOnboardingScreen() {
           return (
             <Pressable
               key={group.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
               onPress={() => setAgeGroup(group.id)}
-              className={`rounded-2xl border px-3 py-2 ${
+              className={`min-h-12 rounded-2xl border px-3 py-2 ${
                 selected ? 'border-brand-600 bg-brand-50' : 'border-brand-100 bg-white'
               }`}
             >
@@ -94,18 +98,14 @@ export default function GuestOnboardingScreen() {
         <Text className="mb-3 text-sm text-red-600">{fieldErrors.ageGroup}</Text>
       ) : null}
 
-      <TextField
-        label="Country code (e.g. US)"
-        autoCapitalize="characters"
+      <CountryPicker
         value={countryCode}
-        onChangeText={setCountryCode}
+        onChange={setCountryCode}
         error={fieldErrors.countryCode}
       />
-      <TextField
-        label="Preferred language (e.g. en)"
-        autoCapitalize="none"
+      <LanguagePicker
         value={preferredLanguage}
-        onChangeText={setPreferredLanguage}
+        onChange={setPreferredLanguage}
         error={fieldErrors.preferredLanguage}
       />
 

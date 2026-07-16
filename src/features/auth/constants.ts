@@ -14,6 +14,53 @@ export const AGE_GROUPS = [
 
 export type AgeGroupId = (typeof AGE_GROUPS)[number]['id'];
 
+/** Simple avatar keys for V1 child/guest identity (Feature 002 may expand). */
+export const AVATAR_OPTIONS = [
+  { key: 'default-1', label: 'Olive' },
+  { key: 'default-2', label: 'Sky' },
+  { key: 'default-3', label: 'Sand' },
+  { key: 'default-4', label: 'Rose' },
+  { key: 'default-5', label: 'Mint' },
+  { key: 'default-6', label: 'Amber' },
+] as const;
+
+export type AvatarKey = (typeof AVATAR_OPTIONS)[number]['key'];
+
+/** Common countries with flag emoji for selection UI (ISO 3166-1 alpha-2). */
+export const COUNTRY_OPTIONS = [
+  { code: 'US', flag: '🇺🇸', label: 'United States' },
+  { code: 'GB', flag: '🇬🇧', label: 'United Kingdom' },
+  { code: 'CA', flag: '🇨🇦', label: 'Canada' },
+  { code: 'AU', flag: '🇦🇺', label: 'Australia' },
+  { code: 'SO', flag: '🇸🇴', label: 'Somalia' },
+  { code: 'KE', flag: '🇰🇪', label: 'Kenya' },
+  { code: 'NG', flag: '🇳🇬', label: 'Nigeria' },
+  { code: 'EG', flag: '🇪🇬', label: 'Egypt' },
+  { code: 'SA', flag: '🇸🇦', label: 'Saudi Arabia' },
+  { code: 'AE', flag: '🇦🇪', label: 'United Arab Emirates' },
+  { code: 'PK', flag: '🇵🇰', label: 'Pakistan' },
+  { code: 'BD', flag: '🇧🇩', label: 'Bangladesh' },
+  { code: 'IN', flag: '🇮🇳', label: 'India' },
+  { code: 'MY', flag: '🇲🇾', label: 'Malaysia' },
+  { code: 'ID', flag: '🇮🇩', label: 'Indonesia' },
+  { code: 'TR', flag: '🇹🇷', label: 'Türkiye' },
+  { code: 'FR', flag: '🇫🇷', label: 'France' },
+  { code: 'DE', flag: '🇩🇪', label: 'Germany' },
+  { code: 'NL', flag: '🇳🇱', label: 'Netherlands' },
+  { code: 'SE', flag: '🇸🇪', label: 'Sweden' },
+] as const;
+
+export const LANGUAGE_OPTIONS = [
+  { code: 'en', label: 'English' },
+  { code: 'ar', label: 'Arabic' },
+  { code: 'so', label: 'Somali' },
+  { code: 'fr', label: 'French' },
+  { code: 'ur', label: 'Urdu' },
+  { code: 'tr', label: 'Turkish' },
+  { code: 'id', label: 'Indonesian' },
+  { code: 'ms', label: 'Malay' },
+] as const;
+
 export const ACCOUNT_REQUIRED_FEATURES = [
   'ai_hifz_circle',
   'cloud_backup',

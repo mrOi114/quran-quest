@@ -6,6 +6,8 @@ import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
+import { assertFunctionOk } from './functionErrors';
+
 const DEVICE_KEY_STORAGE = 'qq.device_key';
 
 async function getOrCreateDeviceKey(): Promise<string> {
@@ -40,18 +42,15 @@ export async function registerCurrentDevice(label?: string): Promise<void> {
     [Device.brand, Device.modelName].filter(Boolean).join(' ') || `${Platform.OS} device`;
   const deviceLabel = label ?? fallbackLabel;
 
-  const { data, error } = await supabase.functions.invoke('register-device', {
+  const result = await supabase.functions.invoke<{
+    device?: unknown;
+    error?: string;
+  }>('register-device', {
     body: {
       device_key: deviceKey,
       label: deviceLabel,
     },
   });
 
-  if (error) {
-    throw new Error(error.message || 'Could not register this device');
-  }
-
-  if (data?.error) {
-    throw new Error(String(data.error));
-  }
+  await assertFunctionOk(result);
 }
