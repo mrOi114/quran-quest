@@ -2,12 +2,12 @@ import { ConfigContext, ExpoConfig } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "Qur'an Quest",
-  slug: 'quran-quest',
+  name: 'QuranBestApp',
+  slug: 'quranbestapp',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  scheme: 'quranquest',
+  scheme: 'quranbestapp',
   userInterfaceStyle: 'automatic',
   ios: {
     supportsTablet: true,

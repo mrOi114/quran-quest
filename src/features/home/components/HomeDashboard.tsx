@@ -67,6 +67,30 @@ export function HomeDashboard() {
           encouragement={dashboard.encouragement}
         />
 
+        <View className="mb-4 rounded-3xl bg-white px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            QuranBestApp
+          </Text>
+          <Text className="mt-2 text-2xl font-bold text-brand-800">
+            {dashboard.xpPoints} XP
+          </Text>
+          <Text className="mt-1 text-sm text-brand-600">
+            Keep going to reach {dashboard.nextMilestoneXp} XP and unlock your next
+            milestone.
+          </Text>
+          <View className="mt-4 h-3 overflow-hidden rounded-full bg-brand-100">
+            <View
+              className="h-full rounded-full bg-brand-500"
+              style={{
+                width: `${Math.max(
+                  8,
+                  Math.min(100, (dashboard.xpPoints / dashboard.nextMilestoneXp) * 100),
+                )}%`,
+              }}
+            />
+          </View>
+        </View>
+
         <ContinueLearningButton
           hasStarted={dashboard.todaysLesson.hasStarted}
           onPress={() => {
@@ -90,7 +114,54 @@ export function HomeDashboard() {
 
         <PracticeWithAiButton onPress={() => router.push('/(app)/companion')} />
 
-        <HifzCirclePlaceholder />
+        <HifzCirclePlaceholder
+          title={dashboard.circlePreview.title}
+          subtitle={dashboard.circlePreview.subtitle}
+          trackLabel={dashboard.circlePreview.trackLabel}
+          roomCountLabel={dashboard.circlePreview.roomCountLabel}
+          onPress={() => router.push('/(app)/gates/circle')}
+        />
+
+        <View className="mb-4 rounded-2xl bg-white px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            Translation Spotlight
+          </Text>
+          <Text
+            className="mt-3 text-center text-3xl font-bold text-brand-800"
+            style={{ writingDirection: 'rtl' }}
+          >
+            {dashboard.featuredVerse.textUthmani}
+          </Text>
+          <Text className="mt-2 text-center text-base text-brand-600">
+            {dashboard.featuredVerse.surahArabic} · {dashboard.featuredVerse.surahName} ·
+            Ayah {dashboard.featuredVerse.ayahNumber}
+          </Text>
+          <Text className="mt-4 text-base leading-6 text-brand-700">
+            {dashboard.featuredVerse.translationText}
+          </Text>
+          <Text className="mt-2 text-xs text-brand-500">
+            Source: {dashboard.featuredVerse.translationSourceLabel}
+            {dashboard.featuredVerse.isTranslationFallback
+              ? ' · Showing English until your language is available.'
+              : ''}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open reader for this ayah"
+            onPress={() =>
+              router.push({
+                pathname: '/(app)/reader',
+                params: {
+                  surah: String(dashboard.featuredVerse.surahNumber),
+                  ayah: String(dashboard.featuredVerse.ayahNumber),
+                },
+              })
+            }
+            className="mt-4 min-h-12 items-center justify-center rounded-xl bg-brand-600 px-4 py-3 active:opacity-90"
+          >
+            <Text className="text-base font-semibold text-white">Open in Reader</Text>
+          </Pressable>
+        </View>
 
         <AchievementsSection achievements={dashboard.achievements} />
 

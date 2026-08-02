@@ -19,6 +19,25 @@ export type HomeAchievements = {
   surahsCompleted: number;
 };
 
+export type HomeCirclePreview = {
+  title: string;
+  subtitle: string;
+  trackLabel: string;
+  roomCountLabel: string;
+};
+
+export type HomeFeaturedVerse = {
+  verseId: string;
+  surahNumber: number;
+  surahName: string;
+  surahArabic: string;
+  ayahNumber: number;
+  textUthmani: string;
+  translationText: string;
+  translationSourceLabel: string;
+  isTranslationFallback: boolean;
+};
+
 export type HomeDashboardModel = {
   nickname: string;
   greetingLine: string;
@@ -26,6 +45,10 @@ export type HomeDashboardModel = {
   todaysLesson: HomeLessonSummary;
   revisionVerseCount: number;
   achievements: HomeAchievements;
+  xpPoints: number;
+  nextMilestoneXp: number;
+  circlePreview: HomeCirclePreview;
+  featuredVerse: HomeFeaturedVerse;
   isGuest: boolean;
   /** Soft account nudge — never blocks learning. */
   showGuestReminder: boolean;
