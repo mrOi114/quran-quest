@@ -18,7 +18,7 @@ function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   return '1';
 }
 
-export function HifzCircleScreen() {
+export default function HifzCircleScreen() {
   const router = useRouter();
   const { activeLearner } = useAuth();
   const [activeTab, setActiveTab] = useState<CircleTab>('suba');
