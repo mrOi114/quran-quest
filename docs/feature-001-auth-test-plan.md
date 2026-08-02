@@ -9,7 +9,7 @@ Run these checks after applying the Supabase migration and deploying Edge Functi
    - `supabase/migrations/20260716120000_feature_001_auth.sql`
    - `supabase/migrations/20260716210000_feature_001_auth_hardening.sql`
 3. Deploy functions: `register-device`, `child-set-pin`, `child-verify-pin`.
-4. In Supabase Auth: Email provider ON, Confirm email ON, redirect URL `quranquest://auth/callback`.
+4. In Supabase Auth: Email provider ON, Confirm email ON, redirect URL `quranfamily://auth/callback`.
 5. Start the app with Node 20–22: `npm start`.
 
 ## Checklist

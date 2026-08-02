@@ -3,6 +3,7 @@ export { ContinueLearningButton } from './ContinueLearningButton';
 export { DailyRevisionCard } from './DailyRevisionCard';
 export { GuestAccountReminder } from './GuestAccountReminder';
 export { HifzCirclePlaceholder } from './HifzCirclePlaceholder';
+export { HifzCircleScreen } from './HifzCircleScreen';
 export { HomeDashboard } from './HomeDashboard';
 export { ParentAccessLink } from './ParentAccessLink';
 export { PracticeWithAiButton } from './PracticeWithAiButton';
