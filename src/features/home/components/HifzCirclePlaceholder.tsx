@@ -23,7 +23,7 @@ export function HifzCirclePlaceholder({
       className="mb-4 rounded-2xl bg-brand-50 px-4 py-4 active:opacity-90"
     >
       <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-        QuranBestApp Circle
+        QuranFamily Circle
       </Text>
       <Text className="mt-2 text-lg font-semibold text-brand-800">{title}</Text>
       <Text className="mt-1 text-sm leading-5 text-brand-600">{subtitle}</Text>

@@ -13,7 +13,7 @@ export type AuthResult = {
 
 function getAuthRedirectTo(): string | undefined {
   // Deep link handled by Expo scheme; configure the same URL in Supabase Auth settings.
-  return 'quranquest://auth/callback';
+  return 'quranfamily://auth/callback';
 }
 
 export async function registerAccount(input: RegisterInput): Promise<AuthResult> {

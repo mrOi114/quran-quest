@@ -1,2 +1,2 @@
 export const APP_NAME = "Qur'an Quest";
-export const APP_SCHEME = 'quranquest';
+export const APP_SCHEME = 'quranfamily';

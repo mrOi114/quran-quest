@@ -2,16 +2,16 @@ import { ConfigContext, ExpoConfig } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'QuranBestApp',
-  slug: 'quranbestapp',
+  name: 'QuranFamily',
+  slug: 'QuranFamily',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  scheme: 'quranbestapp',
+  scheme: 'quranfamily',
   userInterfaceStyle: 'automatic',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.quranquest.app',
+    bundleIdentifier: 'com.quranfamily.app',
   },
   android: {
     adaptiveIcon: {
@@ -20,7 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
     },
-    package: 'com.quranquest.app',
+    package: 'com.quranfamily.app',
     predictiveBackGestureEnabled: false,
   },
   web: {

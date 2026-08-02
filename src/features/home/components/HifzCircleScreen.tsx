@@ -118,7 +118,7 @@ export function HifzCircleScreen() {
             Circle is getting ready
           </Text>
           <Text className="mt-3 text-base text-brand-600">
-            Open the reader first so QuranBestApp can prepare your next listening room.
+            Open the reader first so QuranFamily can prepare your next listening room.
           </Text>
           <View className="mt-6">
             <PrimaryButton
@@ -144,7 +144,7 @@ export function HifzCircleScreen() {
       >
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            QuranBestApp Circle
+            QuranFamily Circle
           </Text>
           <Text className="mt-2 text-2xl font-bold text-brand-800">
             {surah.nameLatin} live listening room

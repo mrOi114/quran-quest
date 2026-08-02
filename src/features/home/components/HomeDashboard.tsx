@@ -69,7 +69,7 @@ export function HomeDashboard() {
 
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            QuranBestApp
+            QuranFamily
           </Text>
           <Text className="mt-2 text-2xl font-bold text-brand-800">
             {dashboard.xpPoints} XP
