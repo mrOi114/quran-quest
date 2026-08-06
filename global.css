@@ -1,3 +1,35 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * Web-only layout reset.
+ *
+ * react-native-web renders every `flex-1` screen inside `#root`. Height is not
+ * inherited from the viewport by default, so `#root` collapses to 0px and the
+ * whole tree — which is flex all the way down — renders with zero height. That
+ * shows up as a completely blank white page even though the DOM and the
+ * accessibility tree are fully populated.
+ *
+ * Giving html/body/#root a real height restores the flex chain. `height` uses
+ * 100% rather than 100vh so mobile browser chrome does not create overflow.
+ */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow: hidden;
+  background-color: #0f3d2e;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
