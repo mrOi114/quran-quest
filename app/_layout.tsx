@@ -1,5 +1,8 @@
-import '../global.css';
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
+import 'react-native-url-polyfill/auto';
 
+import '../global.css';
 import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
