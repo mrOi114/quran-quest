@@ -14,11 +14,17 @@ import type { Database } from '@/types/database';
  * Deep-link sessions are exchanged manually (`detectSessionInUrl: false`) via
  * `sessionLinkService` + `/(auth)/callback`.
  */
-export const supabase = createClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
+// Keep feature modules importable for local guest mode when backend credentials are absent.
+// AuthProvider bypasses all Supabase calls in that mode.
+export const supabase = createClient<Database>(
+  env.supabaseUrl || 'https://guest-mode.invalid',
+  env.supabaseAnonKey || 'guest-mode-anon-key',
+  {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
-});
+  },
+);

@@ -22,6 +22,9 @@ export const env = {
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     'EXPO_PUBLIC_SUPABASE_ANON_KEY',
   ),
+  isSupabaseConfigured: Boolean(
+    process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  ),
   easProjectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? '',
 } as const;
 

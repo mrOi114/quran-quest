@@ -2,6 +2,7 @@ import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useAuth } from '@/features/auth';
+import { env } from '@/lib/env';
 
 export default function Index() {
   const {
@@ -24,6 +25,10 @@ export default function Index() {
 
   if (needsPasswordReset && session) {
     return <Redirect href="/(auth)/reset-password" />;
+  }
+
+  if (!env.isSupabaseConfigured && !isGuest) {
+    return <Redirect href="/(auth)/guest-onboarding" />;
   }
 
   if (isGuest && activeLearner) {

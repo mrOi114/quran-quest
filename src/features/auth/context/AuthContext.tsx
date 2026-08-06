@@ -10,6 +10,7 @@ import {
 } from 'react';
 
 import { supabase } from '@/lib/supabase';
+import { env } from '@/lib/env';
 import type { Profile } from '@/types';
 
 import type { GuestOnboardingInput } from '../schemas';
@@ -213,6 +214,23 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
     async function bootstrap() {
       try {
+        if (!env.isSupabaseConfigured) {
+          const guest = await getGuestProfile();
+          if (!mounted || !guest) {
+            return;
+          }
+
+          setGuestProfile(guest);
+          setActiveLearner(guestToLearner(guest));
+          const progress = await getGuestProgress();
+          if (!mounted) {
+            return;
+          }
+          setGuestProgress(progress);
+          await syncGuestMilestone(progress);
+          return;
+        }
+
         const initialUrl = await getInitialAuthUrl();
         if (initialUrl && mounted) {
           try {
@@ -284,8 +302,8 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       void processAuthUrl(url).catch(() => undefined);
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, nextSession) => {
+    const authListener = env.isSupabaseConfigured
+      ? supabase.auth.onAuthStateChange(async (event, nextSession) => {
         if (event === 'PASSWORD_RECOVERY') {
           setNeedsPasswordReset(true);
         }
@@ -341,13 +359,13 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           const { mergeMigratedGuestProgress } = await import('@/features/learning');
           await mergeMigratedGuestProgress(nextSession.user.id, learner);
         }
-      },
-    );
+        })
+      : null;
 
     return () => {
       mounted = false;
       unsubscribeLinks();
-      authListener.subscription.unsubscribe();
+      authListener?.data.subscription.unsubscribe();
     };
   }, [hydrateActiveLearner, processAuthUrl, syncGuestMilestone]);
 

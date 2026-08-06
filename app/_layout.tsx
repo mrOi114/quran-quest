@@ -1,3 +1,4 @@
+import 'react-native-url-polyfill/auto';
 import '../global.css';
 
 import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';

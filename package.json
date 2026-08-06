@@ -2,7 +2,7 @@
   "name": "quran-quest",
   "version": "1.0.0",
   "private": true,
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "engines": {
     "node": ">=20 <23"
   },
