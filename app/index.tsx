@@ -30,15 +30,19 @@ export default function Index() {
     return <Redirect href="/(app)/home" />;
   }
 
-  if (!session || !user) {
+  if (!session && !isGuest) {
     return <Redirect href="/(auth)/welcome" />;
   }
 
-  if (!isEmailVerified) {
+  if (session && !user) {
+    return <Redirect href="/(auth)/welcome" />;
+  }
+
+  if (session && !isEmailVerified) {
     return <Redirect href="/(auth)/verify-email" />;
   }
 
-  if (!activeLearner) {
+  if (session && !activeLearner) {
     return <Redirect href="/(app)/family" />;
   }
 
