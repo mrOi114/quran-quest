@@ -42,3 +42,6 @@ yarn-error.*
 # tooling
 coverage/
 .eslintcache
+
+# Vercel CLI local link metadata
+.vercel

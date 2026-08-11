@@ -14,7 +14,18 @@ import type { Database } from '@/types/database';
  * Deep-link sessions are exchanged manually (`detectSessionInUrl: false`) via
  * `sessionLinkService` + `/(auth)/callback`.
  */
-export const supabase = createClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
+// Expo inlines EXPO_PUBLIC_* at export time. An empty URL makes createClient throw
+// during module init and leaves a blank green #root on static hosts like Vercel.
+const supabaseUrl = env.supabaseUrl || 'https://invalid.supabase.co';
+const supabaseAnonKey = env.supabaseAnonKey || 'public-anon-key';
+
+if (!env.supabaseUrl || !env.supabaseAnonKey) {
+  console.error(
+    '[supabase] Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY in this build.',
+  );
+}
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
