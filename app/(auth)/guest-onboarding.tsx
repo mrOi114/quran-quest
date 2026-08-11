@@ -116,7 +116,11 @@ export default function GuestOnboardingScreen() {
         onPress={() => void onSubmit()}
         loading={loading}
       />
-      <PrimaryButton label="Back" onPress={() => router.back()} variant="secondary" />
+      <PrimaryButton
+        label="Back"
+        onPress={() => router.replace('/(auth)/welcome')}
+        variant="secondary"
+      />
     </AuthScreen>
   );
 }

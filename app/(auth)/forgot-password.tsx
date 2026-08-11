@@ -64,7 +64,7 @@ export default function ForgotPasswordScreen() {
         onPress={() => void onSubmit()}
         loading={loading}
       />
-      <Pressable onPress={() => router.back()} className="py-2">
+      <Pressable onPress={() => router.replace('/(auth)/login')} className="py-2">
         <Text className="text-center text-sm font-medium text-brand-600">
           Back to login
         </Text>

@@ -2,6 +2,7 @@ import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 
 import { useAuth } from '@/features/auth';
+import { WebAppShell } from '@/components/ui/WebAppShell';
 
 export default function AppLayout() {
   const { isBootstrapping, session, isEmailVerified, isGuest, needsPasswordReset } =
@@ -27,5 +28,9 @@ export default function AppLayout() {
     return <Redirect href="/(auth)/verify-email" />;
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <WebAppShell>
+      <Stack screenOptions={{ headerShown: false }} />
+    </WebAppShell>
+  );
 }

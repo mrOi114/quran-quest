@@ -21,6 +21,7 @@ export default function CompanionPlaceholderScreen() {
           }
         </Text>
       </View>
+      <PrimaryButton label="Back to Games" variant="secondary" onPress={() => router.replace('/(app)/games')} />
       <PrimaryButton label="Back to Home" onPress={() => router.replace('/(app)/home')} />
     </AuthScreen>
   );

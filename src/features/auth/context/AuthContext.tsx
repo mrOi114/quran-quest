@@ -89,7 +89,42 @@ type AuthContextValue = {
   clearPasswordResetFlag: () => void;
 };
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const missingAuthContextValue: AuthContextValue = {
+  isBootstrapping: false,
+  session: null,
+  user: null,
+  profile: null,
+  children: [],
+  activeLearner: null,
+  isEmailVerified: false,
+  isGuest: false,
+  guestProfile: null,
+  guestProgress: null,
+  showMilestonePrompt: false,
+  isGuestAtLimit: false,
+  needsPasswordReset: false,
+  canManageFamily: false,
+  refreshProfile: async () => undefined,
+  refreshChildren: async () => undefined,
+  selectSelfAsLearner: async () => undefined,
+  unlockChild: async () => undefined,
+  clearActiveLearner: async () => undefined,
+  createChild: async () => undefined as never,
+  updateChild: async () => undefined as never,
+  deleteChild: async () => undefined,
+  resetChildPin: async () => undefined,
+  signOut: async () => undefined,
+  ensureDeviceRegistered: async () => undefined,
+  startGuest: async () => undefined,
+  endGuestSession: async () => undefined,
+  refreshGuestProgress: async () => undefined,
+  simulateGuestProgress: async () => undefined,
+  dismissGuestMilestone: async () => undefined,
+  migrateGuestProgressAfterRegister: async () => undefined,
+  clearPasswordResetFlag: () => undefined,
+};
+
+const AuthContext = createContext<AuthContextValue>(missingAuthContextValue);
 
 function toFamilyMember(profile: Profile): FamilyMember {
   return {
@@ -271,6 +306,10 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
             await syncGuestMilestone(progress);
           }
         }
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Auth bootstrap failed', error);
+        }
       } finally {
         if (mounted) {
           setIsBootstrapping(false);
@@ -286,60 +325,66 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, nextSession) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          setNeedsPasswordReset(true);
-        }
-
-        setSession(nextSession);
-        setUser(nextSession?.user ?? null);
-
-        if (!nextSession?.user) {
-          setProfile(null);
-          setChildProfiles([]);
-          setActiveLearner(null);
-          setNeedsPasswordReset(false);
-          await clearStoredActiveLearnerId();
-
-          const guest = await getGuestProfile();
-          setGuestProfile(guest);
-          if (guest) {
-            setActiveLearner(guestToLearner(guest));
-            const progress = await getGuestProgress();
-            setGuestProgress(progress);
-            await syncGuestMilestone(progress);
-          } else {
-            setGuestProgress(null);
-            setShowMilestonePrompt(false);
+        try {
+          if (event === 'PASSWORD_RECOVERY') {
+            setNeedsPasswordReset(true);
           }
-          return;
-        }
 
-        // Transfer any local guest trial progress onto the new account.
-        await transferGuestProgressToAccount(nextSession.user.id);
-        setGuestProfile(null);
-        setGuestProgress(null);
-        setShowMilestonePrompt(false);
+          setSession(nextSession);
+          setUser(nextSession?.user ?? null);
 
-        const nextProfile = await fetchProfile(nextSession.user.id);
-        setProfile(nextProfile);
+          if (!nextSession?.user) {
+            setProfile(null);
+            setChildProfiles([]);
+            setActiveLearner(null);
+            setNeedsPasswordReset(false);
+            await clearStoredActiveLearnerId();
 
-        let kids: Profile[] = [];
-        if (nextProfile?.role === 'parent') {
-          kids = await fetchChildren(nextSession.user.id);
-          setChildProfiles(kids);
-        } else {
-          setChildProfiles([]);
-        }
+            const guest = await getGuestProfile();
+            setGuestProfile(guest);
+            if (guest) {
+              setActiveLearner(guestToLearner(guest));
+              const progress = await getGuestProgress();
+              setGuestProgress(progress);
+              await syncGuestMilestone(progress);
+            } else {
+              setGuestProgress(null);
+              setShowMilestonePrompt(false);
+            }
+            return;
+          }
 
-        await hydrateActiveLearner(nextProfile, kids);
+          // Transfer any local guest trial progress onto the new account.
+          await transferGuestProgressToAccount(nextSession.user.id);
+          setGuestProfile(null);
+          setGuestProgress(null);
+          setShowMilestonePrompt(false);
 
-        // Feature 005 then 004: merge staged guest reader prefs (empty-only), then learning.
-        if (nextProfile) {
-          const learner = toFamilyMember(nextProfile);
-          const { mergeMigratedGuestReaderSettings } = await import('@/features/reader');
-          await mergeMigratedGuestReaderSettings(nextSession.user.id, learner);
-          const { mergeMigratedGuestProgress } = await import('@/features/learning');
-          await mergeMigratedGuestProgress(nextSession.user.id, learner);
+          const nextProfile = await fetchProfile(nextSession.user.id);
+          setProfile(nextProfile);
+
+          let kids: Profile[] = [];
+          if (nextProfile?.role === 'parent') {
+            kids = await fetchChildren(nextSession.user.id);
+            setChildProfiles(kids);
+          } else {
+            setChildProfiles([]);
+          }
+
+          await hydrateActiveLearner(nextProfile, kids);
+
+          // Feature 005 then 004: merge staged guest reader prefs (empty-only), then learning.
+          if (nextProfile) {
+            const learner = toFamilyMember(nextProfile);
+            const { mergeMigratedGuestReaderSettings } = await import('@/features/reader');
+            await mergeMigratedGuestReaderSettings(nextSession.user.id, learner);
+            const { mergeMigratedGuestProgress } = await import('@/features/learning');
+            await mergeMigratedGuestProgress(nextSession.user.id, learner);
+          }
+        } catch (error) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('Auth state sync failed', error);
+          }
         }
       },
     );
@@ -588,8 +633,5 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
   return context;
 }

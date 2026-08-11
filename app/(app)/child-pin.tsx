@@ -98,7 +98,7 @@ export default function ChildPinScreen() {
         error={error ?? undefined}
       />
       <PrimaryButton label="Unlock" onPress={() => void onSubmit()} loading={loading} />
-      <Pressable onPress={() => router.back()} className="py-2">
+      <Pressable onPress={() => router.replace('/(app)/family')} className="py-2">
         <Text className="text-center text-sm font-medium text-brand-600">Back</Text>
       </Pressable>
     </AuthScreen>

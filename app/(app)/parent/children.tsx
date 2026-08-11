@@ -324,7 +324,11 @@ export default function ManageChildrenScreen() {
         onPress={() => void onCreateChild()}
         loading={loading}
       />
-      <PrimaryButton label="Back" onPress={() => router.back()} variant="secondary" />
+      <PrimaryButton
+        label="Back"
+        onPress={() => router.replace('/(app)/family')}
+        variant="secondary"
+      />
     </AuthScreen>
   );
 }

@@ -90,7 +90,7 @@ export function AccountRequiredGate({
           />
           <PrimaryButton
             label="Not now"
-            onPress={() => router.back()}
+            onPress={() => router.replace('/(app)/home')}
             variant="secondary"
           />
         </View>
