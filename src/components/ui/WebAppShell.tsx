@@ -46,7 +46,7 @@ const mainNavItems: NavItem[] = [
   { label: 'Settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
 ];
 
-const quickNavLabels = ['Home', 'Learn / Quran', 'Lesson', 'Games', 'Leaderboard'] as const;
+const quickNavLabels = ['Home', 'Learn / Quran', 'Lesson', 'Leaderboard', 'Circle'] as const;
 
 const quickNavItems = quickNavLabels
   .map((label) => mainNavItems.find((item) => item.label === label))
