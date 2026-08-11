@@ -9,6 +9,14 @@ body,
 	height: 100%;
 }
 
+/* React Native Web's root view uses flex: 1, which only sizes correctly
+   when its parent is a flex container. Without this, #root stays at
+   display: block and the entire app collapses to zero height. */
+#root {
+	display: flex;
+	flex-direction: column;
+}
+
 body {
 	margin: 0;
 	background-color: #0f3d2e;
