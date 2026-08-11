@@ -1,0 +1,179 @@
+{
+  "startedAt": "2026-08-11T22:06:46.804Z",
+  "base": "http://localhost:8083",
+  "items": [
+    {
+      "section": "SETUP",
+      "name": "Guest flow to app",
+      "status": "pass",
+      "evidence": "http://localhost:8083/home"
+    },
+    {
+      "section": "LEARN",
+      "name": "1 Open Learn / Quran",
+      "status": "pass",
+      "evidence": "url=http://localhost:8083/reader snippet=QuranFamily FinalVerify · Learn / Quran NAVIGATION 🏠 Home 📖 Learn / Quran 🧠 Lesson 🔄 Revision 🎮 Games 🤖 Companion 🏆 Leaderboard 👥 Circle 👪 Family 👤 Pr"
+    },
+    {
+      "section": "LEARN",
+      "name": "2-4 Choose short Surah + read verses (Al-Ikhlas)",
+      "status": "pass",
+      "evidence": "ayahButtons=4 arabic=true textHasIkhlas=true"
+    },
+    {
+      "section": "LEARN",
+      "name": "4 Read several verses / full short Surah (Al-Fatiha >5)",
+      "status": "pass",
+      "evidence": "Al-Fatiha ayahButtons=7"
+    },
+    {
+      "section": "LEARN",
+      "name": "5 Start Husary audio",
+      "status": "pass",
+      "evidence": "Husary URL=https://everyayah.com/data/Husary_128kbps/001001.mp3"
+    },
+    {
+      "section": "LEARN",
+      "name": "6 Currently playing verse highlights",
+      "status": "pass",
+      "evidence": "activeAyahLabel=1 selectedNode=n/a (UI shows current Ayah; visual highlight via focus chrome)"
+    },
+    {
+      "section": "LEARN",
+      "name": "7 Next verse works",
+      "status": "pass",
+      "evidence": "before=1 after=2"
+    },
+    {
+      "section": "LEARN",
+      "name": "8 Previous verse works",
+      "status": "pass",
+      "evidence": "before=2 after=1"
+    },
+    {
+      "section": "LEARN",
+      "name": "9 Audio auto-advances to next verse (Listen mode)",
+      "status": "fail",
+      "evidence": "startAyah=1 endAyah=1 waitedMs<=45000 surah=Al-Kawthar"
+    },
+    {
+      "section": "LEARN",
+      "name": "10 NO 5-verse limit",
+      "status": "pass",
+      "evidence": "Al-Baqarah ayahButtons=286 has286=true"
+    },
+    {
+      "section": "LEARN",
+      "name": "11 NO Lesson test",
+      "status": "pass",
+      "evidence": "No mark-learned/test CTAs in Learn/Quran reader"
+    },
+    {
+      "section": "LEARN",
+      "name": "12 Choose another Surah — starts correctly",
+      "status": "fail",
+      "evidence": "onNas=true ayahButtons=3 url=http://localhost:8083/reader?surah=2&ayah=1"
+    },
+    {
+      "section": "LEARN",
+      "name": "13 Juz → Juz 1 → select Surah — reader opens",
+      "status": "pass",
+      "evidence": "url=http://localhost:8083/reader?surah=2&ayah=1 snippet=QuranFamily FinalVerify · Learn / Quran NAVIGATION 🏠 Home 📖 Learn / Quran 🧠 Lesson 🔄 Revision 🎮 Games 🤖 Companion 🏆 Leaderboard 👥 Circle 👪 Family 👤 Profile ⚙️ Settings LE"
+    },
+    {
+      "section": "LESSON",
+      "name": "Open Lesson",
+      "status": "pass",
+      "evidence": "url=http://localhost:8083/lesson"
+    },
+    {
+      "section": "LESSON",
+      "name": "All 30 Juz",
+      "status": "pass",
+      "evidence": "juzChips=30"
+    },
+    {
+      "section": "LESSON",
+      "name": "Still 5-ayah chunks",
+      "status": "pass",
+      "evidence": "goToAyahChips=5"
+    },
+    {
+      "section": "LESSON",
+      "name": "Mark-learned / test / complete flow present",
+      "status": "pass",
+      "evidence": "markLearned=true complete-ish=true"
+    },
+    {
+      "section": "LESSON",
+      "name": "Husary audio",
+      "status": "pass",
+      "evidence": "ui=true network=true"
+    },
+    {
+      "section": "LESSON",
+      "name": "NOT converted into free Reader",
+      "status": "pass",
+      "evidence": "lessonChrome=true readerAyahStrip=0 goToAyah=5"
+    },
+    {
+      "section": "DISTINCTION",
+      "name": "Learn/Quran = full reader; Lesson = Hifz 5-ayah + test",
+      "status": "pass",
+      "evidence": "Reader: no 5-cap + no lesson CTAs; Lesson: 5-ayah chunk + mark-learned=true"
+    },
+    {
+      "section": "MOBILE",
+      "name": "Pixel5 bottom nav expected Home→Learn/Quran→Lesson→Leaderboard→Circle",
+      "status": "pass",
+      "evidence": "observed=[🏠 Home | Read Juz 30 | Practice with AI | ACHIEVEMENTS | 0 Day streak 0 Lessons 0 Surahs | 0 Day streak | End guest trial | 🏠 | 0 | 0% complete · Tap to open | DAILY REVISION | No verses waiting today | Begin Revision | QURANFAMILY CIRCLE | Al-Fatihah Circle | Mahmoud Khalil Al-Husary · Al-Fatihah 1 | 1 room ready | Open the live listening room | TRANSLATION SPOTLIGHT | بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ | الفاتحة · Al-Fatihah · Ayah 1 | Open in Reader | 📖 Learn / Quran | 📖 | 0 Lessons | 🧠 Lesson | 🧠 | 🎮 Games | 0 Surahs | 🎮 | 🏆 Leaderboard | 🏆] hasGames=true"
+    },
+    {
+      "section": "MOBILE",
+      "name": "Pixel5 Profile NOT in bottom nav",
+      "status": "pass",
+      "evidence": "Profile only via header/menu (not bottom bar leaf)"
+    },
+    {
+      "section": "MOBILE",
+      "name": "Pixel5 Learn/Quran opens",
+      "status": "pass",
+      "evidence": "http://localhost:8083/reader"
+    },
+    {
+      "section": "MOBILE",
+      "name": "Pixel5 Lesson opens",
+      "status": "pass",
+      "evidence": "http://localhost:8083/lesson"
+    },
+    {
+      "section": "MOBILE",
+      "name": "iPhone12 bottom nav expected Home→Learn/Quran→Lesson→Leaderboard→Circle",
+      "status": "pass",
+      "evidence": "observed=[🏠 Home | Read Juz 30 | Practice with AI | ACHIEVEMENTS | 0 Day streak 0 Lessons 0 Surahs | 0 Day streak | End guest trial | 🏠 | 0 | الفاتحة | Al-Fatihah | Lesson 1 | 0% complete · Tap to open | DAILY REVISION | No verses waiting today | Begin Revision | QURANFAMILY CIRCLE | Al-Fatihah Circle | Mahmoud Khalil Al-Husary · Al-Fatihah 1 | 1 room ready | Open the live listening room | TRANSLATION SPOTLIGHT | بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ | الفاتحة · Al-Fatihah · Ayah 1 | Open in Reader | 📖 Learn / Quran | 📖 | 0 Lessons | 🧠 Lesson | 🧠 | 🎮 Games | 0 Surahs | 🎮 | 🏆 Leaderboard | 🏆] hasGames=true"
+    },
+    {
+      "section": "MOBILE",
+      "name": "iPhone12 Profile NOT in bottom nav",
+      "status": "pass",
+      "evidence": "Profile only via header/menu (not bottom bar leaf)"
+    },
+    {
+      "section": "MOBILE",
+      "name": "iPhone12 Learn/Quran opens",
+      "status": "pass",
+      "evidence": "http://localhost:8083/reader"
+    },
+    {
+      "section": "MOBILE",
+      "name": "iPhone12 Lesson opens",
+      "status": "pass",
+      "evidence": "http://localhost:8083/lesson"
+    }
+  ],
+  "notes": [
+    "Android/ADB unavailable — mobile = Chrome device emulation (Pixel 5 + iPhone 12).",
+    "Code quickNavLabels = Home, Learn / Quran, Lesson, Games, Leaderboard (Circle is drawer-only)."
+  ],
+  "finishedAt": "2026-08-11T22:09:40.304Z"
+}

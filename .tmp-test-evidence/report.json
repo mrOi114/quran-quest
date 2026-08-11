@@ -1,0 +1,164 @@
+{
+  "startedAt": "2026-08-11T21:55:20.600Z",
+  "base": "http://localhost:8083",
+  "passed": [
+    {
+      "name": "guest-onboarding-desktop",
+      "detail": "http://localhost:8083/home"
+    },
+    {
+      "name": "desktop-nav-labels",
+      "detail": "Learn/Quran, Lesson, Leaderboard, Circle present"
+    },
+    {
+      "name": "reader-opens",
+      "detail": "http://localhost:8083/reader"
+    },
+    {
+      "name": "reader-surah-cta-clear",
+      "detail": "Choose Surah / Juz button visible"
+    },
+    {
+      "name": "reader-all-30-juz",
+      "detail": "juzButtons=30"
+    },
+    {
+      "name": "reader-surah-selection",
+      "detail": "Al-Mulk selected"
+    },
+    {
+      "name": "reader-full-surah-no-5-limit",
+      "detail": "Al-Mulk ayah buttons=30"
+    },
+    {
+      "name": "reader-arabic-displays",
+      "detail": "Arabic script present"
+    },
+    {
+      "name": "reader-no-lesson-test",
+      "detail": "No lesson test CTA in reader"
+    },
+    {
+      "name": "reader-tap-verse",
+      "detail": "Ayah 5"
+    },
+    {
+      "name": "reader-play",
+      "detail": "audioReqs=1"
+    },
+    {
+      "name": "reader-next",
+      "detail": "ok"
+    },
+    {
+      "name": "reader-prev",
+      "detail": "ok"
+    },
+    {
+      "name": "reader-replay",
+      "detail": "ok"
+    },
+    {
+      "name": "reader-current-ayah-label",
+      "detail": "subtitle shows ayah"
+    },
+    {
+      "name": "reader-start-middle",
+      "detail": "surah=67 ayah=15"
+    },
+    {
+      "name": "reader-baqarah-full",
+      "detail": "ayahButtons=286"
+    },
+    {
+      "name": "reader-husary-audio-runtime",
+      "detail": "https://everyayah.com/data/Husary_128kbps/067005.mp3"
+    },
+    {
+      "name": "reader-husary-audio-code",
+      "detail": "fullQuran + resolveMushafVerseAudio use husary_128 / EveryAyah"
+    },
+    {
+      "name": "reader-stops-at-surah-end",
+      "detail": "Next disabled at ayah 30"
+    },
+    {
+      "name": "lesson-opens",
+      "detail": "http://localhost:8083/lesson"
+    },
+    {
+      "name": "lesson-all-juz-picker-cta",
+      "detail": "picker CTA present"
+    },
+    {
+      "name": "lesson-all-30-juz-ui",
+      "detail": "chips=30"
+    },
+    {
+      "name": "lesson-juz-selection",
+      "detail": "Juz 1"
+    },
+    {
+      "name": "lesson-surah-selection",
+      "detail": "Al-Fatihah"
+    },
+    {
+      "name": "lesson-chunk-open",
+      "detail": "Lesson 1 opened"
+    },
+    {
+      "name": "lesson-5-verse-structure",
+      "detail": "chips=5"
+    },
+    {
+      "name": "lesson-mark-learned-flow",
+      "detail": "CTA present"
+    },
+    {
+      "name": "lesson-husary-ui",
+      "detail": "Beginner Qari label"
+    },
+    {
+      "name": "lesson-legacy-juz30-key",
+      "detail": "juz30-s78-l1 opens"
+    },
+    {
+      "name": "mobile-bottom-nav-Pixel5",
+      "detail": "Home → Learn / Quran → Lesson → Leaderboard → Circle"
+    },
+    {
+      "name": "mobile-no-profile-in-quicknav-code-Pixel5",
+      "detail": "WebAppShell quickNavLabels excludes Profile"
+    },
+    {
+      "name": "mobile-reader-surah-cta-Pixel5",
+      "detail": "ok"
+    },
+    {
+      "name": "mobile-lesson-picker-Pixel5",
+      "detail": "ok"
+    },
+    {
+      "name": "mobile-bottom-nav-iPhone12",
+      "detail": "Home → Learn / Quran → Lesson → Leaderboard → Circle"
+    },
+    {
+      "name": "mobile-no-profile-in-quicknav-code-iPhone12",
+      "detail": "WebAppShell quickNavLabels excludes Profile"
+    },
+    {
+      "name": "mobile-reader-surah-cta-iPhone12",
+      "detail": "ok"
+    },
+    {
+      "name": "mobile-lesson-picker-iPhone12",
+      "detail": "ok"
+    }
+  ],
+  "failed": [],
+  "notes": [
+    "Pause button not visible after play (web audio may auto-end quickly)"
+  ],
+  "finishedAt": "2026-08-11T21:56:56.430Z",
+  "androidNote": "adb not available on this machine — Android emulator not tested; used Chrome Pixel 5 + iPhone 12 viewports."
+}

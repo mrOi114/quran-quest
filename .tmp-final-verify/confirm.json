@@ -1,0 +1,42 @@
+[
+  {
+    "name": "12 Choose An-Nas (114) starts correctly",
+    "ok": true,
+    "evidence": "surah=114 ayahBtns=6 subtitle={\"surah\":114,\"juz\":30,\"ayah\":1}"
+  },
+  {
+    "name": "12b Switch to Al-Kawthar",
+    "ok": true,
+    "evidence": "{\"surah\":108,\"juz\":30,\"ayah\":1}"
+  },
+  {
+    "name": "9 Auto-advance Listen mode",
+    "ok": true,
+    "evidence": "ayah 2 after 14153ms audio=[\"https://everyayah.com/data/Husary_128kbps/108001.mp3\",\"https://everyayah.com/data/Husary_128kbps/108002.mp3\"]"
+  },
+  {
+    "name": "6 Verse highlight styles differ",
+    "ok": true,
+    "evidence": "[{\"label\":\"Ayah 1\",\"bg\":\"rgba(12, 50, 38, 0.6)\",\"cls\":\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73 mb-2 rounded-2xl px-3 py-\"},{\"label\":\"Ayah 2\",\"bg\":\"rgb(255, 255, 255)\",\"cls\":\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73 mb-2 rounded-2xl px-3 py-\"},{\"label\":\"Ayah 3\",\"bg\":\"rgba(12, 50, 38, 0.6)\",\"cls\":\"css-view-g5y9jx r-cursor-1loqt21 r-touchAction-1otgn73 mb-2 rounded-2xl px-3 py-\"}]"
+  },
+  {
+    "name": "Pixel5 bottom nav vs expected",
+    "ok": false,
+    "evidence": "observed=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Games\",\"Leaderboard\"] expected=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"] hasGames=true hasCircle=false"
+  },
+  {
+    "name": "Pixel5 Profile not in bottom nav",
+    "ok": true,
+    "evidence": "hasProfile=false"
+  },
+  {
+    "name": "iPhone12 bottom nav vs expected",
+    "ok": false,
+    "evidence": "observed=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Games\",\"Leaderboard\"] expected=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"] hasGames=true hasCircle=false"
+  },
+  {
+    "name": "iPhone12 Profile not in bottom nav",
+    "ok": true,
+    "evidence": "hasProfile=false"
+  }
+]

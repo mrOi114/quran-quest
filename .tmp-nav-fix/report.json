@@ -1,0 +1,155 @@
+{
+  "results": [
+    {
+      "name": "vp390 bottom tabs order",
+      "ok": true,
+      "evidence": "observed=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "vp390 no Games in bottom",
+      "ok": true,
+      "evidence": "leaves=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "vp390 no Profile in bottom",
+      "ok": true,
+      "evidence": "leaves=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "vp390 open Home",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/home"
+    },
+    {
+      "name": "vp390 open Learn / Quran",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/reader"
+    },
+    {
+      "name": "vp390 open Lesson",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/lesson"
+    },
+    {
+      "name": "vp390 open Leaderboard",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/leaderboard"
+    },
+    {
+      "name": "vp390 open Circle",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/gates/circle"
+    },
+    {
+      "name": "vp390 Games in Menu/drawer",
+      "ok": true,
+      "evidence": "Games label present in drawer"
+    },
+    {
+      "name": "vp390 Games opens from drawer",
+      "ok": true,
+      "evidence": "http://localhost:8083/games"
+    },
+    {
+      "name": "Pixel5 bottom tabs order",
+      "ok": true,
+      "evidence": "observed=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "Pixel5 no Games in bottom",
+      "ok": true,
+      "evidence": "leaves=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "Pixel5 no Profile in bottom",
+      "ok": true,
+      "evidence": "leaves=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "Pixel5 open Home",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/home"
+    },
+    {
+      "name": "Pixel5 open Learn / Quran",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/reader"
+    },
+    {
+      "name": "Pixel5 open Lesson",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/lesson"
+    },
+    {
+      "name": "Pixel5 open Leaderboard",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/leaderboard"
+    },
+    {
+      "name": "Pixel5 open Circle",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/gates/circle"
+    },
+    {
+      "name": "Pixel5 Games in Menu/drawer",
+      "ok": true,
+      "evidence": "Games label present in drawer"
+    },
+    {
+      "name": "Pixel5 Games opens from drawer",
+      "ok": true,
+      "evidence": "http://localhost:8083/games"
+    },
+    {
+      "name": "iPhone12 bottom tabs order",
+      "ok": true,
+      "evidence": "observed=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "iPhone12 no Games in bottom",
+      "ok": true,
+      "evidence": "leaves=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "iPhone12 no Profile in bottom",
+      "ok": true,
+      "evidence": "leaves=[\"Home\",\"Learn / Quran\",\"Lesson\",\"Leaderboard\",\"Circle\"]"
+    },
+    {
+      "name": "iPhone12 open Home",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/home"
+    },
+    {
+      "name": "iPhone12 open Learn / Quran",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/reader"
+    },
+    {
+      "name": "iPhone12 open Lesson",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/lesson"
+    },
+    {
+      "name": "iPhone12 open Leaderboard",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/leaderboard"
+    },
+    {
+      "name": "iPhone12 open Circle",
+      "ok": true,
+      "evidence": "url=http://localhost:8083/gates/circle"
+    },
+    {
+      "name": "iPhone12 Games in Menu/drawer",
+      "ok": true,
+      "evidence": "Games label present in drawer"
+    },
+    {
+      "name": "iPhone12 Games opens from drawer",
+      "ok": true,
+      "evidence": "http://localhost:8083/games"
+    }
+  ],
+  "fail": 0
+}

@@ -1,0 +1,193 @@
+[
+  {
+    "msg": "console",
+    "data": {
+      "type": "warning",
+      "text": "[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality."
+    }
+  },
+  {
+    "msg": "console",
+    "data": {
+      "type": "warning",
+      "text": "[expo-av]: Expo AV has been deprecated and will be removed in SDK 54. Use the `expo-audio` and `expo-video` packages to replace the required functionality."
+    }
+  },
+  {
+    "msg": "opened-kawthar",
+    "data": {
+      "url": "http://localhost:8083/reader?surah=108&ayah=1",
+      "surah": 108,
+      "ayah": 1
+    }
+  },
+  {
+    "msg": "listen-mode-btn-count",
+    "data": 1
+  },
+  {
+    "msg": "ui-before-play",
+    "data": "QuranFamily DbgVerify · Learn / Quran NAVIGATION 🏠 Home 📖 Learn / Quran 🧠 Lesson 🔄 Revision 🎮 Games 🤖 Companion 🏆 Leaderboard 👥 Circle 👪 Family 👤 Profile ⚙️ Settings LEARNER DbgVerify Current section: Learn / Quran End guest trial ← Home الكوثر Al-Kawthar Surah 108 · Juz 30 · Ayah 1 Choose Surah / Juz Read Listen Tap “Choose Surah / Juz” to browse all 114 Surahs and 30 Juz. Ayah 1 · ١ إِ"
+  },
+  {
+    "msg": "play-btn",
+    "data": 1
+  },
+  {
+    "msg": "after-play-click",
+    "data": {
+      "ayah": 1,
+      "audio": [
+        "https://everyayah.com/data/Husary_128kbps/108001.mp3"
+      ],
+      "body": [
+        "Ayah 1",
+        "Listen",
+        "Ayah 1",
+        "Beginner",
+        "Listen"
+      ]
+    }
+  },
+  {
+    "msg": "tick",
+    "data": {
+      "i": 4,
+      "ayah": 1,
+      "pauseVisible": false,
+      "audioN": 1,
+      "elapsed": 6646
+    }
+  },
+  {
+    "msg": "tick",
+    "data": {
+      "i": 9,
+      "ayah": 1,
+      "pauseVisible": false,
+      "audioN": 1,
+      "elapsed": 11752
+    }
+  },
+  {
+    "msg": "new-audio-request",
+    "data": {
+      "i": 10,
+      "ayah": 2,
+      "url": "https://everyayah.com/data/Husary_128kbps/108002.mp3",
+      "elapsed": 12759
+    }
+  },
+  {
+    "msg": "advanced",
+    "data": {
+      "i": 10,
+      "ayah": 2,
+      "elapsed": 12759,
+      "pauseVisible": true
+    }
+  },
+  {
+    "msg": "auto-advance-result",
+    "data": {
+      "advanced": true,
+      "ayah": 2,
+      "audio": [
+        {
+          "t": 1786486236426,
+          "url": "https://everyayah.com/data/Husary_128kbps/108001.mp3"
+        },
+        {
+          "t": 1786486249067,
+          "url": "https://everyayah.com/data/Husary_128kbps/108002.mp3"
+        }
+      ]
+    }
+  },
+  {
+    "msg": "nas-btn",
+    "data": 1
+  },
+  {
+    "msg": "after-nas",
+    "data": {
+      "url": "http://localhost:8083/reader?surah=108&ayah=1",
+      "surah": 110,
+      "ayah": 1,
+      "ayahBtns": 3,
+      "hasNas": true,
+      "subtitle": [
+        "Surah 110 · Juz 30 · Ayah 1"
+      ]
+    }
+  },
+  {
+    "msg": "juz1",
+    "data": 1
+  },
+  {
+    "msg": "fatiha-btn",
+    "data": 1
+  },
+  {
+    "msg": "after-juz1-fatiha",
+    "data": {
+      "url": "http://localhost:8083/reader?surah=108&ayah=1",
+      "surah": 1,
+      "ayahBtns": 7,
+      "subtitle": [
+        "Surah 1 · Juz 1 · Ayah 1"
+      ]
+    }
+  },
+  {
+    "msg": "bottom-nav-leaves",
+    "data": [
+      {
+        "text": "🏠 Home",
+        "top": 665,
+        "bottom": 727,
+        "left": 0,
+        "h": 62,
+        "w": 78.59375,
+        "yRatio": 0.9147180192572214
+      },
+      {
+        "text": "📖 Learn / Quran",
+        "top": 665,
+        "bottom": 727,
+        "left": 78.59375,
+        "h": 62,
+        "w": 78.609375,
+        "yRatio": 0.9147180192572214
+      },
+      {
+        "text": "🧠 Lesson",
+        "top": 665,
+        "bottom": 727,
+        "left": 157.203125,
+        "h": 62,
+        "w": 78.59375,
+        "yRatio": 0.9147180192572214
+      },
+      {
+        "text": "🎮 Games",
+        "top": 665,
+        "bottom": 727,
+        "left": 235.796875,
+        "h": 62,
+        "w": 78.609375,
+        "yRatio": 0.9147180192572214
+      },
+      {
+        "text": "🏆 Leaderboard",
+        "top": 665,
+        "bottom": 727,
+        "left": 314.40625,
+        "h": 62,
+        "w": 78.59375,
+        "yRatio": 0.9147180192572214
+      }
+    ]
+  }
+]

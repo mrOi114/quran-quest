@@ -1,0 +1,162 @@
+[
+  {
+    "ok": true,
+    "area": "guest-onboard",
+    "detail": "reached http://localhost:8083/home"
+  },
+  {
+    "ok": true,
+    "area": "bottom-nav",
+    "detail": "Home present"
+  },
+  {
+    "ok": true,
+    "area": "bottom-nav",
+    "detail": "Learn / Quran present"
+  },
+  {
+    "ok": true,
+    "area": "bottom-nav",
+    "detail": "Lesson present"
+  },
+  {
+    "ok": true,
+    "area": "bottom-nav",
+    "detail": "Leaderboard present"
+  },
+  {
+    "ok": true,
+    "area": "bottom-nav",
+    "detail": "Circle present"
+  },
+  {
+    "ok": true,
+    "area": "bottom-nav-profile",
+    "detail": "Profile not in bottom nav; header/menu candidates: [{\"text\":\"Profile\",\"yRatio\":0},{\"text\":\"Profile\",\"yRatio\":0.01066350710900474}]"
+  },
+  {
+    "ok": true,
+    "area": "leaderboard-load",
+    "detail": "url=http://localhost:8083/leaderboard snippet=Menu | QuranFamily | LbTester · Leaderboard | Profile | 🏆 LEADERBOARD | 🇺🇸 LbTester | Every genuine learning effort counts — reading, lessons, revision, and consistency. | 0 pts · Ages 7–10 | A"
+  },
+  {
+    "ok": true,
+    "area": "tabs",
+    "detail": "Age Group"
+  },
+  {
+    "ok": true,
+    "area": "tabs",
+    "detail": "Juz Challenge"
+  },
+  {
+    "ok": true,
+    "area": "tabs",
+    "detail": "All Students"
+  },
+  {
+    "ok": false,
+    "area": "your-position",
+    "detail": "missing"
+  },
+  {
+    "ok": true,
+    "area": "points",
+    "detail": "points visible"
+  },
+  {
+    "ok": true,
+    "area": "privacy",
+    "detail": "no email/phone detected in body"
+  },
+  {
+    "ok": true,
+    "area": "guest-prompt",
+    "detail": "Create Free Account present"
+  },
+  {
+    "ok": true,
+    "area": "age-band-current",
+    "detail": "Ages 7–10"
+  },
+  {
+    "ok": true,
+    "area": "age-band-switcher",
+    "detail": "UI shows current age band only (no full age-band switcher)"
+  },
+  {
+    "ok": true,
+    "area": "juz-30",
+    "detail": "Juz 30 present"
+  },
+  {
+    "ok": true,
+    "area": "juz-29",
+    "detail": "Juz 29 + Soon"
+  },
+  {
+    "ok": true,
+    "area": "juz-28",
+    "detail": "Juz 28 + Soon"
+  },
+  {
+    "ok": true,
+    "area": "juz-29-upcoming-copy",
+    "detail": "opening soon copy shown"
+  },
+  {
+    "ok": true,
+    "area": "all-students",
+    "detail": "board visible"
+  },
+  {
+    "ok": true,
+    "area": "ranking-rows",
+    "detail": "points rows appear present"
+  },
+  {
+    "ok": false,
+    "area": "column-headers",
+    "detail": "Rank/Student/Country/Points headers"
+  },
+  {
+    "ok": true,
+    "area": "motivation",
+    "detail": "encouragement signals present"
+  },
+  {
+    "ok": true,
+    "area": "no-shame",
+    "detail": "no shame language detected"
+  },
+  {
+    "ok": true,
+    "area": "gap-to-next",
+    "detail": "gap messaging present"
+  },
+  {
+    "ok": false,
+    "area": "weekly-movement",
+    "detail": "weekly movement not shown on first visit (expected if no prior snapshot delta)"
+  },
+  {
+    "ok": true,
+    "area": "circle",
+    "detail": "Guest sees registration gate (expected)"
+  },
+  {
+    "ok": true,
+    "area": "bottom-order-raw",
+    "detail": "[\"Read Juz 30\",\"DAILY REVISION\",\"No verses waiting today\",\"Begin Revision\",\"Practice with AI\",\"QURANFAMILY CIRCLE\",\"Al-Fatihah Circle\",\"Listen together to ayah 1 from today's focus.\",\"Mahmoud Khalil Al-Husary · Al-Fatihah 1\",\"1 room ready\",\"Open the live listening room\",\"TRANSLATION SPOTLIGHT\",\"بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ\",\"الفاتحة · Al-Fatihah · Ayah 1\",\"Source: Sahih International\",\"Open in Reader\",\"ACHIEVEMENTS 0 Day streak 0 Lessons 0 Surahs\",\"ACHIEVEMENTS\",\"0 Day streak 0 Lessons 0 Surahs\",\"0 Day streak\",\"0\",\"Day streak\",\"0 Lessons\",\"Lessons\",\"0 Surahs\"]"
+  },
+  {
+    "ok": false,
+    "area": "bottom-order",
+    "detail": "Read Juz 30 || DAILY REVISION || No verses waiting today || Begin Revision || Practice with AI || QURANFAMILY CIRCLE || Al-Fatihah Circle || Listen together to ayah 1 from today's focus. || Mahmoud Khalil Al-Husary · Al-Fatihah 1 || 1 room ready || Open the live listening room || TRANSLATION SPOTLIGHT || بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ || الفاتحة · Al-Fatihah · Ayah 1 || Source: Sahih International || Open in Reader || ACHIEVEMENTS 0 Day streak 0 Lessons 0 Surahs || ACHIEVEMENTS || 0 Day streak 0 Lessons 0 Surahs || 0 Day streak || 0 || Day streak || 0 Lessons || Lessons || 0 Surahs"
+  },
+  {
+    "ok": true,
+    "area": "runtime-errors",
+    "detail": "none"
+  }
+]
