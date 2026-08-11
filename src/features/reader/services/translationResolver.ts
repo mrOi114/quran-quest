@@ -1,6 +1,8 @@
+import { juz30Content } from '@/features/learning/content';
+
+import { getMushafVerse } from '../content';
 import { FALLBACK_TRANSLATION_ID, FALLBACK_TRANSLATION_LANGUAGE } from '../constants';
 import type { ResolvedVerseMeaning } from '../types';
-import { juz30Content, type Juz30Bundle } from '@/features/learning/content';
 
 /** Catalog of approved translation ids by language (V1: English only seeded). */
 const TRANSLATION_BY_LANGUAGE: Record<
@@ -14,8 +16,12 @@ const TRANSLATION_BY_LANGUAGE: Record<
   },
 };
 
-function verseFromBundle(verseId: string): Juz30Bundle['verses'][number] | null {
-  return juz30Content.verses.find((item) => item.id === verseId) ?? null;
+function verseFromBundle(verseId: string): { translationEn: string } | null {
+  const fromLesson = juz30Content.verses.find((item) => item.id === verseId);
+  if (fromLesson) {
+    return fromLesson;
+  }
+  return getMushafVerse(verseId);
 }
 
 /**

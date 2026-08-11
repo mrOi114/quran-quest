@@ -15,6 +15,7 @@ import type { Profile } from '@/types';
 import type { GuestOnboardingInput } from '../schemas';
 import {
   addGuestSurahProgress,
+  applyGuestIdentityToProfile,
   clearGuestProfile,
   clearStoredActiveLearnerId,
   createChildProfile,
@@ -355,10 +356,18 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           }
 
           // Transfer any local guest trial progress onto the new account.
-          await transferGuestProgressToAccount(nextSession.user.id);
+          const transferred = await transferGuestProgressToAccount(nextSession.user.id);
           setGuestProfile(null);
           setGuestProgress(null);
           setShowMilestonePrompt(false);
+
+          if (transferred.guestProfile) {
+            await applyGuestIdentityToProfile(nextSession.user.id, {
+              countryCode: transferred.guestProfile.countryCode,
+              preferredLanguage: transferred.guestProfile.preferredLanguage,
+              displayName: transferred.guestProfile.displayName,
+            });
+          }
 
           const nextProfile = await fetchProfile(nextSession.user.id);
           setProfile(nextProfile);
@@ -373,13 +382,15 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
           await hydrateActiveLearner(nextProfile, kids);
 
-          // Feature 005 then 004: merge staged guest reader prefs (empty-only), then learning.
+          // Feature 005 then 004 then games: merge staged guest reader prefs, learning, games.
           if (nextProfile) {
             const learner = toFamilyMember(nextProfile);
             const { mergeMigratedGuestReaderSettings } = await import('@/features/reader');
             await mergeMigratedGuestReaderSettings(nextSession.user.id, learner);
             const { mergeMigratedGuestProgress } = await import('@/features/learning');
             await mergeMigratedGuestProgress(nextSession.user.id, learner);
+            const { mergeMigratedGuestGamesProgress } = await import('@/features/games');
+            await mergeMigratedGuestGamesProgress(nextSession.user.id, learner);
           }
         } catch (error) {
           if (process.env.NODE_ENV !== 'production') {
@@ -516,16 +527,32 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     if (!user) {
       return;
     }
-    await transferGuestProgressToAccount(user.id);
+    const transferred = await transferGuestProgressToAccount(user.id);
     setGuestProfile(null);
     setGuestProgress(null);
     setShowMilestonePrompt(false);
-    if (profile) {
-      const learner = toFamilyMember(profile);
+
+    if (transferred.guestProfile) {
+      const updated = await applyGuestIdentityToProfile(user.id, {
+        countryCode: transferred.guestProfile.countryCode,
+        preferredLanguage: transferred.guestProfile.preferredLanguage,
+        displayName: transferred.guestProfile.displayName,
+      });
+      if (updated) {
+        setProfile(updated);
+      }
+    }
+
+    const nextProfile = (await fetchProfile(user.id)) ?? profile;
+    if (nextProfile) {
+      setProfile(nextProfile);
+      const learner = toFamilyMember(nextProfile);
       const { mergeMigratedGuestReaderSettings } = await import('@/features/reader');
       await mergeMigratedGuestReaderSettings(user.id, learner);
       const { mergeMigratedGuestProgress } = await import('@/features/learning');
       await mergeMigratedGuestProgress(user.id, learner);
+      const { mergeMigratedGuestGamesProgress } = await import('@/features/games');
+      await mergeMigratedGuestGamesProgress(user.id, learner);
     }
   }, [profile, user]);
 

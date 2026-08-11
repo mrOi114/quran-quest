@@ -2,6 +2,7 @@ export * from './audioPlayerService';
 export * from './browseAccess';
 export * from './futureSettings';
 export * from './guestReaderMigration';
+export * from './mushafAccess';
 export * from './numerals';
 export * from './readerPreferencesStore';
 export * from './translationResolver';

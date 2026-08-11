@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "content:juz30": "node ./scripts/generate-juz30-content.mjs",
+    "content:full-quran": "node ./scripts/generate-full-quran-content.mjs",
     "verify:feature-004": "node ./scripts/verify-feature-004.mjs",
     "verify:feature-005": "node ./scripts/verify-feature-005.mjs",
     "postinstall": "node ./scripts/ensure-native-deps.js"

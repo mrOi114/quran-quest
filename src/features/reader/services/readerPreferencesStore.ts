@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ActiveLearner } from '@/features/auth';
 import { isGuestLearner } from '@/features/auth';
-import { JUZ_30_SURAH_START } from '@/features/learning/constants';
 import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
 import { supabase } from '@/lib/supabase';
 import type { AudioRepeatCount, Json } from '@/types';
@@ -40,7 +39,7 @@ export function buildDefaultPreferences(learner: ActiveLearner): ReaderPreferenc
 
 export function buildDefaultBrowseState(): ReaderBrowseState {
   return {
-    lastSurahNumber: JUZ_30_SURAH_START,
+    lastSurahNumber: 1,
     lastAyahNumber: 1,
   };
 }
@@ -134,17 +133,21 @@ export async function loadReaderBrowseState(
 ): Promise<ReaderBrowseState> {
   const defaults = buildDefaultBrowseState();
 
-  if (isGuestLearner(learner)) {
-    const raw = await AsyncStorage.getItem(guestStateKey(learner.id));
-    if (!raw) {
-      return defaults;
-    }
+  // Local cache supports full mushaf (1–114). Prefer it when present.
+  const localRaw = await AsyncStorage.getItem(guestStateKey(learner.id));
+  if (localRaw) {
     try {
-      const parsed = readerBrowseStateSchema.safeParse(JSON.parse(raw));
-      return parsed.success ? parsed.data : defaults;
+      const parsed = readerBrowseStateSchema.safeParse(JSON.parse(localRaw));
+      if (parsed.success) {
+        return parsed.data;
+      }
     } catch {
-      return defaults;
+      // Fall through to cloud / defaults.
     }
+  }
+
+  if (isGuestLearner(learner)) {
+    return defaults;
   }
 
   const { data, error } = await supabase
@@ -157,10 +160,11 @@ export async function loadReaderBrowseState(
     return defaults;
   }
 
-  return {
+  const fromCloud = readerBrowseStateSchema.safeParse({
     lastSurahNumber: data.last_surah_number,
     lastAyahNumber: data.last_ayah_number,
-  };
+  });
+  return fromCloud.success ? fromCloud.data : defaults;
 }
 
 export async function saveReaderBrowseState(
@@ -169,8 +173,15 @@ export async function saveReaderBrowseState(
 ): Promise<void> {
   const validated = readerBrowseStateSchema.parse(state);
 
+  // Always persist locally so full-mushaf positions survive (cloud FK is Juz 30 only).
+  await AsyncStorage.setItem(guestStateKey(learner.id), JSON.stringify(validated));
+
   if (isGuestLearner(learner)) {
-    await AsyncStorage.setItem(guestStateKey(learner.id), JSON.stringify(validated));
+    return;
+  }
+
+  // Cloud table references seeded Juz 30 surahs only — sync when in range.
+  if (validated.lastSurahNumber < 78 || validated.lastSurahNumber > 114) {
     return;
   }
 
@@ -185,6 +196,7 @@ export async function saveReaderBrowseState(
   );
 
   if (error) {
-    throw new Error(error.message || 'Could not save reader position.');
+    // Local cache already saved; cloud sync is best-effort (Juz 30 FK limits).
+    return;
   }
 }

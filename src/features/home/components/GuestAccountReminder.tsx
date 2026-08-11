@@ -12,12 +12,24 @@ export function GuestAccountReminder({ onCreateAccount }: GuestAccountReminderPr
       accessibilityLabel="Friendly reminder to create a free account when you are ready. Learning stays open."
     >
       <Text className="text-base font-semibold text-brand-800">
-        Keep your progress safe
+        ⭐ Keep your Qur&apos;an journey
       </Text>
       <Text className="mt-1 text-sm leading-5 text-brand-600">
-        You&apos;re doing beautifully. Create a free account when you&apos;re ready — you
-        can keep learning anytime.
+        You&apos;ve already made progress. Create a free account to save your points,
+        streak, achievements, and join the Leaderboard — without starting over.
       </Text>
+      <View className="mt-3 gap-1">
+        {[
+          'Save your learning progress',
+          'Keep your streak',
+          'Join the Leaderboard',
+          'Continue from any device',
+        ].map((item) => (
+          <Text key={item} className="text-xs text-brand-700">
+            ✓ {item}
+          </Text>
+        ))}
+      </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Create free account"
@@ -28,6 +40,7 @@ export function GuestAccountReminder({ onCreateAccount }: GuestAccountReminderPr
           Create Free Account
         </Text>
       </Pressable>
+      <Text className="mt-2 text-center text-xs text-brand-500">Maybe later — learning stays open</Text>
     </View>
   );
 }

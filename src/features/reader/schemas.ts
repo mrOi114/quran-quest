@@ -27,6 +27,6 @@ export const readerPreferencesSchema = z.object({
 });
 
 export const readerBrowseStateSchema = z.object({
-  lastSurahNumber: z.number().int().min(78).max(114),
+  lastSurahNumber: z.number().int().min(1).max(114),
   lastAyahNumber: z.number().int().min(1),
 });

@@ -1,17 +1,33 @@
 import type { AgeGroupId } from '@/features/auth';
 
-import { JUZ_30_SURAH_END, JUZ_30_SURAH_START, VERSES_PER_LESSON } from '../constants';
+import {
+  JUZ_30_SURAH_END,
+  JUZ_30_SURAH_START,
+  MUSHAF_SURAH_END,
+  MUSHAF_SURAH_START,
+  VERSES_PER_LESSON,
+} from '../constants';
 import { getSurah, listSurahs, makeVerseId } from '../content';
 import type { LessonPlan, LessonSummary, LearningSnapshot } from '../types';
 
+/**
+ * Canonical lesson keys:
+ * - Legacy Juz 30 progress: `juz30-s{surah}-l{index}` (surahs 78–114)
+ * - Full mushaf: `s{surah}-l{index}` (surahs 1–77; also accepted for 78–114)
+ */
 export function buildLessonKey(surahNumber: number, lessonIndex: number): string {
-  return `juz30-s${surahNumber}-l${lessonIndex}`;
+  if (surahNumber >= JUZ_30_SURAH_START && surahNumber <= JUZ_30_SURAH_END) {
+    return `juz30-s${surahNumber}-l${lessonIndex}`;
+  }
+  return `s${surahNumber}-l${lessonIndex}`;
 }
 
 export function parseLessonKey(
   lessonKey: string,
 ): { surahNumber: number; lessonIndex: number } | null {
-  const match = /^juz30-s(\d+)-l(\d+)$/.exec(lessonKey);
+  const legacy = /^juz30-s(\d+)-l(\d+)$/.exec(lessonKey);
+  const modern = /^s(\d+)-l(\d+)$/.exec(lessonKey);
+  const match = legacy ?? modern;
   if (!match) {
     return null;
   }
@@ -20,8 +36,8 @@ export function parseLessonKey(
   if (
     !Number.isInteger(surahNumber) ||
     !Number.isInteger(lessonIndex) ||
-    surahNumber < JUZ_30_SURAH_START ||
-    surahNumber > JUZ_30_SURAH_END ||
+    surahNumber < MUSHAF_SURAH_START ||
+    surahNumber > MUSHAF_SURAH_END ||
     lessonIndex < 1
   ) {
     return null;
@@ -76,10 +92,10 @@ export function getLessonPlan(
 }
 
 export function getFirstLessonPlan(ageGroup: AgeGroupId): LessonPlan {
-  const plans = planSurahLessons(JUZ_30_SURAH_START, ageGroup);
+  const plans = planSurahLessons(MUSHAF_SURAH_START, ageGroup);
   const first = plans[0];
   if (!first) {
-    throw new Error('Juz 30 content missing first lesson');
+    throw new Error('Full Qur’an content missing first lesson');
   }
   return first;
 }
@@ -96,7 +112,7 @@ export function getNextLessonPlan(
     return nextInSurah;
   }
 
-  if (current.surahNumber >= JUZ_30_SURAH_END) {
+  if (current.surahNumber >= MUSHAF_SURAH_END) {
     return null;
   }
 
@@ -118,8 +134,9 @@ export function isLessonCompleted(
 }
 
 /**
- * Linear unlock: a lesson is available if it is the current lesson,
- * or every prior lesson in the Juz path is complete.
+ * Per-surah unlock: any surah’s first lesson is available; later chunks
+ * unlock after prior lessons in the same surah are complete.
+ * (Enables Juz → Surah choice across all 30 Juz without a 6k-verse gate.)
  */
 export function isLessonUnlocked(
   lesson: LessonPlan,
@@ -133,15 +150,16 @@ export function isLessonUnlocked(
     return true;
   }
 
-  const path = buildLinearLessonPath(ageGroup);
-  const targetIndex = path.findIndex((item) => item.lessonKey === lesson.lessonKey);
-  if (targetIndex <= 0) {
-    return targetIndex === 0;
+  if (lesson.lessonIndex <= 1) {
+    return true;
   }
 
-  for (let i = 0; i < targetIndex; i += 1) {
-    const prior = path[i];
-    if (!prior || !isLessonCompleted(prior, snapshot)) {
+  const sameSurah = planSurahLessons(lesson.surahNumber, ageGroup);
+  for (const prior of sameSurah) {
+    if (prior.lessonIndex >= lesson.lessonIndex) {
+      break;
+    }
+    if (!isLessonCompleted(prior, snapshot)) {
       return false;
     }
   }
@@ -154,6 +172,13 @@ export function buildLinearLessonPath(ageGroup: AgeGroupId): LessonPlan[] {
     path.push(...planSurahLessons(surah.number, ageGroup));
   }
   return path;
+}
+
+export function buildSurahLessonPath(
+  surahNumber: number,
+  ageGroup: AgeGroupId,
+): LessonPlan[] {
+  return planSurahLessons(surahNumber, ageGroup);
 }
 
 export function lessonProgressPercent(
@@ -196,6 +221,16 @@ export function toLessonSummary(
   };
 }
 
+export function listLessonSummariesForSurah(
+  surahNumber: number,
+  snapshot: LearningSnapshot,
+  ageGroup: AgeGroupId,
+): LessonSummary[] {
+  return planSurahLessons(surahNumber, ageGroup).map((lesson) =>
+    toLessonSummary(lesson, snapshot, ageGroup),
+  );
+}
+
 export function resolveCurrentLessonPlan(
   snapshot: LearningSnapshot,
   ageGroup: AgeGroupId,
@@ -205,7 +240,16 @@ export function resolveCurrentLessonPlan(
     return fromState;
   }
 
-  // Advance past completed lessons until an incomplete one (or stay on last).
+  // Prefer continuing within the current surah, then walk the full mushaf path.
+  if (fromState) {
+    const nextInSurah = getNextLessonPlan(fromState, ageGroup);
+    if (nextInSurah && nextInSurah.surahNumber === fromState.surahNumber) {
+      if (!isLessonCompleted(nextInSurah, snapshot)) {
+        return nextInSurah;
+      }
+    }
+  }
+
   const path = buildLinearLessonPath(ageGroup);
   for (const plan of path) {
     if (!isLessonCompleted(plan, snapshot)) {

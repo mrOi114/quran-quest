@@ -2,7 +2,6 @@ import type { GuestProgress } from '@/features/auth';
 import { canManageFamily } from '@/features/auth';
 import type { ActiveLearner } from '@/features/auth';
 import {
-  countCompletedLessons,
   countCompletedSurahs,
   getDefaultReciter,
   getSurah,
@@ -11,6 +10,8 @@ import {
   loadLearningSnapshot,
   makeVerseId,
 } from '@/features/learning';
+import { computeGameBonusPoints, loadGameProgress } from '@/features/games';
+import { computeEffortBreakdown } from '@/features/leaderboard/services/effortPoints';
 import { resolveVerseMeaning } from '@/features/reader';
 import type { Profile } from '@/types';
 
@@ -27,17 +28,6 @@ function buildGreeting(nickname: string): string {
   return `Assalamu Alaikum, ${nickname}.`;
 }
 
-function placeholderAchievements(
-  lessonsCompleted: number,
-  surahsCompleted: number,
-): HomeAchievements {
-  return {
-    streakDays: lessonsCompleted > 0 ? Math.min(lessonsCompleted, 7) : 0,
-    lessonsCompleted,
-    surahsCompleted,
-  };
-}
-
 function toHomeLesson(
   summary: Awaited<ReturnType<typeof getCurrentLessonSummary>>,
 ): HomeLessonSummary {
@@ -50,15 +40,6 @@ function toHomeLesson(
     progressPercent: summary.progressPercent,
     hasStarted: summary.hasStarted,
   };
-}
-
-function buildXpPoints(achievements: HomeAchievements, progressPercent: number): number {
-  return (
-    achievements.streakDays * 40 +
-    achievements.lessonsCompleted * 120 +
-    achievements.surahsCompleted * 180 +
-    progressPercent
-  );
 }
 
 function buildCirclePreview(
@@ -90,14 +71,21 @@ export async function buildHomeDashboard(options: {
   const nickname = activeLearner.display_name.trim() || 'Friend';
 
   const snapshot = await loadLearningSnapshot(activeLearner);
+  const gameProgress = await loadGameProgress(activeLearner);
   const lessonSummary = await getCurrentLessonSummary(activeLearner);
   const todaysLesson = toHomeLesson(lessonSummary);
 
   const surahsCompleted = isGuest
     ? (guestProgress?.juz30SurahsCompleted ?? countCompletedSurahs(snapshot))
     : countCompletedSurahs(snapshot);
-  const lessonsCompleted = countCompletedLessons(snapshot);
-  const achievements = placeholderAchievements(lessonsCompleted, surahsCompleted);
+  const effort = computeEffortBreakdown(snapshot, {
+    gameBonusPoints: computeGameBonusPoints(gameProgress),
+  });
+  const achievements: HomeAchievements = {
+    streakDays: effort.streakDays,
+    lessonsCompleted: effort.lessonsCompleted,
+    surahsCompleted,
+  };
   const currentVerseId = makeVerseId(
     snapshot.state.currentSurahNumber,
     snapshot.state.currentAyahNumber,
@@ -133,7 +121,8 @@ export async function buildHomeDashboard(options: {
     translationSourceLabel: featuredMeaning?.sourceLabel ?? 'Approved translation',
     isTranslationFallback: featuredMeaning?.isFallback ?? false,
   };
-  const xpPoints = buildXpPoints(achievements, todaysLesson.progressPercent);
+  // Same effort formula as Leaderboard — one source of truth, no double system.
+  const xpPoints = effort.totalPoints;
   const nextMilestoneXp = Math.max(250, Math.ceil((xpPoints + 1) / 250) * 250);
 
   return {

@@ -19,9 +19,9 @@ const defaultCopy: Record<
   { title: string; description: string }
 > = {
   ai_hifz_circle: {
-    title: 'AI Hifz Circles need an account',
+    title: '⭐ Keep your Qur\'an journey',
     description:
-      "Create a free account to join Circles with Abu Hafidul Qur'an and other learners.",
+      "You've already made progress. Create your free account to join Circles, save your streak, and keep learning with QuranFamily.",
   },
   cloud_backup: {
     title: 'Cloud backup needs an account',
@@ -32,8 +32,9 @@ const defaultCopy: Record<
     description: "Continue on any device by creating a free Qur'an Quest account.",
   },
   online_leaderboards: {
-    title: 'Leaderboards need an account',
-    description: 'Join encouraging weekly and monthly boards with a free account.',
+    title: '⭐ Keep your Qur\'an journey',
+    description:
+      'Create your free account to save your points, keep your achievements, and appear on the Leaderboard with your country flag.',
   },
   parent_dashboard: {
     title: 'Parent Dashboard needs an account',
@@ -89,7 +90,7 @@ export function AccountRequiredGate({
             variant="secondary"
           />
           <PrimaryButton
-            label="Not now"
+            label="Maybe Later"
             onPress={() => router.replace('/(app)/home')}
             variant="secondary"
           />

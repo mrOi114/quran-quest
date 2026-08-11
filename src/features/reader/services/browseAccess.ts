@@ -2,7 +2,7 @@ import type { ActiveLearner } from '@/features/auth';
 import {
   getSurah,
   getVersesForSurah,
-  listSurahs,
+  listJuz30Surahs,
   resolveVerseAudio,
 } from '@/features/learning/content';
 import {
@@ -52,7 +52,8 @@ export function listBrowsableSurahs(
   snapshot: LearningSnapshot,
   ageGroup: ReturnType<typeof resolveAgeGroup>,
 ): BrowsableSurah[] {
-  return listSurahs()
+  // Progress-gated browse stays Juz 30 scoped; full mushaf uses FullQuranReader.
+  return listJuz30Surahs()
     .map((surah) => {
       const maxBrowsableAyah = getMaxBrowsableAyah(surah.number, snapshot, ageGroup);
       if (maxBrowsableAyah <= 0) {

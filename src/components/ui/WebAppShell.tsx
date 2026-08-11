@@ -27,22 +27,30 @@ const mainNavItems: NavItem[] = [
   {
     label: 'Lesson',
     icon: '🧠',
-    href: '/(app)/lesson?lessonId=juz30-s78-l1',
+    href: '/(app)/lesson',
     matches: (pathname) => pathname.startsWith('/lesson'),
   },
   { label: 'Revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
   { label: 'Games', icon: '🎮', href: '/(app)/games', matches: (pathname) => pathname.startsWith('/games') || pathname.startsWith('/companion') },
   { label: 'Companion', icon: '🤖', href: '/(app)/companion', matches: (pathname) => pathname.startsWith('/companion') },
+  {
+    label: 'Leaderboard',
+    icon: '🏆',
+    href: '/(app)/leaderboard',
+    matches: (pathname) =>
+      pathname.startsWith('/leaderboard') || pathname.startsWith('/progress'),
+  },
   { label: 'Circle', icon: '👥', href: '/(app)/gates/circle', matches: (pathname) => pathname.startsWith('/gates/circle') },
-  { label: 'Progress', icon: '🏆', href: '/(app)/progress', matches: (pathname) => pathname.startsWith('/progress') },
   { label: 'Family', icon: '👪', href: '/(app)/family', matches: (pathname) => pathname.startsWith('/family') || pathname.startsWith('/parent/children') || pathname.startsWith('/child-pin') },
   { label: 'Profile', icon: '👤', href: '/(app)/profile', matches: (pathname) => pathname.startsWith('/profile') },
   { label: 'Settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
 ];
 
-const quickNavItems = mainNavItems.filter((item) =>
-  ['Home', 'Learn / Quran', 'Lesson', 'Circle', 'Profile'].includes(item.label),
-);
+const quickNavLabels = ['Home', 'Learn / Quran', 'Lesson', 'Games', 'Leaderboard'] as const;
+
+const quickNavItems = quickNavLabels
+  .map((label) => mainNavItems.find((item) => item.label === label))
+  .filter((item): item is NavItem => Boolean(item));
 
 function isActiveNavItem(item: NavItem, pathname: string): boolean {
   return item.matches(pathname);

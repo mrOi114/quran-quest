@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { BrowseReaderScreen } from '@/features/reader';
+import { FullQuranReaderScreen } from '@/features/reader';
 
 function parsePositiveInt(value: string | string[] | undefined): number | undefined {
   const raw = Array.isArray(value) ? value[0] : value;
@@ -14,7 +14,7 @@ function parsePositiveInt(value: string | string[] | undefined): number | undefi
 export default function ReaderRoute() {
   const params = useLocalSearchParams<{ surah?: string; ayah?: string }>();
   return (
-    <BrowseReaderScreen
+    <FullQuranReaderScreen
       surah={parsePositiveInt(params.surah)}
       ayah={parsePositiveInt(params.ayah)}
     />

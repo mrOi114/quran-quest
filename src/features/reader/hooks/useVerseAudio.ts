@@ -12,6 +12,10 @@ type UseVerseAudioOptions = {
   audioUrl: string | null;
   repeatCount: AudioRepeatCount;
   onPlayedOnce?: () => void;
+  /** Fires after the configured repeat cycle finishes (not on pause). */
+  onPlaybackComplete?: () => void;
+  /** Start playback automatically when a URL is ready (listen mode). */
+  autoPlay?: boolean;
 };
 
 type UseVerseAudioResult = {
@@ -39,6 +43,8 @@ export function useVerseAudio({
   audioUrl,
   repeatCount,
   onPlayedOnce,
+  onPlaybackComplete,
+  autoPlay = false,
 }: UseVerseAudioOptions): UseVerseAudioResult {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
@@ -47,6 +53,7 @@ export function useVerseAudio({
   const audioUrlRef = useRef(audioUrl);
   const repeatCountRef = useRef(repeatCount);
   const onPlayedOnceRef = useRef(onPlayedOnce);
+  const onPlaybackCompleteRef = useRef(onPlaybackComplete);
   const startPlaybackRef = useRef<(resetRemaining: boolean) => Promise<void>>(
     async () => undefined,
   );
@@ -62,6 +69,10 @@ export function useVerseAudio({
   useEffect(() => {
     onPlayedOnceRef.current = onPlayedOnce;
   }, [onPlayedOnce]);
+
+  useEffect(() => {
+    onPlaybackCompleteRef.current = onPlaybackComplete;
+  }, [onPlaybackComplete]);
 
   useEffect(() => {
     startPlaybackRef.current = async (resetRemaining: boolean) => {
@@ -89,6 +100,7 @@ export function useVerseAudio({
               return;
             }
             setIsPlaying(false);
+            onPlaybackCompleteRef.current?.();
           },
           onError: (message) => {
             setIsPlaying(false);
@@ -107,6 +119,18 @@ export function useVerseAudio({
       void stopVerseAudio();
     };
   }, []);
+
+  useEffect(() => {
+    if (!audioUrl) {
+      void stopVerseAudio();
+      setIsPlaying(false);
+      return;
+    }
+    if (!autoPlay) {
+      return;
+    }
+    void startPlaybackRef.current(true);
+  }, [audioUrl, autoPlay]);
 
   const play = useCallback(async () => {
     await startPlaybackRef.current(true);

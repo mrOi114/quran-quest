@@ -45,11 +45,13 @@ export function ReaderChrome({
       {onOpenSurahPicker ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Choose another surah"
+          accessibilityLabel="Choose Surah or Juz"
           onPress={onOpenSurahPicker}
-          className="mt-3 min-h-11 items-center justify-center self-center px-3"
+          className="mt-4 min-h-12 items-center justify-center self-center rounded-2xl bg-white px-5 py-3"
         >
-          <Text className="text-sm font-medium text-brand-100">Choose surah</Text>
+          <Text className="text-base font-semibold text-brand-700">
+            Choose Surah / Juz
+          </Text>
         </Pressable>
       ) : null}
 

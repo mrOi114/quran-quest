@@ -224,6 +224,7 @@ export function HomeDashboard() {
 
       <MilestonePrompt
         visible={showMilestonePrompt}
+        pointsEarned={dashboard.xpPoints}
         onLater={() => {
           void dismissGuestMilestone();
         }}

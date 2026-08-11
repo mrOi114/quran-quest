@@ -9,8 +9,15 @@ import { ReaderVerseFocus, useBrowseReader } from '@/features/reader';
 import type { AudioRepeatCount } from '@/types';
 
 type CircleTab = 'suba' | 'translation' | 'leaderboard';
+type CircleHubMode = 'my' | 'find' | 'join' | 'create';
 
 const REPEAT_OPTIONS: AudioRepeatCount[] = ['1', '3', 'loop'];
+const HUB_OPTIONS: Array<{ key: CircleHubMode; label: string }> = [
+  { key: 'my', label: 'My Circle' },
+  { key: 'find', label: 'Find a Circle' },
+  { key: 'join', label: 'Join Circle' },
+  { key: 'create', label: 'Create Circle' },
+];
 
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   if (current === '1') return '3';
@@ -20,8 +27,10 @@ function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
 
 export default function HifzCircleScreen() {
   const router = useRouter();
-  const { activeLearner } = useAuth();
+  const { activeLearner, profile, isGuest } = useAuth();
   const [activeTab, setActiveTab] = useState<CircleTab>('suba');
+  const [hubMode, setHubMode] = useState<CircleHubMode>('my');
+  const [joinTargetSurah, setJoinTargetSurah] = useState<number | null>(null);
   const {
     surahs,
     surah,
@@ -65,6 +74,9 @@ export default function HifzCircleScreen() {
       )
       .slice(0, 3);
   }, [surah, surahs]);
+
+  const discoverRooms = useMemo(() => surahs.slice(0, 8), [surahs]);
+  const canCreateCircle = profile?.role === 'parent' || profile?.role === 'adult';
 
   const leaderboard = useMemo(() => {
     const learnerName = activeLearner?.display_name?.trim() || 'You';
@@ -171,6 +183,164 @@ export default function HifzCircleScreen() {
           </View>
         </View>
 
+        <View className="mb-4 rounded-2xl bg-white px-2 py-2">
+          <View className="flex-row flex-wrap gap-2">
+            {HUB_OPTIONS.map((option) => {
+              const selected = hubMode === option.key;
+              return (
+                <Pressable
+                  key={option.key}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={option.label}
+                  onPress={() => setHubMode(option.key)}
+                  className={`min-h-11 flex-1 basis-[45%] items-center justify-center rounded-xl px-3 ${
+                    selected ? 'bg-brand-600' : 'bg-brand-50'
+                  }`}
+                >
+                  <Text
+                    className={`text-sm font-semibold ${
+                      selected ? 'text-white' : 'text-brand-700'
+                    }`}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {hubMode === 'find' ? (
+          <View className="mb-4 rounded-3xl bg-white px-4 py-4">
+            <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+              Find a Circle
+            </Text>
+            <Text className="mt-2 text-base text-brand-600">
+              Discover the next listening room for your Hifz journey.
+            </Text>
+            <View className="mt-4 gap-2">
+              {discoverRooms.map((room) => (
+                <Pressable
+                  key={`find-${room.number}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Find ${room.nameLatin} circle`}
+                  onPress={() => {
+                    void selectSurah(room.number);
+                    setHubMode('my');
+                  }}
+                  className="rounded-2xl bg-brand-50 px-4 py-4"
+                >
+                  <Text className="text-base font-semibold text-brand-800">
+                    {room.nameLatin}
+                  </Text>
+                  <Text className="mt-1 text-sm text-brand-600">
+                    {room.nameArabic} · {room.maxBrowsableAyah} ayahs ready
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {hubMode === 'join' ? (
+          <View className="mb-4 rounded-3xl bg-white px-4 py-4">
+            <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+              Join Circle
+            </Text>
+            <Text className="mt-2 text-base text-brand-600">
+              Choose a room, then join to open your next AI Hifz Circle session.
+            </Text>
+            <View className="mt-4 gap-2">
+              {discoverRooms.map((room) => {
+                const selected = joinTargetSurah === room.number;
+                return (
+                  <Pressable
+                    key={`join-${room.number}`}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => setJoinTargetSurah(room.number)}
+                    className={`rounded-2xl px-4 py-4 ${
+                      selected ? 'bg-brand-600' : 'bg-brand-50'
+                    }`}
+                  >
+                    <Text
+                      className={`text-base font-semibold ${
+                        selected ? 'text-white' : 'text-brand-800'
+                      }`}
+                    >
+                      {room.nameLatin}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View className="mt-4">
+              <PrimaryButton
+                label="Join selected Circle"
+                onPress={() => {
+                  if (joinTargetSurah == null) {
+                    return;
+                  }
+                  void selectSurah(joinTargetSurah);
+                  setHubMode('my');
+                }}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {hubMode === 'create' ? (
+          <View className="mb-4 rounded-3xl bg-white px-4 py-4">
+            <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+              Create Circle
+            </Text>
+            {isGuest ? (
+              <>
+                <Text className="mt-2 text-base text-brand-600">
+                  Create a free account to host Circles and keep your Qur&apos;an journey.
+                </Text>
+                <View className="mt-4">
+                  <PrimaryButton
+                    label="Create Free Account"
+                    onPress={() => router.push('/(auth)/register')}
+                  />
+                </View>
+              </>
+            ) : canCreateCircle ? (
+              <>
+                <Text className="mt-2 text-base text-brand-600">
+                  Circle hosting follows QuranFamily family and safety rules. Open Family
+                  tools to manage learners, then return here to join an active room.
+                </Text>
+                <View className="mt-4">
+                  <PrimaryButton
+                    label="Open Family"
+                    onPress={() => router.push('/(app)/family')}
+                  />
+                  <PrimaryButton
+                    label="Back to My Circle"
+                    onPress={() => setHubMode('my')}
+                    variant="secondary"
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text className="mt-2 text-base text-brand-600">
+                  Creating Circles is available for adult and parent accounts. You can still
+                  join an existing room anytime.
+                </Text>
+                <View className="mt-4">
+                  <PrimaryButton label="Find a Circle" onPress={() => setHubMode('find')} />
+                </View>
+              </>
+            )}
+          </View>
+        ) : null}
+
+        {hubMode === 'my' ? (
+          <>
         <View className="mb-4 rounded-2xl bg-white/10 px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-200">
             Circle rooms
@@ -380,7 +550,11 @@ export default function HifzCircleScreen() {
         {activeTab === 'leaderboard' ? (
           <View className="rounded-2xl bg-white px-4 py-4">
             <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-              Global standings
+              Circle standings
+            </Text>
+            <Text className="mt-2 text-sm text-brand-600">
+              Room rankings stay here. Open the Leaderboard tab for age, Juz, and All
+              Students boards.
             </Text>
             <View className="mt-4 gap-3">
               {leaderboard.map((entry) => (
@@ -406,6 +580,12 @@ export default function HifzCircleScreen() {
                 </View>
               ))}
             </View>
+            <View className="mt-4">
+              <PrimaryButton
+                label="Open Leaderboard"
+                onPress={() => router.push('/(app)/leaderboard' as never)}
+              />
+            </View>
           </View>
         ) : null}
 
@@ -428,6 +608,8 @@ export default function HifzCircleScreen() {
             variant="secondary"
           />
         </View>
+          </>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

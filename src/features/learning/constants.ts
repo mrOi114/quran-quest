@@ -4,6 +4,11 @@ export const JUZ_30_NUMBER = 30;
 export const JUZ_30_SURAH_START = 78;
 export const JUZ_30_SURAH_END = 114;
 
+/** Full mushaf bounds for Hifz lessons (all 30 Juz). */
+export const MUSHAF_SURAH_START = 1;
+export const MUSHAF_SURAH_END = 114;
+export const MUSHAF_JUZ_COUNT = 30;
+
 /** Target verses per lesson by age group (approved Feature 004 plan). */
 export const VERSES_PER_LESSON: Record<AgeGroupId, number> = {
   child_3_6: 1,

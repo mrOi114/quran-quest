@@ -19,6 +19,14 @@ type ReaderVerseFocusProps = {
   onToggleTranslation: () => void;
   onCycleRepeat: () => void;
   onPlayedOnce?: () => void;
+  onPlaybackComplete?: () => void;
+  autoPlay?: boolean;
+  audioEnabled?: boolean;
+  onToggleAudioEnabled?: () => void;
+  onPrevious?: () => void;
+  onNext?: () => void;
+  canGoPrevious?: boolean;
+  canGoNext?: boolean;
 };
 
 export function ReaderVerseFocus({
@@ -31,11 +39,21 @@ export function ReaderVerseFocus({
   onToggleTranslation,
   onCycleRepeat,
   onPlayedOnce,
+  onPlaybackComplete,
+  autoPlay = false,
+  audioEnabled = true,
+  onToggleAudioEnabled,
+  onPrevious,
+  onNext,
+  canGoPrevious,
+  canGoNext,
 }: ReaderVerseFocusProps) {
   const audio = useVerseAudio({
-    audioUrl: verse.audioUrl,
+    audioUrl: audioEnabled ? verse.audioUrl : null,
     repeatCount,
     onPlayedOnce,
+    onPlaybackComplete,
+    autoPlay: autoPlay && audioEnabled,
   });
 
   return (
@@ -52,6 +70,12 @@ export function ReaderVerseFocus({
         isPlaying={audio.isPlaying}
         repeatCount={repeatCount}
         error={audio.error}
+        audioEnabled={audioEnabled}
+        onToggleAudioEnabled={onToggleAudioEnabled}
+        onPrevious={onPrevious}
+        onNext={onNext}
+        canGoPrevious={canGoPrevious}
+        canGoNext={canGoNext}
         onPlay={() => {
           void audio.play();
         }}

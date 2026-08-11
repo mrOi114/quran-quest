@@ -149,3 +149,58 @@ export async function fetchChildren(parentId: string): Promise<Profile[]> {
 
   return (data ?? []).map(normalizeProfile);
 }
+
+/**
+ * Applies guest country / language onto a freshly registered profile when still defaults.
+ * Learning progress is merged separately — this only preserves identity fields.
+ */
+export async function applyGuestIdentityToProfile(
+  userId: string,
+  guest: {
+    countryCode?: string;
+    preferredLanguage?: string;
+    displayName?: string;
+  },
+): Promise<Profile | null> {
+  const current = await fetchProfile(userId);
+  if (!current) {
+    return null;
+  }
+
+  const updates: Partial<Profile> = {};
+  const country = guest.countryCode?.trim().toUpperCase();
+  const language = guest.preferredLanguage?.trim().toLowerCase();
+  const displayName = guest.displayName?.trim();
+
+  if (country && (!current.country_code || current.country_code === 'US')) {
+    updates.country_code = country;
+  }
+  if (language && (!current.preferred_language || current.preferred_language === 'en')) {
+    updates.preferred_language = language;
+  }
+  if (
+    displayName &&
+    (!current.display_name ||
+      current.display_name.trim().toLowerCase() === 'friend' ||
+      current.display_name.trim().length === 0)
+  ) {
+    updates.display_name = displayName;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return current;
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select(profileSelect)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ? normalizeProfile(data) : current;
+}

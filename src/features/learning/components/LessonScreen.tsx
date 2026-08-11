@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,8 +11,19 @@ import {
 } from '@/features/reader';
 import type { AudioRepeatCount } from '@/types';
 
+import {
+  getJuz,
+  getJuzForVerse,
+  listJuz,
+  listSurahsInJuz,
+  searchLearningSurahs,
+} from '../content';
 import { useLessonSession } from '../hooks/useLessonSession';
 import { resolveAgeGroup } from '../services/ageGroup';
+import { listLessonSummariesForSurah } from '../services/lessonPlanner';
+import { loadLearningSnapshot } from '../services/progressService';
+import type { LessonSummary, SurahMeta } from '../types';
+import { LessonBrowserSheet } from './LessonBrowserSheet';
 
 type LessonScreenProps = {
   lessonKey?: string;
@@ -45,9 +56,15 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
   const [playedVerseIds, setPlayedVerseIds] = useState<Record<string, true>>({});
   const [listenHint, setListenHint] = useState<string | null>(null);
+  const [browserOpen, setBrowserOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [juzNumber, setJuzNumber] = useState(30);
+  const [browseSurahNumber, setBrowseSurahNumber] = useState<number | null>(null);
+  const [lessonSummaries, setLessonSummaries] = useState<LessonSummary[]>([]);
 
   const ageGroup = activeLearner ? resolveAgeGroup(activeLearner) : 'adult_18_plus';
   const encourageListenFirst = ageGroup === 'child_3_6';
+  const juzOptions = useMemo(() => listJuz(), []);
 
   useEffect(() => {
     if (!session || !lessonKey) {
@@ -60,6 +77,45 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       });
     }
   }, [lessonKey, router, session]);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+    const juz =
+      getJuzForVerse(session.lesson.surahNumber, session.lesson.startAyah) ??
+      getJuz(30);
+    if (juz) {
+      setJuzNumber(juz.number);
+    }
+    setBrowseSurahNumber(session.lesson.surahNumber);
+  }, [session]);
+
+  const filteredSurahs: SurahMeta[] = useMemo(() => {
+    if (searchQuery.trim()) {
+      return searchLearningSurahs(searchQuery);
+    }
+    return listSurahsInJuz(juzNumber);
+  }, [juzNumber, searchQuery]);
+
+  const refreshLessonSummaries = useCallback(
+    async (surahNumber: number) => {
+      if (!activeLearner) {
+        setLessonSummaries([]);
+        return;
+      }
+      const snapshot = await loadLearningSnapshot(activeLearner);
+      setLessonSummaries(listLessonSummariesForSurah(surahNumber, snapshot, ageGroup));
+    },
+    [activeLearner, ageGroup],
+  );
+
+  useEffect(() => {
+    if (!browseSurahNumber || !browserOpen) {
+      return;
+    }
+    void refreshLessonSummaries(browseSurahNumber);
+  }, [browseSurahNumber, browserOpen, refreshLessonSummaries]);
 
   const handlePlayedOnce = useCallback((verseId: string) => {
     setPlayedVerseIds((current) =>
@@ -186,7 +242,50 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
             : ''}
           {' · '}
           {learnedCount}/{session.verses.length} learned
+          {' · '}
+          Juz {juzNumber}
         </Text>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Choose Juz, Surah, or lesson"
+          onPress={() => setBrowserOpen((value) => !value)}
+          className="mt-4 min-h-12 items-center justify-center self-center rounded-2xl bg-white px-5 py-3"
+        >
+          <Text className="text-base font-semibold text-brand-700">
+            {browserOpen ? 'Hide lesson picker' : 'Choose Juz / Surah / Lesson'}
+          </Text>
+        </Pressable>
+        <Text className="mt-2 text-center text-xs text-brand-100">
+          All 30 Juz available · {session.verses.length}-ayah Hifz chunks
+        </Text>
+
+        <LessonBrowserSheet
+          visible={browserOpen}
+          juzNumber={juzNumber}
+          juzOptions={juzOptions}
+          surahs={filteredSurahs}
+          selectedSurahNumber={browseSurahNumber}
+          lessons={lessonSummaries}
+          searchQuery={searchQuery}
+          onChangeSearch={setSearchQuery}
+          onSelectJuz={(nextJuz) => {
+            setSearchQuery('');
+            setJuzNumber(nextJuz);
+            const first = listSurahsInJuz(nextJuz)[0];
+            setBrowseSurahNumber(first?.number ?? null);
+          }}
+          onSelectSurah={(surahNumber) => {
+            setBrowseSurahNumber(surahNumber);
+          }}
+          onSelectLesson={(nextLessonKey) => {
+            router.replace({
+              pathname: '/(app)/lesson',
+              params: { lessonId: nextLessonKey },
+            });
+          }}
+          onClose={() => setBrowserOpen(false)}
+        />
 
         <View className="mt-5">
           {readerVerse ? (
@@ -266,7 +365,8 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
           {isReview ? (
             <>
               <Text className="mb-3 text-center text-base text-brand-600">
-                You can review these ayahs anytime. New lessons unlock in order.
+                You can review these ayahs anytime. Next chunks unlock in order within
+                this Surah.
               </Text>
               {session.nextLessonKey ? (
                 <PrimaryButton

@@ -197,6 +197,13 @@ export async function transferGuestProgressToAccount(userId: string): Promise<{
   );
   await AsyncStorage.multiRemove([prefsKey, stateKey]);
 
+  try {
+    const { stageGuestGamesForMigration } = await import('@/features/games');
+    await stageGuestGamesForMigration(userId);
+  } catch {
+    // Games progress staging is best-effort; learning migration must still succeed.
+  }
+
   await clearGuestProfile();
 
   return { userId, progress, guestProfile, migrated: true };
