@@ -18,7 +18,6 @@ export default function ProgressRoute() {
 
   useEffect(() => {
     if (!canManageFamily) {
-      setChildRows([]);
       return;
     }
 

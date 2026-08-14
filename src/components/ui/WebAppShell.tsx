@@ -185,15 +185,10 @@ export function WebAppShell({ children }: WebAppShellProps) {
       .filter((item): item is NavItem => Boolean(item));
   }, [isChildFamilySession, mainNavItems, useParentMenu]);
 
-  const learnerLabel = useMemo(() => {
-    if (activeLearner?.display_name) {
-      return activeLearner.display_name;
-    }
-    if (profile?.display_name) {
-      return profile.display_name;
-    }
-    return isGuest ? 'Guest learner' : 'QuranFamily';
-  }, [activeLearner?.display_name, isGuest, profile?.display_name]);
+  const learnerLabel =
+    activeLearner?.display_name ||
+    profile?.display_name ||
+    (isGuest ? 'Guest learner' : 'QuranFamily');
 
   const currentSectionLabel = useMemo(() => {
     const activeItem = mainNavItems.find((item) => isActiveNavItem(item, pathname));
