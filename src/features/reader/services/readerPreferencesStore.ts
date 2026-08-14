@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { ActiveLearner } from '@/features/auth';
-import { isGuestLearner } from '@/features/auth';
+import { isChildFamilyLearner, isGuestLearner } from '@/features/auth';
 import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
 import { supabase } from '@/lib/supabase';
 import type { AudioRepeatCount, Json } from '@/types';
@@ -17,12 +17,16 @@ import { readerBrowseStateSchema, readerPreferencesSchema } from '../schemas';
 import type { ReaderBrowseState, ReaderPreferences } from '../types';
 import { emptyFutureSettings, parseFutureSettings } from './futureSettings';
 
-function guestPrefsKey(learnerId: string): string {
+function localPrefsKey(learnerId: string): string {
   return `${READER_PREFS_STORAGE_KEY}.${learnerId}`;
 }
 
-function guestStateKey(learnerId: string): string {
+function localStateKey(learnerId: string): string {
   return `${READER_STATE_STORAGE_KEY}.${learnerId}`;
+}
+
+function usesLocalReaderStore(learner: ActiveLearner): boolean {
+  return isGuestLearner(learner) || isChildFamilyLearner(learner);
 }
 
 export function buildDefaultPreferences(learner: ActiveLearner): ReaderPreferences {
@@ -49,8 +53,8 @@ export async function loadReaderPreferences(
 ): Promise<ReaderPreferences> {
   const defaults = buildDefaultPreferences(learner);
 
-  if (isGuestLearner(learner)) {
-    const raw = await AsyncStorage.getItem(guestPrefsKey(learner.id));
+  if (usesLocalReaderStore(learner)) {
+    const raw = await AsyncStorage.getItem(localPrefsKey(learner.id));
     if (!raw) {
       return defaults;
     }
@@ -104,8 +108,8 @@ export async function saveReaderPreferences(
     fontScale: null,
   });
 
-  if (isGuestLearner(learner)) {
-    await AsyncStorage.setItem(guestPrefsKey(learner.id), JSON.stringify(validated));
+  if (usesLocalReaderStore(learner)) {
+    await AsyncStorage.setItem(localPrefsKey(learner.id), JSON.stringify(validated));
     return;
   }
 
@@ -134,7 +138,7 @@ export async function loadReaderBrowseState(
   const defaults = buildDefaultBrowseState();
 
   // Local cache supports full mushaf (1–114). Prefer it when present.
-  const localRaw = await AsyncStorage.getItem(guestStateKey(learner.id));
+  const localRaw = await AsyncStorage.getItem(localStateKey(learner.id));
   if (localRaw) {
     try {
       const parsed = readerBrowseStateSchema.safeParse(JSON.parse(localRaw));
@@ -146,7 +150,7 @@ export async function loadReaderBrowseState(
     }
   }
 
-  if (isGuestLearner(learner)) {
+  if (usesLocalReaderStore(learner)) {
     return defaults;
   }
 
@@ -174,9 +178,9 @@ export async function saveReaderBrowseState(
   const validated = readerBrowseStateSchema.parse(state);
 
   // Always persist locally so full-mushaf positions survive (cloud FK is Juz 30 only).
-  await AsyncStorage.setItem(guestStateKey(learner.id), JSON.stringify(validated));
+  await AsyncStorage.setItem(localStateKey(learner.id), JSON.stringify(validated));
 
-  if (isGuestLearner(learner)) {
+  if (usesLocalReaderStore(learner)) {
     return;
   }
 

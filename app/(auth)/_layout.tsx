@@ -11,6 +11,7 @@ export default function AuthLayout() {
     isEmailVerified,
     activeLearner,
     isGuest,
+    isChildFamilySession,
     needsPasswordReset,
   } = useAuth();
 
@@ -39,12 +40,20 @@ export default function AuthLayout() {
     return <Stack screenOptions={{ headerShown: false }} />;
   }
 
+  if (isChildFamilySession && activeLearner && !onResetPassword) {
+    const onChildEntry =
+      pathname.includes('child-entry') || pathname.includes('child-unlock');
+    if (!onChildEntry) {
+      return <Redirect href="/(app)/home" />;
+    }
+  }
+
   if (session && isEmailVerified && activeLearner && !onResetPassword) {
     return <Redirect href="/(app)/home" />;
   }
 
   if (session && isEmailVerified && !activeLearner && !onResetPassword) {
-    return <Redirect href="/(app)/family" />;
+    return <Redirect href="/(app)/family/learners" />;
   }
 
   return <Stack screenOptions={{ headerShown: false }} />;

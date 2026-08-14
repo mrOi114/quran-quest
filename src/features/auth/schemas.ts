@@ -46,11 +46,14 @@ export const childPinSchema = z.object({
   pin: z.string().regex(/^\d{4,6}$/, 'PIN must be 4 to 6 digits'),
 });
 
+export const childGenderSchema = z.enum(['girl', 'boy']);
+
 export const createChildSchema = z
   .object({
     displayName: z.string().trim().min(2, 'Nickname is required').max(30),
     age: z.coerce.number().int().min(3, 'Age must be 3–17').max(17, 'Age must be 3–17'),
-    avatarKey: z.string().min(1).default('default-1'),
+    gender: childGenderSchema,
+    avatarKey: z.string().min(1).optional(),
     countryCode: z
       .string()
       .trim()
@@ -68,6 +71,7 @@ export const createChildSchema = z
 export const updateChildSchema = z.object({
   displayName: z.string().trim().min(2, 'Nickname is required').max(30),
   age: z.coerce.number().int().min(3, 'Age must be 3–17').max(17, 'Age must be 3–17'),
+  gender: childGenderSchema.optional(),
   avatarKey: z.string().min(1),
   countryCode: z
     .string()

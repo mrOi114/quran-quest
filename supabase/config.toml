@@ -6,3 +6,10 @@ verify_jwt = true
 
 [functions.child-verify-pin]
 verify_jwt = true
+
+# Public child path: family code + PIN, no parent email JWT on the child device.
+[functions.resolve-family-code]
+verify_jwt = false
+
+[functions.child-unlock-with-code]
+verify_jwt = false

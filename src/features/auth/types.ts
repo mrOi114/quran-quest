@@ -33,12 +33,28 @@ export type GuestLearner = {
   parent_id: null;
 };
 
-export type ActiveLearner = FamilyMember | GuestLearner;
+/** Child unlocked via family code on a device without a parent email session. */
+export type ChildFamilyLearner = FamilyMember & {
+  role: 'child';
+  session_mode: 'family_code';
+};
+
+export type ActiveLearner = FamilyMember | GuestLearner | ChildFamilyLearner;
 
 export function isGuestLearner(
   learner: ActiveLearner | null | undefined,
 ): learner is GuestLearner {
   return learner?.role === 'guest';
+}
+
+export function isChildFamilyLearner(
+  learner: ActiveLearner | null | undefined,
+): learner is ChildFamilyLearner {
+  return (
+    learner?.role === 'child' &&
+    'session_mode' in learner &&
+    learner.session_mode === 'family_code'
+  );
 }
 
 export type CreateChildInput = {

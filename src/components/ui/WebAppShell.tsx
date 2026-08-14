@@ -16,7 +16,7 @@ type WebAppShellProps = {
   children: ReactNode;
 };
 
-const mainNavItems: NavItem[] = [
+const learnerNavItems: NavItem[] = [
   { label: 'Home', icon: '🏠', href: '/(app)/home', matches: (pathname) => pathname === '/home' || pathname === '/' },
   {
     label: 'Learn / Quran',
@@ -41,16 +41,50 @@ const mainNavItems: NavItem[] = [
       pathname.startsWith('/leaderboard') || pathname.startsWith('/progress'),
   },
   { label: 'Circle', icon: '👥', href: '/(app)/gates/circle', matches: (pathname) => pathname.startsWith('/gates/circle') },
-  { label: 'Family', icon: '👪', href: '/(app)/family', matches: (pathname) => pathname.startsWith('/family') || pathname.startsWith('/parent/children') || pathname.startsWith('/child-pin') },
+  {
+    label: 'Family',
+    icon: '👪',
+    href: '/(app)/family',
+    matches: (pathname) =>
+      pathname.startsWith('/family') ||
+      pathname.startsWith('/parent/') ||
+      pathname.startsWith('/child-pin'),
+  },
   { label: 'Profile', icon: '👤', href: '/(app)/profile', matches: (pathname) => pathname.startsWith('/profile') },
   { label: 'Settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
 ];
 
-const quickNavLabels = ['Home', 'Learn / Quran', 'Lesson', 'Leaderboard', 'Circle'] as const;
+const parentNavItems: NavItem[] = [
+  { label: 'Home', icon: '🏠', href: '/(app)/home', matches: (pathname) => pathname === '/home' || pathname === '/' },
+  {
+    label: 'My Family',
+    icon: '👨‍👩‍👧',
+    href: '/(app)/parent/dashboard',
+    matches: (pathname) =>
+      pathname.startsWith('/parent/') ||
+      pathname.startsWith('/family') ||
+      pathname.startsWith('/child-pin'),
+  },
+  {
+    label: 'Learning',
+    icon: '📖',
+    href: '/(app)/reader',
+    matches: (pathname) => pathname.startsWith('/reader') || pathname.startsWith('/lesson'),
+  },
+  { label: 'Revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
+  {
+    label: 'Achievements',
+    icon: '🏆',
+    href: '/(app)/leaderboard',
+    matches: (pathname) => pathname.startsWith('/leaderboard'),
+  },
+  { label: 'Progress', icon: '📊', href: '/(app)/progress', matches: (pathname) => pathname.startsWith('/progress') },
+  { label: 'Settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
+];
 
-const quickNavItems = quickNavLabels
-  .map((label) => mainNavItems.find((item) => item.label === label))
-  .filter((item): item is NavItem => Boolean(item));
+const learnerQuickLabels = ['Home', 'Learn / Quran', 'Lesson', 'Leaderboard', 'Circle'] as const;
+const parentQuickLabels = ['Home', 'My Family', 'Learning', 'Progress', 'Settings'] as const;
+const childFamilyQuickLabels = ['Home', 'Learn / Quran', 'Lesson', 'Leaderboard', 'Games'] as const;
 
 function isActiveNavItem(item: NavItem, pathname: string): boolean {
   return item.matches(pathname);
@@ -115,10 +149,41 @@ export function WebAppShell({ children }: WebAppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
-  const { activeLearner, profile, isGuest, signOut, endGuestSession } = useAuth();
+  const {
+    activeLearner,
+    profile,
+    isGuest,
+    isChildFamilySession,
+    canManageFamily,
+    signOut,
+    endGuestSession,
+    endChildFamilySession,
+  } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isDesktop = width >= 1024;
+  const useParentMenu = canManageFamily && !isChildFamilySession;
+
+  const mainNavItems = useMemo(() => {
+    if (useParentMenu) {
+      return parentNavItems;
+    }
+    if (isChildFamilySession) {
+      return learnerNavItems.filter((item) => item.label !== 'Family');
+    }
+    return learnerNavItems;
+  }, [isChildFamilySession, useParentMenu]);
+
+  const quickNavItems = useMemo(() => {
+    const labels = useParentMenu
+      ? parentQuickLabels
+      : isChildFamilySession
+        ? childFamilyQuickLabels
+        : learnerQuickLabels;
+    return labels
+      .map((label) => mainNavItems.find((item) => item.label === label))
+      .filter((item): item is NavItem => Boolean(item));
+  }, [isChildFamilySession, mainNavItems, useParentMenu]);
 
   const learnerLabel = useMemo(() => {
     if (activeLearner?.display_name) {
@@ -133,7 +198,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
   const currentSectionLabel = useMemo(() => {
     const activeItem = mainNavItems.find((item) => isActiveNavItem(item, pathname));
     return activeItem?.label ?? 'QuranFamily';
-  }, [pathname]);
+  }, [mainNavItems, pathname]);
 
   function navigate(href: string) {
     setDrawerOpen(false);
@@ -142,8 +207,20 @@ export function WebAppShell({ children }: WebAppShellProps) {
 
   function handleSignOut() {
     setDrawerOpen(false);
-    void (isGuest ? endGuestSession() : signOut()).then(() => router.replace('/(auth)/welcome'));
+    const leave =
+      isChildFamilySession
+        ? endChildFamilySession()
+        : isGuest
+          ? endGuestSession()
+          : signOut();
+    void leave.then(() => router.replace('/(auth)/welcome'));
   }
+
+  const signOutLabel = isChildFamilySession
+    ? 'Switch learner'
+    : isGuest
+      ? 'End guest trial'
+      : 'Log out';
 
   const navigationList = (
     <ScrollView
@@ -171,12 +248,11 @@ export function WebAppShell({ children }: WebAppShellProps) {
         <Text className="mt-1 text-sm text-brand-100">Current section: {currentSectionLabel}</Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={signOutLabel}
           onPress={handleSignOut}
           className="mt-4 min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-3"
         >
-          <Text className="text-sm font-semibold text-white">
-            {isGuest ? 'End guest trial' : 'Sign out'}
-          </Text>
+          <Text className="text-sm font-semibold text-white">🚪 {signOutLabel}</Text>
         </Pressable>
       </View>
     </ScrollView>

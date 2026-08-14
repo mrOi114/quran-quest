@@ -2,6 +2,7 @@ export { AccountRequiredGate } from './AccountRequiredGate';
 export { AuthScreen } from './AuthScreen';
 export { AvatarPicker } from './AvatarPicker';
 export { CountryPicker } from './CountryPicker';
+export { GenderPicker } from './GenderPicker';
 export { LanguagePicker } from './LanguagePicker';
 export { MilestonePrompt } from './MilestonePrompt';
 export { PinInput } from './PinInput';

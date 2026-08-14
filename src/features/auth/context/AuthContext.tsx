@@ -16,11 +16,13 @@ import type { GuestOnboardingInput } from '../schemas';
 import {
   addGuestSurahProgress,
   applyGuestIdentityToProfile,
+  clearChildFamilySession,
   clearGuestProfile,
   clearStoredActiveLearnerId,
   createChildProfile,
   deleteChildProfile,
   dismissMilestonePrompt,
+  ensureParentFamilyCode,
   fetchChildren,
   fetchProfile,
   getGuestProfile,
@@ -35,11 +37,14 @@ import {
   isMilestoneDismissed,
   logoutAccount,
   registerCurrentDevice,
+  saveChildFamilySession,
   saveGuestProfile,
   setChildPin,
   setStoredActiveLearnerId,
   subscribeToAuthUrls,
+  toChildFamilyLearner,
   transferGuestProgressToAccount,
+  unlockChildWithFamilyCode,
   updateChildProfile,
   verifyChildPin,
   type GuestProfile,
@@ -52,6 +57,7 @@ import type {
   GuestLearner,
   UpdateChildInput,
 } from '../types';
+import { isChildFamilyLearner } from '../types';
 import { canManageFamily } from '../utils/access';
 
 type AuthContextValue = {
@@ -63,6 +69,8 @@ type AuthContextValue = {
   activeLearner: ActiveLearner | null;
   isEmailVerified: boolean;
   isGuest: boolean;
+  /** Child unlocked via family code + PIN without a parent email session. */
+  isChildFamilySession: boolean;
   guestProfile: GuestProfile | null;
   guestProgress: GuestProgress | null;
   showMilestonePrompt: boolean;
@@ -70,19 +78,27 @@ type AuthContextValue = {
   /** True after a password-recovery deep link until the new password is saved. */
   needsPasswordReset: boolean;
   canManageFamily: boolean;
+  familyCode: string | null;
   refreshProfile: () => Promise<void>;
   refreshChildren: () => Promise<void>;
   selectSelfAsLearner: () => Promise<void>;
   unlockChild: (childId: string, pin: string) => Promise<void>;
+  unlockChildByFamilyCode: (
+    familyCode: string,
+    childId: string,
+    pin: string,
+  ) => Promise<void>;
   clearActiveLearner: () => Promise<void>;
   createChild: (input: CreateChildInput) => Promise<Profile>;
   updateChild: (childId: string, input: UpdateChildInput) => Promise<Profile>;
   deleteChild: (childId: string) => Promise<void>;
   resetChildPin: (childId: string, pin: string) => Promise<void>;
+  ensureFamilyCode: () => Promise<string>;
   signOut: () => Promise<void>;
   ensureDeviceRegistered: () => Promise<void>;
   startGuest: (input: GuestOnboardingInput) => Promise<void>;
   endGuestSession: () => Promise<void>;
+  endChildFamilySession: () => Promise<void>;
   refreshGuestProgress: () => Promise<void>;
   simulateGuestProgress: (delta?: number) => Promise<void>;
   dismissGuestMilestone: () => Promise<void>;
@@ -99,25 +115,30 @@ const missingAuthContextValue: AuthContextValue = {
   activeLearner: null,
   isEmailVerified: false,
   isGuest: false,
+  isChildFamilySession: false,
   guestProfile: null,
   guestProgress: null,
   showMilestonePrompt: false,
   isGuestAtLimit: false,
   needsPasswordReset: false,
   canManageFamily: false,
+  familyCode: null,
   refreshProfile: async () => undefined,
   refreshChildren: async () => undefined,
   selectSelfAsLearner: async () => undefined,
   unlockChild: async () => undefined,
+  unlockChildByFamilyCode: async () => undefined,
   clearActiveLearner: async () => undefined,
   createChild: async () => undefined as never,
   updateChild: async () => undefined as never,
   deleteChild: async () => undefined,
   resetChildPin: async () => undefined,
+  ensureFamilyCode: async () => '',
   signOut: async () => undefined,
   ensureDeviceRegistered: async () => undefined,
   startGuest: async () => undefined,
   endGuestSession: async () => undefined,
+  endChildFamilySession: async () => undefined,
   refreshGuestProgress: async () => undefined,
   simulateGuestProgress: async () => undefined,
   dismissGuestMilestone: async () => undefined,
@@ -165,6 +186,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [guestProgress, setGuestProgress] = useState<GuestProgress | null>(null);
   const [showMilestonePrompt, setShowMilestonePrompt] = useState(false);
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
+  const [familyCode, setFamilyCode] = useState<string | null>(null);
 
   const syncGuestMilestone = useCallback(async (progress: GuestProgress | null) => {
     if (!progress) {
@@ -206,6 +228,9 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     }
     const nextProfile = await fetchProfile(user.id);
     setProfile(nextProfile);
+    if (nextProfile?.role === 'parent' && nextProfile.family_code) {
+      setFamilyCode(nextProfile.family_code);
+    }
   }, [user]);
 
   const refreshChildren = useCallback(async () => {
@@ -280,6 +305,9 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
               return;
             }
             setChildProfiles(kids);
+            if (nextProfile.family_code) {
+              setFamilyCode(nextProfile.family_code);
+            }
           }
 
           await hydrateActiveLearner(nextProfile, kids);
@@ -292,6 +320,8 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
             }
           }
         } else {
+          // Child family-code sessions never restore across cold starts — PIN again.
+          await clearChildFamilySession();
           const guest = await getGuestProfile();
           if (!mounted) {
             return;
@@ -338,7 +368,9 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
             setProfile(null);
             setChildProfiles([]);
             setActiveLearner(null);
+            setFamilyCode(null);
             setNeedsPasswordReset(false);
+            await clearChildFamilySession();
             await clearStoredActiveLearnerId();
 
             const guest = await getGuestProfile();
@@ -376,6 +408,9 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           if (nextProfile?.role === 'parent') {
             kids = await fetchChildren(nextSession.user.id);
             setChildProfiles(kids);
+            if (nextProfile.family_code) {
+              setFamilyCode(nextProfile.family_code);
+            }
           } else {
             setChildProfiles([]);
           }
@@ -422,16 +457,58 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       if (!child) {
         throw new Error('Child profile not found');
       }
+      await clearChildFamilySession();
       await setStoredActiveLearnerId(child.id);
       setActiveLearner(toFamilyMember(child));
     },
     [childProfiles],
   );
 
+  const unlockChildByFamilyCode = useCallback(
+    async (code: string, childId: string, pin: string) => {
+      const child = await unlockChildWithFamilyCode({
+        familyCode: code,
+        childId,
+        pin,
+      });
+      await clearGuestProfile();
+      setGuestProfile(null);
+      setGuestProgress(null);
+      setShowMilestonePrompt(false);
+      await saveChildFamilySession({
+        child,
+        familyCode: code.trim().toUpperCase(),
+        parentId: child.parent_id,
+        unlockedAt: new Date().toISOString(),
+      });
+      setFamilyCode(code.trim().toUpperCase());
+      await clearStoredActiveLearnerId();
+      setActiveLearner(toChildFamilyLearner(child));
+    },
+    [],
+  );
+
   const clearActiveLearner = useCallback(async () => {
     await clearStoredActiveLearnerId();
+    await clearChildFamilySession();
     setActiveLearner(null);
   }, []);
+
+  const endChildFamilySession = useCallback(async () => {
+    await clearChildFamilySession();
+    await clearStoredActiveLearnerId();
+    setActiveLearner(null);
+    setFamilyCode(null);
+  }, []);
+
+  const ensureFamilyCode = useCallback(async () => {
+    if (!user || profile?.role !== 'parent') {
+      throw new Error('Only parents have a family code');
+    }
+    const code = await ensureParentFamilyCode();
+    setFamilyCode(code);
+    return code;
+  }, [profile?.role, user]);
 
   const createChild = useCallback(
     async (input: CreateChildInput) => {
@@ -562,9 +639,11 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
   const signOut = useCallback(async () => {
     await clearStoredActiveLearnerId();
+    await clearChildFamilySession();
     setActiveLearner(null);
     setProfile(null);
     setChildProfiles([]);
+    setFamilyCode(null);
     setNeedsPasswordReset(false);
     await logoutAccount();
 
@@ -579,6 +658,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   }, [syncGuestMilestone]);
 
   const isGuest = Boolean(guestProfile) && !session;
+  const isChildFamilySession = isChildFamilyLearner(activeLearner);
   const isGuestAtLimit = Boolean(guestProgress && hasReachedGuestLimit(guestProgress));
   const familyManageAllowed = canManageFamily({
     profileRole: profile?.role,
@@ -595,25 +675,30 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       activeLearner,
       isEmailVerified: isEmailVerified(user),
       isGuest,
+      isChildFamilySession,
       guestProfile,
       guestProgress,
       showMilestonePrompt: isGuest && showMilestonePrompt,
       isGuestAtLimit: isGuest && isGuestAtLimit,
       needsPasswordReset,
       canManageFamily: familyManageAllowed,
+      familyCode,
       refreshProfile,
       refreshChildren,
       selectSelfAsLearner,
       unlockChild,
+      unlockChildByFamilyCode,
       clearActiveLearner,
       createChild,
       updateChild,
       deleteChild,
       resetChildPin,
+      ensureFamilyCode,
       signOut,
       ensureDeviceRegistered,
       startGuest,
       endGuestSession,
+      endChildFamilySession,
       refreshGuestProgress,
       simulateGuestProgress,
       dismissGuestMilestone,
@@ -628,12 +713,16 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       createChild,
       deleteChild,
       dismissGuestMilestone,
+      endChildFamilySession,
       endGuestSession,
       ensureDeviceRegistered,
+      ensureFamilyCode,
+      familyCode,
       familyManageAllowed,
       guestProfile,
       guestProgress,
       isBootstrapping,
+      isChildFamilySession,
       isGuest,
       isGuestAtLimit,
       migrateGuestProgressAfterRegister,
@@ -650,6 +739,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       simulateGuestProgress,
       startGuest,
       unlockChild,
+      unlockChildByFamilyCode,
       updateChild,
       user,
     ],

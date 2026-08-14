@@ -6,13 +6,27 @@ import { getDeviceKey } from './deviceService';
 import { assertFunctionOk } from './functionErrors';
 
 const childSelect =
-  'id, role, email, display_name, age, avatar_key, country_code, preferred_language, parent_id, created_at, updated_at';
+  'id, role, email, display_name, age, avatar_key, country_code, preferred_language, parent_id, family_code, created_at, updated_at';
 
 function toProfile(
-  row: Omit<Profile, 'pin_hash' | 'pin_failed_attempts' | 'pin_locked_until'>,
+  row: {
+    id: string;
+    role: Profile['role'];
+    email: string | null;
+    display_name: string;
+    age: number | null;
+    avatar_key: string;
+    country_code: string;
+    preferred_language: string;
+    parent_id: string | null;
+    family_code?: string | null;
+    created_at: string;
+    updated_at: string;
+  },
 ): Profile {
   return {
     ...row,
+    family_code: row.family_code ?? null,
     pin_hash: null,
     pin_failed_attempts: 0,
     pin_locked_until: null,
@@ -50,7 +64,7 @@ export async function createChildProfile(
     throw pinError;
   }
 
-  return toProfile(data);
+  return toProfile({ ...data, family_code: null });
 }
 
 export async function updateChildProfile(
@@ -75,7 +89,7 @@ export async function updateChildProfile(
     throw new Error(error?.message || 'Could not update child profile');
   }
 
-  return toProfile(data);
+  return toProfile({ ...data, family_code: null });
 }
 
 export async function deleteChildProfile(childId: string): Promise<void> {

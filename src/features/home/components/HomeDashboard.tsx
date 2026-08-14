@@ -22,9 +22,11 @@ export function HomeDashboard() {
   const {
     activeLearner,
     isGuest,
+    isChildFamilySession,
     showMilestonePrompt,
     dismissGuestMilestone,
     clearActiveLearner,
+    endChildFamilySession,
     endGuestSession,
     signOut,
   } = useAuth();
@@ -166,7 +168,7 @@ export function HomeDashboard() {
         <AchievementsSection achievements={dashboard.achievements} />
 
         {dashboard.showParentAccess ? (
-          <ParentAccessLink onPress={() => router.push('/(app)/parent/children')} />
+          <ParentAccessLink onPress={() => router.push('/(app)/parent/dashboard')} />
         ) : null}
 
         {dashboard.showGuestReminder ? (
@@ -195,7 +197,15 @@ export function HomeDashboard() {
                     : 'Switch learner'
                 }
                 onPress={() => {
-                  void clearActiveLearner().then(() => router.replace('/(app)/family'));
+                  if (isChildFamilySession) {
+                    void endChildFamilySession().then(() =>
+                      router.replace('/(auth)/child-entry'),
+                    );
+                    return;
+                  }
+                  void clearActiveLearner().then(() =>
+                    router.replace('/(app)/family/learners'),
+                  );
                 }}
                 className="min-h-12 items-center justify-center py-2"
               >

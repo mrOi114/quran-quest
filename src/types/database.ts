@@ -28,6 +28,7 @@ export type Profile = {
   country_code: string;
   preferred_language: string;
   parent_id: string | null;
+  family_code: string | null;
   pin_hash: string | null;
   pin_failed_attempts: number;
   pin_locked_until: string | null;
@@ -249,6 +250,7 @@ export type Database = {
           country_code?: string;
           preferred_language?: string;
           parent_id?: string | null;
+          family_code?: string | null;
           pin_hash?: string | null;
           pin_failed_attempts?: number;
           pin_locked_until?: string | null;
@@ -516,6 +518,14 @@ export type Database = {
       can_manage_learner: {
         Args: { p_learner_id: string };
         Returns: boolean;
+      };
+      generate_family_code: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      ensure_parent_family_code: {
+        Args: { p_parent_id?: string };
+        Returns: string;
       };
     };
     Enums: {

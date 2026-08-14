@@ -5,7 +5,15 @@ import { PrimaryButton, useAuth } from '@/features/auth';
 
 export default function SettingsRoute() {
   const router = useRouter();
-  const { isGuest, signOut, endGuestSession } = useAuth();
+  const {
+    isGuest,
+    isChildFamilySession,
+    canManageFamily,
+    familyCode,
+    signOut,
+    endGuestSession,
+    endChildFamilySession,
+  } = useAuth();
 
   return (
     <ScrollView className="flex-1 bg-brand-600" contentContainerStyle={{ padding: 20, paddingBottom: 36 }}>
@@ -15,7 +23,7 @@ export default function SettingsRoute() {
         </Text>
         <Text className="mt-2 text-3xl font-bold text-brand-800">App preferences</Text>
         <Text className="mt-2 text-base text-brand-600">
-          Account, session, and device settings will live here.
+          Account, session, and device settings live here.
         </Text>
 
         <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-4">
@@ -23,15 +31,48 @@ export default function SettingsRoute() {
             Session
           </Text>
           <Text className="mt-2 text-sm text-brand-700">
-            {isGuest ? 'Guest trial active on this device.' : 'Signed in with a full account.'}
+            {isGuest
+              ? 'Guest trial active on this device.'
+              : isChildFamilySession
+                ? 'Child session unlocked with family code and PIN.'
+                : 'Signed in with a full account.'}
           </Text>
+          {canManageFamily && familyCode ? (
+            <Text className="mt-2 text-sm font-semibold text-brand-800">
+              Family code: {familyCode}
+            </Text>
+          ) : null}
         </View>
 
         <View className="mt-6">
           <PrimaryButton label="Back to home" onPress={() => router.replace('/(app)/home')} />
+          {canManageFamily ? (
+            <PrimaryButton
+              label="My Family"
+              onPress={() => router.push('/(app)/parent/dashboard')}
+              variant="secondary"
+            />
+          ) : null}
           <PrimaryButton
-            label={isGuest ? 'End guest trial' : 'Sign out'}
-            onPress={() => void (isGuest ? endGuestSession() : signOut()).then(() => router.replace('/(auth)/welcome'))}
+            label={
+              isChildFamilySession
+                ? 'Switch learner'
+                : isGuest
+                  ? 'End guest trial'
+                  : 'Log out'
+            }
+            onPress={() =>
+              void (isChildFamilySession
+                ? endChildFamilySession()
+                : isGuest
+                  ? endGuestSession()
+                  : signOut()
+              ).then(() =>
+                router.replace(
+                  isChildFamilySession ? '/(auth)/child-entry' : '/(auth)/welcome',
+                ),
+              )
+            }
             variant="secondary"
           />
         </View>

@@ -4,37 +4,32 @@ import { Pressable, Text } from 'react-native';
 
 import { AuthScreen, PrimaryButton, useAuth } from '@/features/auth';
 
-export default function FamilyPickerScreen() {
+export default function FamilyLearnersScreen() {
   const router = useRouter();
   const {
     profile,
     children,
     selectSelfAsLearner,
     ensureDeviceRegistered,
-    signOut,
     refreshChildren,
     isGuest,
     canManageFamily,
-    activeLearner,
-    clearActiveLearner,
+    session,
+    isEmailVerified,
   } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Leaving a child session via family picker clears the child learner first.
-    if (activeLearner?.role === 'child') {
-      void clearActiveLearner();
-    }
-  }, [activeLearner?.role, clearActiveLearner]);
+  const parentSignedIn =
+    Boolean(session) && isEmailVerified && profile?.role === 'parent';
 
   useEffect(() => {
     void ensureDeviceRegistered().catch(() => undefined);
     void refreshChildren().catch(() => undefined);
   }, [ensureDeviceRegistered, refreshChildren]);
 
-  if (isGuest) {
-    return <Redirect href="/(app)/home" />;
+  if (isGuest || !session || !isEmailVerified) {
+    return <Redirect href="/(auth)/child-entry" />;
   }
 
   async function chooseSelf() {
@@ -60,9 +55,13 @@ export default function FamilyPickerScreen() {
   return (
     <AuthScreen
       title="Who is learning?"
-      subtitle="Parents can unlock a child with a PIN on this approved device."
+      subtitle={
+        parentSignedIn
+          ? 'Tap your name. Children enter a PIN. Parents can continue without a PIN.'
+          : 'Continue as yourself to learn.'
+      }
     >
-      {profile ? (
+      {profile && profile.role !== 'child' ? (
         <Pressable
           onPress={() => void chooseSelf()}
           accessibilityRole="button"
@@ -71,32 +70,36 @@ export default function FamilyPickerScreen() {
           <Text className="text-lg font-semibold text-brand-800">
             {profile.display_name}
           </Text>
-          <Text className="mt-1 text-sm capitalize text-brand-500">{profile.role}</Text>
+          <Text className="mt-1 text-sm capitalize text-brand-500">
+            {profile.role} · no PIN
+          </Text>
           {loadingId === profile.id ? (
             <Text className="mt-2 text-sm text-brand-600">Opening…</Text>
           ) : null}
         </Pressable>
       ) : null}
 
-      {children.map((child) => (
-        <Pressable
-          key={child.id}
-          onPress={() => chooseChild(child.id)}
-          accessibilityRole="button"
-          className="mb-3 min-h-14 rounded-2xl border border-brand-100 bg-white px-4 py-4"
-        >
-          <Text className="text-lg font-semibold text-brand-800">
-            {child.display_name}
-          </Text>
-          <Text className="mt-1 text-sm text-brand-500">
-            Child · Age {child.age ?? '—'} · {child.country_code} · PIN required
-          </Text>
-        </Pressable>
-      ))}
+      {parentSignedIn
+        ? children.map((child) => (
+            <Pressable
+              key={child.id}
+              onPress={() => chooseChild(child.id)}
+              accessibilityRole="button"
+              className="mb-3 min-h-14 rounded-2xl border border-brand-100 bg-white px-4 py-4"
+            >
+              <Text className="text-lg font-semibold text-brand-800">
+                {child.display_name}
+              </Text>
+              <Text className="mt-1 text-sm text-brand-500">
+                Child · Age {child.age ?? '—'} · enter PIN
+              </Text>
+            </Pressable>
+          ))
+        : null}
 
-      {profile?.role === 'parent' && children.length === 0 ? (
+      {parentSignedIn && children.length === 0 ? (
         <Text className="mb-4 text-sm text-brand-600">
-          No children yet. Create a child profile to let them learn with a PIN.
+          No children yet. Add a child from the family dashboard.
         </Text>
       ) : null}
 
@@ -104,17 +107,15 @@ export default function FamilyPickerScreen() {
 
       {canManageFamily ? (
         <PrimaryButton
-          label="Manage children"
-          onPress={() => router.push('/(app)/parent/children')}
+          label="My Family"
+          onPress={() => router.push('/(app)/parent/dashboard')}
           variant="secondary"
         />
       ) : null}
 
       <PrimaryButton
-        label="Log out"
-        onPress={() => {
-          void signOut().then(() => router.replace('/(auth)/welcome'));
-        }}
+        label="Back"
+        onPress={() => router.replace('/(app)/family')}
         variant="secondary"
       />
     </AuthScreen>

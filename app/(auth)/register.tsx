@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
 
@@ -14,11 +14,14 @@ import {
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ role?: string }>();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<AdultOrParentRole>('adult');
+  const [role, setRole] = useState<AdultOrParentRole>(
+    params.role === 'parent' ? 'parent' : 'adult',
+  );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -61,8 +64,12 @@ export default function RegisterScreen() {
 
   return (
     <AuthScreen
-      title="Create your account"
-      subtitle="Choose Adult or Parent. Children are created later by a parent."
+      title={role === 'parent' ? 'Create a parent account' : 'Create your account'}
+      subtitle={
+        role === 'parent'
+          ? 'You create and control child profiles. Children never need their own email.'
+          : 'Choose Adult or Parent. Children are created later by a parent — they cannot sign up here.'
+      }
     >
       <RolePicker value={role} onChange={setRole} />
       <TextField
@@ -100,7 +107,15 @@ export default function RegisterScreen() {
         onPress={() => void onSubmit()}
         loading={loading}
       />
-      <Pressable onPress={() => router.push('/(auth)/login')} className="py-2">
+      <Pressable
+        onPress={() =>
+          router.push({
+            pathname: '/(auth)/login',
+            params: { role },
+          })
+        }
+        className="py-2"
+      >
         <Text className="text-center text-sm text-brand-700">
           Already have an account?{' '}
           <Text className="font-semibold text-brand-600">Log in</Text>

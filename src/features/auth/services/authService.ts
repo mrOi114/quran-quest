@@ -104,17 +104,33 @@ export function isEmailVerified(user: User | null | undefined): boolean {
 }
 
 const profileSelect =
+  'id, role, email, display_name, age, avatar_key, country_code, preferred_language, parent_id, family_code, created_at, updated_at';
+const profileSelectLegacy =
   'id, role, email, display_name, age, avatar_key, country_code, preferred_language, parent_id, created_at, updated_at';
 
-function normalizeProfile(
-  row: Omit<Profile, 'pin_hash' | 'pin_failed_attempts' | 'pin_locked_until'> & {
-    pin_hash?: string | null;
-    pin_failed_attempts?: number;
-    pin_locked_until?: string | null;
-  },
-): Profile {
+function isMissingFamilyCodeColumn(message: string | undefined): boolean {
+  const text = (message ?? '').toLowerCase();
+  return (
+    text.includes('family_code') &&
+    (text.includes('does not exist') ||
+      text.includes('schema cache') ||
+      text.includes('42703') ||
+      text.includes('permission denied') ||
+      text.includes('column'))
+  );
+}
+
+type ProfileRow = Omit<Profile, 'pin_hash' | 'pin_failed_attempts' | 'pin_locked_until'> & {
+  pin_hash?: string | null;
+  pin_failed_attempts?: number;
+  pin_locked_until?: string | null;
+  family_code?: string | null;
+};
+
+function normalizeProfile(row: ProfileRow): Profile {
   return {
     ...row,
+    family_code: row.family_code ?? null,
     pin_hash: null,
     pin_failed_attempts: row.pin_failed_attempts ?? 0,
     pin_locked_until: null,
@@ -129,10 +145,26 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     .maybeSingle();
 
   if (error) {
+    if (isMissingFamilyCodeColumn(error.message)) {
+      const fallback = await supabase
+        .from('profiles')
+        .select(profileSelectLegacy)
+        .eq('id', userId)
+        .maybeSingle();
+      if (fallback.error) {
+        throw new Error(fallback.error.message);
+      }
+      return fallback.data
+        ? normalizeProfile({
+            ...(fallback.data as object),
+            family_code: null,
+          } as ProfileRow)
+        : null;
+    }
     throw new Error(error.message);
   }
 
-  return data ? normalizeProfile(data) : null;
+  return data ? normalizeProfile(data as unknown as ProfileRow) : null;
 }
 
 export async function fetchChildren(parentId: string): Promise<Profile[]> {
@@ -144,10 +176,24 @@ export async function fetchChildren(parentId: string): Promise<Profile[]> {
     .order('created_at', { ascending: true });
 
   if (error) {
+    if (isMissingFamilyCodeColumn(error.message)) {
+      const fallback = await supabase
+        .from('profiles')
+        .select(profileSelectLegacy)
+        .eq('parent_id', parentId)
+        .eq('role', 'child')
+        .order('created_at', { ascending: true });
+      if (fallback.error) {
+        throw new Error(fallback.error.message);
+      }
+      return (fallback.data ?? []).map((row) =>
+        normalizeProfile({ ...(row as object), family_code: null } as ProfileRow),
+      );
+    }
     throw new Error(error.message);
   }
 
-  return (data ?? []).map(normalizeProfile);
+  return ((data ?? []) as unknown as ProfileRow[]).map(normalizeProfile);
 }
 
 /**
@@ -202,5 +248,5 @@ export async function applyGuestIdentityToProfile(
     throw new Error(error.message);
   }
 
-  return data ? normalizeProfile(data) : current;
+  return data ? normalizeProfile(data as unknown as ProfileRow) : current;
 }

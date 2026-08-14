@@ -1,0 +1,228 @@
+import { Redirect, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+
+import {
+  AuthScreen,
+  CountryPicker,
+  GenderPicker,
+  LanguagePicker,
+  PinInput,
+  PrimaryButton,
+  TextField,
+  createChildSchema,
+  useAuth,
+  type ChildGender,
+} from '@/features/auth';
+import { avatarKeyFromGender } from '@/features/auth/utils/childGender';
+
+type ConfirmState = {
+  displayName: string;
+  pin: string;
+  familyCode: string;
+};
+
+export default function AddChildScreen() {
+  const router = useRouter();
+  const {
+    profile,
+    createChild,
+    canManageFamily,
+    isGuest,
+    familyCode,
+    ensureFamilyCode,
+  } = useAuth();
+  const [displayName, setDisplayName] = useState('');
+  const [age, setAge] = useState('8');
+  const [gender, setGender] = useState<ChildGender>('girl');
+  const [countryCode, setCountryCode] = useState(profile?.country_code ?? 'US');
+  const [preferredLanguage, setPreferredLanguage] = useState(
+    profile?.preferred_language ?? 'en',
+  );
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [confirmation, setConfirmation] = useState<ConfirmState | null>(null);
+
+  useEffect(() => {
+    void ensureFamilyCode().catch(() => undefined);
+  }, [ensureFamilyCode]);
+
+  if (isGuest || profile?.role !== 'parent' || !canManageFamily) {
+    return <Redirect href="/(app)/home" />;
+  }
+
+  async function onCreateChild() {
+    setFormError(null);
+    setFieldErrors({});
+
+    const parsed = createChildSchema.safeParse({
+      displayName,
+      age,
+      gender,
+      countryCode,
+      preferredLanguage,
+      pin,
+      confirmPin,
+    });
+
+    if (!parsed.success) {
+      const nextErrors: Record<string, string> = {};
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path[0] ?? 'form');
+        nextErrors[key] = issue.message;
+      }
+      setFieldErrors(nextErrors);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const code = familyCode || (await ensureFamilyCode());
+      const created = await createChild({
+        displayName: parsed.data.displayName,
+        age: parsed.data.age,
+        avatarKey: avatarKeyFromGender(parsed.data.gender),
+        countryCode: parsed.data.countryCode,
+        preferredLanguage: parsed.data.preferredLanguage,
+        pin: parsed.data.pin,
+      });
+      setConfirmation({
+        displayName: created.display_name,
+        pin: parsed.data.pin,
+        familyCode: code,
+      });
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Could not create child');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (confirmation) {
+    return (
+      <AuthScreen
+        title={`${confirmation.displayName} is ready`}
+        subtitle="Share this login info with your child. Keep the PIN private."
+      >
+        <View className="mb-4 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            How they log in
+          </Text>
+          <Text className="mt-3 text-sm leading-6 text-brand-700">
+            1. Open QuranFamily{'\n'}
+            2. Tap Child / Learner{'\n'}
+            3. Enter family code{'\n'}
+            4. Choose {confirmation.displayName}
+            {'\n'}
+            5. Enter PIN
+          </Text>
+        </View>
+
+        <View className="mb-4 rounded-2xl border border-brand-100 bg-white px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            Login / access info
+          </Text>
+          <Text className="mt-3 text-base text-brand-800">
+            Name: {confirmation.displayName}
+          </Text>
+          <Text className="mt-2 text-base text-brand-800">
+            Family code: {confirmation.familyCode || 'Ask My Family after it appears'}
+          </Text>
+          <Text className="mt-2 text-base text-brand-800">
+            PIN: {confirmation.pin}
+          </Text>
+          <Text className="mt-3 text-sm leading-5 text-brand-600">
+            Write the PIN down now. We will not show it again. Your child does not need
+            an email or password.
+          </Text>
+        </View>
+
+        <PrimaryButton
+          label="Back to My Family"
+          onPress={() => router.replace('/(app)/parent/dashboard')}
+        />
+        <PrimaryButton
+          label="Add another child"
+          onPress={() => {
+            setConfirmation(null);
+            setDisplayName('');
+            setAge('8');
+            setGender('girl');
+            setPin('');
+            setConfirmPin('');
+            setFieldErrors({});
+            setFormError(null);
+          }}
+          variant="secondary"
+        />
+      </AuthScreen>
+    );
+  }
+
+  return (
+    <AuthScreen
+      title="Add a child"
+      subtitle="Nickname, age, Girl/Boy, and a PIN. You stay in control — no child email."
+    >
+      <TextField
+        label="Nickname"
+        value={displayName}
+        onChangeText={setDisplayName}
+        error={fieldErrors.displayName}
+      />
+      <TextField
+        label="Age"
+        keyboardType="number-pad"
+        value={age}
+        onChangeText={setAge}
+        error={fieldErrors.age}
+      />
+      <GenderPicker value={gender} onChange={setGender} error={fieldErrors.gender} />
+      <PinInput label="Child PIN" value={pin} onChangeText={setPin} error={fieldErrors.pin} />
+      <PinInput
+        label="Confirm PIN"
+        value={confirmPin}
+        onChangeText={setConfirmPin}
+        error={fieldErrors.confirmPin}
+      />
+
+      <Pressable onPress={() => setShowAdvanced((value) => !value)} className="mb-3 py-1">
+        <Text className="text-sm font-medium text-brand-600">
+          {showAdvanced ? 'Hide country & language' : 'Country & language (optional)'}
+        </Text>
+      </Pressable>
+
+      {showAdvanced ? (
+        <>
+          <CountryPicker
+            value={countryCode}
+            onChange={setCountryCode}
+            error={fieldErrors.countryCode}
+          />
+          <LanguagePicker
+            value={preferredLanguage}
+            onChange={setPreferredLanguage}
+            error={fieldErrors.preferredLanguage}
+          />
+        </>
+      ) : null}
+
+      {formError ? <Text className="mb-3 text-sm text-red-600">{formError}</Text> : null}
+
+      <PrimaryButton
+        label="Create child profile"
+        onPress={() => void onCreateChild()}
+        loading={loading}
+      />
+      <PrimaryButton
+        label="Back to My Family"
+        onPress={() => router.replace('/(app)/parent/dashboard')}
+        variant="secondary"
+      />
+    </AuthScreen>
+  );
+}

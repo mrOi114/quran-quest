@@ -1,5 +1,5 @@
 import type { ActiveLearner } from '@/features/auth';
-import { isGuestLearner } from '@/features/auth';
+import { isChildFamilyLearner, isGuestLearner } from '@/features/auth';
 
 import type {
   LearningSnapshot,
@@ -11,6 +11,10 @@ import type {
 } from '../types';
 import { getVersesInRange } from '../content';
 import { resolveAgeGroup } from './ageGroup';
+import {
+  loadChildFamilyLearningSnapshot,
+  saveChildFamilyLearningSnapshot,
+} from './childFamilyProgressStore';
 import {
   insertCloudLearningEvent,
   loadCloudLearningSnapshot,
@@ -37,12 +41,19 @@ import {
   recomputeSurahProgress,
 } from './progressHelpers';
 
+function usesCloudProgress(learner: ActiveLearner): boolean {
+  return !isGuestLearner(learner) && !isChildFamilyLearner(learner);
+}
+
 export async function loadLearningSnapshot(
   learner: ActiveLearner,
 ): Promise<LearningSnapshot> {
   const ageGroup = resolveAgeGroup(learner);
   if (isGuestLearner(learner)) {
     return ensureGuestLearningSnapshot(ageGroup);
+  }
+  if (isChildFamilyLearner(learner)) {
+    return loadChildFamilyLearningSnapshot(learner.id, ageGroup);
   }
   return loadCloudLearningSnapshot(learner.id, ageGroup);
 }
@@ -86,7 +97,7 @@ export async function openLessonSession(
       hasStarted: true,
     };
     await persistSnapshot(learner, nextSnapshot);
-    if (!isGuestLearner(learner)) {
+    if (usesCloudProgress(learner)) {
       await insertCloudLearningEvent({
         learnerId: learner.id,
         lessonKey: effective.lessonKey,
@@ -162,7 +173,7 @@ export async function markVerseLearned(
 
   await persistSnapshot(learner, nextSnapshot);
 
-  if (!isGuestLearner(learner)) {
+  if (usesCloudProgress(learner)) {
     await upsertCloudVerseProgress(learner.id, record);
     await insertCloudLearningEvent({
       learnerId: learner.id,
@@ -236,7 +247,7 @@ export async function completeLesson(
 
   await persistSnapshot(learner, nextSnapshot);
 
-  if (!isGuestLearner(learner)) {
+  if (usesCloudProgress(learner)) {
     for (const verseId of lesson.verseIds) {
       const record = verseProgress[verseId];
       if (record) {
@@ -266,6 +277,10 @@ async function persistSnapshot(
   const ageGroup = resolveAgeGroup(learner);
   if (isGuestLearner(learner)) {
     await saveGuestLearningSnapshot(snapshot, ageGroup);
+    return;
+  }
+  if (isChildFamilyLearner(learner)) {
+    await saveChildFamilyLearningSnapshot(learner.id, snapshot);
     return;
   }
   await replaceCloudSnapshot(learner.id, snapshot);

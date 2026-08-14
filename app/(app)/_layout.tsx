@@ -5,8 +5,14 @@ import { useAuth } from '@/features/auth';
 import { WebAppShell } from '@/components/ui/WebAppShell';
 
 export default function AppLayout() {
-  const { isBootstrapping, session, isEmailVerified, isGuest, needsPasswordReset } =
-    useAuth();
+  const {
+    isBootstrapping,
+    session,
+    isEmailVerified,
+    isGuest,
+    isChildFamilySession,
+    needsPasswordReset,
+  } = useAuth();
 
   if (isBootstrapping) {
     return (
@@ -20,7 +26,7 @@ export default function AppLayout() {
     return <Redirect href="/(auth)/reset-password" />;
   }
 
-  if (!session && !isGuest) {
+  if (!session && !isGuest && !isChildFamilySession) {
     return <Redirect href="/(auth)/welcome" />;
   }
 

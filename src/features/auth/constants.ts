@@ -14,8 +14,13 @@ export const AGE_GROUPS = [
 
 export type AgeGroupId = (typeof AGE_GROUPS)[number]['id'];
 
-/** Simple avatar keys for V1 child/guest identity (Feature 002 may expand). */
+/**
+ * Avatar keys for V1 identity.
+ * girl-1 / boy-1 store Girl/Boy without a DB gender column (safe, no migration).
+ */
 export const AVATAR_OPTIONS = [
+  { key: 'girl-1', label: 'Girl' },
+  { key: 'boy-1', label: 'Boy' },
   { key: 'default-1', label: 'Olive' },
   { key: 'default-2', label: 'Sky' },
   { key: 'default-3', label: 'Sand' },

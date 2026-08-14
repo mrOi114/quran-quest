@@ -11,6 +11,7 @@ export default function Index() {
     isEmailVerified,
     activeLearner,
     isGuest,
+    isChildFamilySession,
     needsPasswordReset,
   } = useAuth();
 
@@ -26,11 +27,11 @@ export default function Index() {
     return <Redirect href="/(auth)/reset-password" />;
   }
 
-  if (isGuest && activeLearner) {
+  if ((isGuest || isChildFamilySession) && activeLearner) {
     return <Redirect href="/(app)/home" />;
   }
 
-  if (!session && !isGuest) {
+  if (!session && !isGuest && !isChildFamilySession) {
     return <Redirect href="/(auth)/welcome" />;
   }
 
@@ -43,7 +44,7 @@ export default function Index() {
   }
 
   if (session && !activeLearner) {
-    return <Redirect href="/(app)/family" />;
+    return <Redirect href="/(app)/family/learners" />;
   }
 
   return <Redirect href="/(app)/home" />;
