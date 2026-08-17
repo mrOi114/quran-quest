@@ -51,6 +51,11 @@ export function ReaderVerseFocus({
   const audio = useVerseAudio({
     audioUrl: audioEnabled ? verse.audioUrl : null,
     repeatCount,
+    metadata: {
+      title: `Surah ${verse.surahNumber} · Ayah ${verse.ayahNumber}`,
+      artist: 'Mahmoud Khalil Al-Husary',
+      albumTitle: 'QuranFamily',
+    },
     onPlayedOnce,
     onPlaybackComplete,
     autoPlay: autoPlay && audioEnabled,

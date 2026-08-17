@@ -100,11 +100,14 @@ export function isEmailVerified(user: User | null | undefined): boolean {
   if (!user) {
     return false;
   }
+  if (user.app_metadata?.role === 'child' || user.user_metadata?.role === 'child') {
+    return true;
+  }
   return Boolean(user.email_confirmed_at ?? user.confirmed_at);
 }
 
 const profileSelect =
-  'id, role, email, display_name, age, avatar_key, country_code, preferred_language, parent_id, family_code, created_at, updated_at';
+  'id, role, email, display_name, age, avatar_key, country_code, preferred_language, parent_id, family_code, chat_enabled, calls_enabled, created_at, updated_at';
 const profileSelectLegacy =
   'id, role, email, display_name, age, avatar_key, country_code, preferred_language, parent_id, created_at, updated_at';
 
@@ -120,17 +123,34 @@ function isMissingFamilyCodeColumn(message: string | undefined): boolean {
   );
 }
 
+function isMissingCommsColumn(message: string | undefined): boolean {
+  const text = (message ?? '').toLowerCase();
+  return (
+    (text.includes('chat_enabled') || text.includes('calls_enabled')) &&
+    (text.includes('does not exist') ||
+      text.includes('schema cache') ||
+      text.includes('42703') ||
+      text.includes('permission denied') ||
+      text.includes('column'))
+  );
+}
+
 type ProfileRow = Omit<Profile, 'pin_hash' | 'pin_failed_attempts' | 'pin_locked_until'> & {
   pin_hash?: string | null;
   pin_failed_attempts?: number;
   pin_locked_until?: string | null;
   family_code?: string | null;
+  chat_enabled?: boolean | null;
+  calls_enabled?: boolean | null;
 };
 
 function normalizeProfile(row: ProfileRow): Profile {
   return {
     ...row,
     family_code: row.family_code ?? null,
+    chat_enabled: row.chat_enabled ?? true,
+    calls_enabled: row.calls_enabled ?? true,
+    email: row.role === 'child' ? null : row.email,
     pin_hash: null,
     pin_failed_attempts: row.pin_failed_attempts ?? 0,
     pin_locked_until: null,
@@ -145,7 +165,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     .maybeSingle();
 
   if (error) {
-    if (isMissingFamilyCodeColumn(error.message)) {
+    if (isMissingCommsColumn(error.message) || isMissingFamilyCodeColumn(error.message)) {
       const fallback = await supabase
         .from('profiles')
         .select(profileSelectLegacy)
@@ -158,6 +178,8 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
         ? normalizeProfile({
             ...(fallback.data as object),
             family_code: null,
+            chat_enabled: true,
+            calls_enabled: true,
           } as ProfileRow)
         : null;
     }
@@ -176,7 +198,7 @@ export async function fetchChildren(parentId: string): Promise<Profile[]> {
     .order('created_at', { ascending: true });
 
   if (error) {
-    if (isMissingFamilyCodeColumn(error.message)) {
+    if (isMissingCommsColumn(error.message) || isMissingFamilyCodeColumn(error.message)) {
       const fallback = await supabase
         .from('profiles')
         .select(profileSelectLegacy)
@@ -187,7 +209,12 @@ export async function fetchChildren(parentId: string): Promise<Profile[]> {
         throw new Error(fallback.error.message);
       }
       return (fallback.data ?? []).map((row) =>
-        normalizeProfile({ ...(row as object), family_code: null } as ProfileRow),
+        normalizeProfile({
+          ...(row as object),
+          family_code: null,
+          chat_enabled: true,
+          calls_enabled: true,
+        } as ProfileRow),
       );
     }
     throw new Error(error.message);

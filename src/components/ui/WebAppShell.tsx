@@ -42,11 +42,19 @@ const learnerNavItems: NavItem[] = [
   },
   { label: 'Circle', icon: '👥', href: '/(app)/gates/circle', matches: (pathname) => pathname.startsWith('/gates/circle') },
   {
+    label: 'Chat',
+    icon: '💬',
+    href: '/(app)/family/chat',
+    matches: (pathname) => pathname.startsWith('/family/chat') || pathname.startsWith('/family/call'),
+  },
+  {
     label: 'Family',
     icon: '👪',
     href: '/(app)/family',
     matches: (pathname) =>
-      pathname.startsWith('/family') ||
+      (pathname.startsWith('/family') &&
+        !pathname.startsWith('/family/chat') &&
+        !pathname.startsWith('/family/call')) ||
       pathname.startsWith('/parent/') ||
       pathname.startsWith('/child-pin'),
   },
@@ -62,8 +70,16 @@ const parentNavItems: NavItem[] = [
     href: '/(app)/parent/dashboard',
     matches: (pathname) =>
       pathname.startsWith('/parent/') ||
-      pathname.startsWith('/family') ||
+      (pathname.startsWith('/family') &&
+        !pathname.startsWith('/family/chat') &&
+        !pathname.startsWith('/family/call')) ||
       pathname.startsWith('/child-pin'),
+  },
+  {
+    label: 'Chat',
+    icon: '💬',
+    href: '/(app)/family/chat',
+    matches: (pathname) => pathname.startsWith('/family/chat') || pathname.startsWith('/family/call'),
   },
   {
     label: 'Learning',
@@ -83,8 +99,8 @@ const parentNavItems: NavItem[] = [
 ];
 
 const learnerQuickLabels = ['Home', 'Learn / Quran', 'Lesson', 'Leaderboard', 'Circle'] as const;
-const parentQuickLabels = ['Home', 'My Family', 'Learning', 'Progress', 'Settings'] as const;
-const childFamilyQuickLabels = ['Home', 'Learn / Quran', 'Lesson', 'Leaderboard', 'Games'] as const;
+const parentQuickLabels = ['Home', 'My Family', 'Chat', 'Progress', 'Settings'] as const;
+const childFamilyQuickLabels = ['Home', 'Learn / Quran', 'Chat', 'Leaderboard', 'Games'] as const;
 
 function isActiveNavItem(item: NavItem, pathname: string): boolean {
   return item.matches(pathname);
@@ -164,26 +180,29 @@ export function WebAppShell({ children }: WebAppShellProps) {
   const isDesktop = width >= 1024;
   const useParentMenu = canManageFamily && !isChildFamilySession;
 
+  const isChildLearning =
+    isChildFamilySession || activeLearner?.role === 'child' || profile?.role === 'child';
+
   const mainNavItems = useMemo(() => {
     if (useParentMenu) {
       return parentNavItems;
     }
-    if (isChildFamilySession) {
+    if (isChildLearning) {
       return learnerNavItems.filter((item) => item.label !== 'Family');
     }
-    return learnerNavItems;
-  }, [isChildFamilySession, useParentMenu]);
+    return learnerNavItems.filter((item) => item.label !== 'Chat');
+  }, [isChildLearning, useParentMenu]);
 
   const quickNavItems = useMemo(() => {
     const labels = useParentMenu
       ? parentQuickLabels
-      : isChildFamilySession
+      : isChildLearning
         ? childFamilyQuickLabels
         : learnerQuickLabels;
     return labels
       .map((label) => mainNavItems.find((item) => item.label === label))
       .filter((item): item is NavItem => Boolean(item));
-  }, [isChildFamilySession, mainNavItems, useParentMenu]);
+  }, [isChildLearning, mainNavItems, useParentMenu]);
 
   const learnerLabel =
     activeLearner?.display_name ||

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { AuthScreen, PrimaryButton, useAuth } from '@/features/auth';
+import { FamilyCommsEntry } from '@/features/family-comms';
 import {
   buildParentChildrenOverview,
   type ChildProgressOverview,
@@ -157,6 +158,8 @@ export default function ParentDashboardScreen() {
         </Text>
         {codeError ? <Text className="mt-2 text-sm text-red-600">{codeError}</Text> : null}
       </View>
+
+      <FamilyCommsEntry compact />
 
       <PrimaryButton
         label="＋ Add Child"

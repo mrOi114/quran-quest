@@ -15,12 +15,13 @@ import { ParentAccessLink } from './ParentAccessLink';
 import { PracticeWithAiButton } from './PracticeWithAiButton';
 import { ReadJuz30Button } from './ReadJuz30Button';
 import { TodaysLessonCard } from './TodaysLessonCard';
-import { WelcomeSection } from './WelcomeSection';
+import { FamilyCommsEntry } from '@/features/family-comms';
 
 export function HomeDashboard() {
   const router = useRouter();
   const {
     activeLearner,
+    profile,
     isGuest,
     isChildFamilySession,
     showMilestonePrompt,
@@ -123,6 +124,14 @@ export function HomeDashboard() {
           roomCountLabel={dashboard.circlePreview.roomCountLabel}
           onPress={() => router.push('/(app)/gates/circle')}
         />
+
+        {!isGuest &&
+        (profile?.role === 'parent' ||
+          profile?.role === 'child' ||
+          activeLearner?.role === 'child' ||
+          activeLearner?.role === 'parent') ? (
+          <FamilyCommsEntry />
+        ) : null}
 
         <View className="mb-4 rounded-2xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">

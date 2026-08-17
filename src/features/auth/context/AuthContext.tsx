@@ -45,6 +45,7 @@ import {
   toChildFamilyLearner,
   transferGuestProgressToAccount,
   unlockChildWithFamilyCode,
+  updateChildCommsSettings,
   updateChildProfile,
   verifyChildPin,
   type GuestProfile,
@@ -93,6 +94,10 @@ type AuthContextValue = {
   updateChild: (childId: string, input: UpdateChildInput) => Promise<Profile>;
   deleteChild: (childId: string) => Promise<void>;
   resetChildPin: (childId: string, pin: string) => Promise<void>;
+  updateChildComms: (
+    childId: string,
+    settings: { chatEnabled: boolean; callsEnabled: boolean },
+  ) => Promise<void>;
   ensureFamilyCode: () => Promise<string>;
   signOut: () => Promise<void>;
   ensureDeviceRegistered: () => Promise<void>;
@@ -133,6 +138,7 @@ const missingAuthContextValue: AuthContextValue = {
   updateChild: async () => undefined as never,
   deleteChild: async () => undefined,
   resetChildPin: async () => undefined,
+  updateChildComms: async () => undefined,
   ensureFamilyCode: async () => '',
   signOut: async () => undefined,
   ensureDeviceRegistered: async () => undefined,
@@ -298,25 +304,38 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           }
           setProfile(nextProfile);
 
-          let kids: Profile[] = [];
-          if (nextProfile?.role === 'parent') {
-            kids = await fetchChildren(currentSession.user.id);
-            if (!mounted) {
-              return;
+          if (nextProfile?.role === 'child') {
+            setChildProfiles([]);
+            setActiveLearner(toChildFamilyLearner(toFamilyMember(nextProfile)));
+            if (nextProfile.parent_id) {
+              await saveChildFamilySession({
+                child: toFamilyMember(nextProfile),
+                familyCode: '',
+                parentId: nextProfile.parent_id,
+                unlockedAt: new Date().toISOString(),
+              });
             }
-            setChildProfiles(kids);
-            if (nextProfile.family_code) {
-              setFamilyCode(nextProfile.family_code);
+          } else {
+            let kids: Profile[] = [];
+            if (nextProfile?.role === 'parent') {
+              kids = await fetchChildren(currentSession.user.id);
+              if (!mounted) {
+                return;
+              }
+              setChildProfiles(kids);
+              if (nextProfile.family_code) {
+                setFamilyCode(nextProfile.family_code);
+              }
             }
-          }
 
-          await hydrateActiveLearner(nextProfile, kids);
+            await hydrateActiveLearner(nextProfile, kids);
 
-          if (isEmailVerified(currentSession.user) && nextProfile?.role === 'parent') {
-            try {
-              await registerCurrentDevice();
-            } catch {
-              // Device registration can retry after login screens.
+            if (isEmailVerified(currentSession.user) && nextProfile?.role === 'parent') {
+              try {
+                await registerCurrentDevice();
+              } catch {
+                // Device registration can retry after login screens.
+              }
             }
           }
         } else {
@@ -403,6 +422,12 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
           const nextProfile = await fetchProfile(nextSession.user.id);
           setProfile(nextProfile);
+
+          if (nextProfile?.role === 'child') {
+            setChildProfiles([]);
+            setActiveLearner(toChildFamilyLearner(toFamilyMember(nextProfile)));
+            return;
+          }
 
           let kids: Profile[] = [];
           if (nextProfile?.role === 'parent') {
@@ -495,11 +520,16 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   }, []);
 
   const endChildFamilySession = useCallback(async () => {
+    const childAccount = profile?.role === 'child';
     await clearChildFamilySession();
     await clearStoredActiveLearnerId();
     setActiveLearner(null);
     setFamilyCode(null);
-  }, []);
+    if (childAccount) {
+      setProfile(null);
+      await logoutAccount();
+    }
+  }, [profile?.role]);
 
   const ensureFamilyCode = useCallback(async () => {
     if (!user || profile?.role !== 'parent') {
@@ -556,6 +586,17 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       await refreshChildren();
     },
     [refreshChildren],
+  );
+
+  const updateChildComms = useCallback(
+    async (childId: string, settings: { chatEnabled: boolean; callsEnabled: boolean }) => {
+      if (!user || profile?.role !== 'parent') {
+        throw new Error('Only parents can change child communication settings');
+      }
+      await updateChildCommsSettings(childId, settings);
+      await refreshChildren();
+    },
+    [profile?.role, refreshChildren, user],
   );
 
   const startGuest = useCallback(
@@ -658,7 +699,8 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   }, [syncGuestMilestone]);
 
   const isGuest = Boolean(guestProfile) && !session;
-  const isChildFamilySession = isChildFamilyLearner(activeLearner);
+  const isChildFamilySession =
+    isChildFamilyLearner(activeLearner) || profile?.role === 'child';
   const isGuestAtLimit = Boolean(guestProgress && hasReachedGuestLimit(guestProgress));
   const familyManageAllowed = canManageFamily({
     profileRole: profile?.role,
@@ -693,6 +735,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       updateChild,
       deleteChild,
       resetChildPin,
+      updateChildComms,
       ensureFamilyCode,
       signOut,
       ensureDeviceRegistered,
@@ -741,6 +784,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       unlockChild,
       unlockChildByFamilyCode,
       updateChild,
+      updateChildComms,
       user,
     ],
   );

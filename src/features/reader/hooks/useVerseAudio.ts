@@ -1,16 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 
 import type { AudioRepeatCount } from '@/types';
 
 import {
+  getVerseAudioUrl,
+  isVerseAudioPlaying,
   pauseVerseAudio,
   playVerseAudio,
+  resumeVerseAudio,
   stopVerseAudio,
+  type VerseAudioMetadata,
 } from '../services/audioPlayerService';
 
 type UseVerseAudioOptions = {
   audioUrl: string | null;
   repeatCount: AudioRepeatCount;
+  metadata?: VerseAudioMetadata;
   onPlayedOnce?: () => void;
   /** Fires after the configured repeat cycle finishes (not on pause). */
   onPlaybackComplete?: () => void;
@@ -42,6 +48,7 @@ function initialPlaysForRepeat(repeatCount: AudioRepeatCount): number {
 export function useVerseAudio({
   audioUrl,
   repeatCount,
+  metadata,
   onPlayedOnce,
   onPlaybackComplete,
   autoPlay = false,
@@ -52,6 +59,7 @@ export function useVerseAudio({
   const remainingRef = useRef(0);
   const audioUrlRef = useRef(audioUrl);
   const repeatCountRef = useRef(repeatCount);
+  const metadataRef = useRef(metadata);
   const onPlayedOnceRef = useRef(onPlayedOnce);
   const onPlaybackCompleteRef = useRef(onPlaybackComplete);
   const startPlaybackRef = useRef<(resetRemaining: boolean) => Promise<void>>(
@@ -65,6 +73,10 @@ export function useVerseAudio({
   useEffect(() => {
     repeatCountRef.current = repeatCount;
   }, [repeatCount]);
+
+  useEffect(() => {
+    metadataRef.current = metadata;
+  }, [metadata]);
 
   useEffect(() => {
     onPlayedOnceRef.current = onPlayedOnce;
@@ -92,21 +104,28 @@ export function useVerseAudio({
       onPlayedOnceRef.current?.();
 
       try {
-        await playVerseAudio(url, {
-          onEnded: () => {
-            remainingRef.current -= 1;
-            if (remainingRef.current > 0) {
-              void startPlaybackRef.current(false);
-              return;
-            }
-            setIsPlaying(false);
-            onPlaybackCompleteRef.current?.();
+        await playVerseAudio(
+          url,
+          {
+            onEnded: () => {
+              remainingRef.current -= 1;
+              if (remainingRef.current > 0) {
+                void startPlaybackRef.current(false);
+                return;
+              }
+              setIsPlaying(false);
+              onPlaybackCompleteRef.current?.();
+            },
+            onError: (message) => {
+              setIsPlaying(false);
+              setError(message);
+            },
+            onPlayingChange: (playing) => {
+              setIsPlaying(playing);
+            },
           },
-          onError: (message) => {
-            setIsPlaying(false);
-            setError(message);
-          },
-        });
+          metadataRef.current,
+        );
       } catch {
         setIsPlaying(false);
         setError('Audio could not play. Try again.');
@@ -114,15 +133,13 @@ export function useVerseAudio({
     };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      void stopVerseAudio();
-    };
-  }, []);
-
+  // Do NOT stop on unmount — background playback and ayah auto-advance
+  // remounts must keep the native player / foreground media service alive.
   useEffect(() => {
     if (!audioUrl) {
-      void stopVerseAudio();
+      if (getVerseAudioUrl()) {
+        void stopVerseAudio();
+      }
       setIsPlaying(false);
       return;
     }
@@ -132,7 +149,33 @@ export function useVerseAudio({
     void startPlaybackRef.current(true);
   }, [audioUrl, autoPlay]);
 
+  useEffect(() => {
+    const onAppState = (next: AppStateStatus) => {
+      if (next === 'active') {
+        setIsPlaying(isVerseAudioPlaying());
+      }
+    };
+    const sub = AppState.addEventListener('change', onAppState);
+    return () => {
+      sub.remove();
+    };
+  }, []);
+
   const play = useCallback(async () => {
+    const url = audioUrlRef.current;
+    if (
+      url &&
+      getVerseAudioUrl() === url &&
+      !isVerseAudioPlaying() &&
+      remainingRef.current > 0
+    ) {
+      const resumed = await resumeVerseAudio(metadataRef.current);
+      if (resumed) {
+        setIsPlaying(true);
+        setError(null);
+        return;
+      }
+    }
     await startPlaybackRef.current(true);
   }, []);
 

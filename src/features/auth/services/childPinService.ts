@@ -27,6 +27,8 @@ function toProfile(
   return {
     ...row,
     family_code: row.family_code ?? null,
+    chat_enabled: true,
+    calls_enabled: true,
     pin_hash: null,
     pin_failed_attempts: 0,
     pin_locked_until: null,
@@ -90,6 +92,24 @@ export async function updateChildProfile(
   }
 
   return toProfile({ ...data, family_code: null });
+}
+
+export async function updateChildCommsSettings(
+  childId: string,
+  settings: { chatEnabled: boolean; callsEnabled: boolean },
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      chat_enabled: settings.chatEnabled,
+      calls_enabled: settings.callsEnabled,
+    })
+    .eq('id', childId)
+    .eq('role', 'child');
+
+  if (error) {
+    throw new Error(error.message || 'Could not update communication settings');
+  }
 }
 
 export async function deleteChildProfile(childId: string): Promise<void> {

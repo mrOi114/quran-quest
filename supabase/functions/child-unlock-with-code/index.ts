@@ -1,5 +1,6 @@
 import * as bcrypt from 'https://deno.land/x/bcrypt@v0.4.1/mod.ts';
 
+import { issueChildAuthSession } from '../_shared/childSession.ts';
 import { corsHeaders, jsonResponse } from '../_shared/cors.ts';
 import { createServiceClient } from '../_shared/supabase.ts';
 
@@ -113,10 +114,13 @@ Deno.serve(async (request) => {
       { onConflict: 'parent_id,device_key' },
     );
 
+    const session = await issueChildAuthSession(service, child.id, parent.id);
+
     return jsonResponse({
       ok: true,
       family_code: parent.family_code,
       parent_id: parent.id,
+      session,
       child: {
         id: child.id,
         role: child.role,

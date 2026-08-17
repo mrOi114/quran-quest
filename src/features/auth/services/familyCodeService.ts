@@ -93,6 +93,12 @@ export async function unlockChildWithFamilyCode(options: {
   const result = await supabase.functions.invoke<{
     ok?: boolean;
     error?: string;
+    session?: {
+      access_token: string;
+      refresh_token: string;
+      expires_in: number | null;
+      token_type: string;
+    };
     child?: {
       id: string;
       role: 'child';
@@ -116,6 +122,16 @@ export async function unlockChildWithFamilyCode(options: {
   const data = await assertFunctionOk(result);
   if (!data.ok || !data.child) {
     throw new Error(data.error || 'Could not unlock child profile');
+  }
+
+  if (data.session?.access_token && data.session.refresh_token) {
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    });
+    if (sessionError) {
+      throw new Error(sessionError.message || 'Could not start child session');
+    }
   }
 
   return {

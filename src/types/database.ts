@@ -29,6 +29,8 @@ export type Profile = {
   preferred_language: string;
   parent_id: string | null;
   family_code: string | null;
+  chat_enabled: boolean;
+  calls_enabled: boolean;
   pin_hash: string | null;
   pin_failed_attempts: number;
   pin_locked_until: string | null;
@@ -228,6 +230,57 @@ export type LearnerReaderState = {
   updated_at: string;
 };
 
+export type FamilyMessageKind = 'text' | 'encouragement' | 'practice_update' | 'dua';
+export type FamilyCallKind = 'p2p' | 'group';
+export type FamilyCallStatus = 'ringing' | 'accepted' | 'declined' | 'ended' | 'missed';
+
+export type FamilyMessage = {
+  id: string;
+  family_id: string;
+  sender_id: string;
+  kind: FamilyMessageKind;
+  body: string;
+  created_at: string;
+};
+
+export type FamilyCall = {
+  id: string;
+  family_id: string;
+  kind: FamilyCallKind;
+  created_by: string;
+  callee_id: string;
+  status: FamilyCallStatus;
+  created_at: string;
+  answered_at: string | null;
+  ended_at: string | null;
+};
+
+export type FamilyCallParticipant = {
+  call_id: string;
+  profile_id: string;
+  status: string;
+  muted: boolean;
+  joined_at: string | null;
+  left_at: string | null;
+};
+
+export type FamilyCallSignal = {
+  id: string;
+  call_id: string;
+  sender_id: string;
+  payload: Json;
+  created_at: string;
+};
+
+export type FamilyPushToken = {
+  id: string;
+  profile_id: string;
+  device_key: string;
+  expo_push_token: string;
+  platform: string;
+  updated_at: string;
+};
+
 type TableDef<Row, Insert, Update> = {
   Row: Row;
   Insert: Insert;
@@ -251,6 +304,8 @@ export type Database = {
           preferred_language?: string;
           parent_id?: string | null;
           family_code?: string | null;
+          chat_enabled?: boolean;
+          calls_enabled?: boolean;
           pin_hash?: string | null;
           pin_failed_attempts?: number;
           pin_locked_until?: string | null;
@@ -496,6 +551,68 @@ export type Database = {
         },
         Partial<LearnerReaderState>
       >;
+      family_messages: TableDef<
+        FamilyMessage,
+        {
+          id?: string;
+          family_id: string;
+          sender_id: string;
+          kind?: FamilyMessageKind;
+          body: string;
+          created_at?: string;
+        },
+        Partial<FamilyMessage>
+      >;
+      family_calls: TableDef<
+        FamilyCall,
+        {
+          id?: string;
+          family_id: string;
+          kind?: FamilyCallKind;
+          created_by: string;
+          callee_id: string;
+          status?: FamilyCallStatus;
+          created_at?: string;
+          answered_at?: string | null;
+          ended_at?: string | null;
+        },
+        Partial<FamilyCall>
+      >;
+      family_call_participants: TableDef<
+        FamilyCallParticipant,
+        {
+          call_id: string;
+          profile_id: string;
+          status?: string;
+          muted?: boolean;
+          joined_at?: string | null;
+          left_at?: string | null;
+        },
+        Partial<FamilyCallParticipant>
+      >;
+      family_call_signals: TableDef<
+        FamilyCallSignal,
+        {
+          id?: string;
+          call_id: string;
+          sender_id: string;
+          payload: Json;
+          created_at?: string;
+        },
+        Partial<FamilyCallSignal>
+      >;
+      family_push_tokens: TableDef<
+        FamilyPushToken,
+        {
+          id?: string;
+          profile_id: string;
+          device_key: string;
+          expo_push_token: string;
+          platform?: string;
+          updated_at?: string;
+        },
+        Partial<FamilyPushToken>
+      >;
     };
     Views: Record<string, never>;
     Functions: {
@@ -527,6 +644,30 @@ export type Database = {
         Args: { p_parent_id?: string };
         Returns: string;
       };
+      family_id_of: {
+        Args: { p_profile_id: string };
+        Returns: string;
+      };
+      is_family_member: {
+        Args: { p_profile_id: string; p_family_id: string };
+        Returns: boolean;
+      };
+      same_family: {
+        Args: { p_left: string; p_right: string };
+        Returns: boolean;
+      };
+      can_act_as_family_member: {
+        Args: { p_member_id: string };
+        Returns: boolean;
+      };
+      child_chat_allowed: {
+        Args: { p_profile_id: string };
+        Returns: boolean;
+      };
+      child_calls_allowed: {
+        Args: { p_profile_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       profile_role: ProfileRole;
@@ -535,6 +676,9 @@ export type Database = {
       revision_status: RevisionStatus;
       surah_learning_status: SurahLearningStatus;
       learning_event_type: LearningEventType;
+      family_message_kind: FamilyMessageKind;
+      family_call_kind: FamilyCallKind;
+      family_call_status: FamilyCallStatus;
     };
   };
 };

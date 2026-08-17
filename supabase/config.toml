@@ -13,3 +13,6 @@ verify_jwt = false
 
 [functions.child-unlock-with-code]
 verify_jwt = false
+
+[functions.send-family-push]
+verify_jwt = true

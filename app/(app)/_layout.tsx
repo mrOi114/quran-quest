@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { useAuth } from '@/features/auth';
 import { WebAppShell } from '@/components/ui/WebAppShell';
+import { FamilyCommsProvider } from '@/features/family-comms';
 
 export default function AppLayout() {
   const {
@@ -35,8 +36,10 @@ export default function AppLayout() {
   }
 
   return (
-    <WebAppShell>
-      <Stack screenOptions={{ headerShown: false }} />
-    </WebAppShell>
+    <FamilyCommsProvider>
+      <WebAppShell>
+        <Stack screenOptions={{ headerShown: false }} />
+      </WebAppShell>
+    </FamilyCommsProvider>
   );
 }

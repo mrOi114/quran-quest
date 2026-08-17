@@ -28,6 +28,7 @@ export default function ManageChildrenScreen() {
     updateChild,
     deleteChild,
     resetChildPin,
+    updateChildComms,
     canManageFamily,
     isGuest,
   } = useAuth();
@@ -167,6 +168,10 @@ export default function ManageChildrenScreen() {
               {' · '}
               {child.country_code} · {child.preferred_language}
             </Text>
+            <Text className="mt-2 text-sm text-brand-600">
+              Chat: {child.chat_enabled === false ? 'Off' : 'On'} · Calls:{' '}
+              {child.calls_enabled === false ? 'Off' : 'On'}
+            </Text>
 
             {editChildId === child.id ? (
               <View className="mt-3">
@@ -220,7 +225,7 @@ export default function ManageChildrenScreen() {
                 </Pressable>
               </View>
             ) : (
-              <View className="mt-2 flex-row gap-4">
+              <View className="mt-2 flex-row flex-wrap gap-4">
                 <Pressable onPress={() => beginEdit(child.id)} className="py-1">
                   <Text className="text-sm font-medium text-brand-600">Edit</Text>
                 </Pressable>
@@ -232,6 +237,32 @@ export default function ManageChildrenScreen() {
                   className="py-1"
                 >
                   <Text className="text-sm font-medium text-brand-600">Reset PIN</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() =>
+                    void updateChildComms(child.id, {
+                      chatEnabled: child.chat_enabled === false,
+                      callsEnabled: child.calls_enabled !== false,
+                    })
+                  }
+                  className="py-1"
+                >
+                  <Text className="text-sm font-medium text-brand-600">
+                    {child.chat_enabled === false ? 'Enable chat' : 'Pause chat'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() =>
+                    void updateChildComms(child.id, {
+                      chatEnabled: child.chat_enabled !== false,
+                      callsEnabled: child.calls_enabled === false,
+                    })
+                  }
+                  className="py-1"
+                >
+                  <Text className="text-sm font-medium text-brand-600">
+                    {child.calls_enabled === false ? 'Enable calls' : 'Pause calls'}
+                  </Text>
                 </Pressable>
               </View>
             )}
