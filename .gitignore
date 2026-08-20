@@ -46,3 +46,6 @@ coverage/
 
 # Vercel CLI local link metadata
 .vercel
+
+# Supabase local CLI cache (never commit)
+supabase/.temp/
