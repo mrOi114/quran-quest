@@ -71,7 +71,7 @@ export default function WelcomeScreen() {
       </Pressable>
 
       <PrimaryButton
-        label="Continue as Guest"
+        label="Guest Mode"
         onPress={() => router.push('/(auth)/guest-onboarding')}
         variant="secondary"
       />

@@ -5,9 +5,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { AppState } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
@@ -25,10 +27,12 @@ import {
   ensureParentFamilyCode,
   fetchChildren,
   fetchProfile,
+  getActiveGuestProfile,
   getGuestProfile,
   getGuestProgress,
   getInitialAuthUrl,
   getSession,
+  isGuestSessionActive,
   getStoredActiveLearnerId,
   handleAuthRedirectUrl,
   hasReachedGuestLimit,
@@ -198,6 +202,8 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [showMilestonePrompt, setShowMilestonePrompt] = useState(false);
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
   const [familyCode, setFamilyCode] = useState<string | null>(null);
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
 
   const syncGuestMilestone = useCallback(async (progress: GuestProgress | null) => {
     if (!progress) {
@@ -265,6 +271,19 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     await syncGuestMilestone(progress);
   }, [guestProfile, syncGuestMilestone]);
 
+  const hydrateGuestFromStorage = useCallback(async (): Promise<boolean> => {
+    const guest = await getActiveGuestProfile();
+    if (!guest) {
+      return false;
+    }
+    setGuestProfile(guest);
+    setActiveLearner(guestToLearner(guest));
+    const progress = await getGuestProgress();
+    setGuestProgress(progress);
+    await syncGuestMilestone(progress);
+    return true;
+  }, [syncGuestMilestone]);
+
   const ensureDeviceRegistered = useCallback(async () => {
     if (!session || !isEmailVerified(user) || profile?.role !== 'parent') {
       return;
@@ -285,13 +304,25 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
     async function bootstrap() {
       try {
+        const guestRestored = await hydrateGuestFromStorage();
+        if (!mounted) {
+          return;
+        }
+
+        let authLinkHandled = false;
         const initialUrl = await getInitialAuthUrl();
         if (initialUrl && mounted) {
           try {
-            await processAuthUrl(initialUrl);
+            const result = await processAuthUrl(initialUrl);
+            authLinkHandled = result.handled;
           } catch {
             // Invalid/expired link — continue normal bootstrap.
           }
+        }
+
+        if (guestRestored && !authLinkHandled) {
+          // Guest Mode is local. Do not call email session restore to keep it alive.
+          return;
         }
 
         const currentSession = await getSession();
@@ -303,6 +334,20 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         setUser(currentSession?.user ?? null);
 
         if (currentSession?.user) {
+          if (await isGuestSessionActive()) {
+            const transferred = await transferGuestProgressToAccount(currentSession.user.id);
+            setGuestProfile(null);
+            setGuestProgress(null);
+            setShowMilestonePrompt(false);
+            if (transferred.guestProfile) {
+              await applyGuestIdentityToProfile(currentSession.user.id, {
+                countryCode: transferred.guestProfile.countryCode,
+                preferredLanguage: transferred.guestProfile.preferredLanguage,
+                displayName: transferred.guestProfile.displayName,
+              });
+            }
+          }
+
           const nextProfile = await fetchProfile(currentSession.user.id);
           if (!mounted) {
             return;
@@ -346,24 +391,22 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         } else {
           // Child family-code sessions never restore across cold starts — PIN again.
           await clearChildFamilySession();
-          const guest = await getGuestProfile();
           if (!mounted) {
             return;
           }
-          if (guest) {
-            setGuestProfile(guest);
-            setActiveLearner(guestToLearner(guest));
-            const progress = await getGuestProgress();
-            if (!mounted) {
-              return;
-            }
-            setGuestProgress(progress);
-            await syncGuestMilestone(progress);
+          const restored = await hydrateGuestFromStorage();
+          if (!restored) {
+            setGuestProfile(null);
+            setGuestProgress(null);
+            setShowMilestonePrompt(false);
           }
         }
       } catch (error) {
         if (process.env.NODE_ENV !== 'production') {
           console.error('Auth bootstrap failed', error);
+        }
+        if (mounted) {
+          await hydrateGuestFromStorage();
         }
       } finally {
         if (mounted) {
@@ -385,6 +428,16 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
             setNeedsPasswordReset(true);
           }
 
+          const guestActive = await isGuestSessionActive();
+          if (
+            guestActive &&
+            (event === 'INITIAL_SESSION' ||
+              event === 'TOKEN_REFRESHED' ||
+              event === 'USER_UPDATED')
+          ) {
+            return;
+          }
+
           setSession(nextSession);
           setUser(nextSession?.user ?? null);
 
@@ -397,14 +450,9 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
             await clearChildFamilySession();
             await clearStoredActiveLearnerId();
 
-            const guest = await getGuestProfile();
-            setGuestProfile(guest);
-            if (guest) {
-              setActiveLearner(guestToLearner(guest));
-              const progress = await getGuestProgress();
-              setGuestProgress(progress);
-              await syncGuestMilestone(progress);
-            } else {
+            const restored = await hydrateGuestFromStorage();
+            if (!restored) {
+              setGuestProfile(null);
               setGuestProgress(null);
               setShowMilestonePrompt(false);
             }
@@ -470,7 +518,20 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       unsubscribeLinks();
       authListener.subscription.unsubscribe();
     };
-  }, [hydrateActiveLearner, processAuthUrl, syncGuestMilestone]);
+  }, [hydrateActiveLearner, hydrateGuestFromStorage, processAuthUrl]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') {
+        return;
+      }
+      if (sessionRef.current) {
+        return;
+      }
+      void hydrateGuestFromStorage();
+    });
+    return () => sub.remove();
+  }, [hydrateGuestFromStorage]);
 
   const selectSelfAsLearner = useCallback(async () => {
     if (!profile) {
@@ -606,11 +667,21 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
   const startGuest = useCallback(
     async (input: GuestOnboardingInput) => {
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch {
+        // Guest Mode is local; leftover email tokens must not block it.
+      }
+      setSession(null);
+      setUser(null);
+      const existing = await getGuestProfile();
       const nextGuest = await saveGuestProfile({
         displayName: input.displayName,
         ageGroup: input.ageGroup,
         countryCode: input.countryCode,
         preferredLanguage: input.preferredLanguage,
+        id: existing?.id,
+        createdAt: existing?.createdAt,
       });
       setGuestProfile(nextGuest);
       setActiveLearner(guestToLearner(nextGuest));
@@ -751,15 +822,13 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     setNeedsPasswordReset(false);
     await logoutAccount();
 
-    const guest = await getGuestProfile();
-    setGuestProfile(guest);
-    if (guest) {
-      setActiveLearner(guestToLearner(guest));
-      const progress = await getGuestProgress();
-      setGuestProgress(progress);
-      await syncGuestMilestone(progress);
+    const restored = await hydrateGuestFromStorage();
+    if (!restored) {
+      setGuestProfile(null);
+      setGuestProgress(null);
+      setShowMilestonePrompt(false);
     }
-  }, [syncGuestMilestone]);
+  }, [hydrateGuestFromStorage]);
 
   const isGuest = Boolean(guestProfile) && !session;
   const isChildFamilySession =

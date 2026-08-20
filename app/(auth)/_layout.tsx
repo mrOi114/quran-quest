@@ -34,9 +34,19 @@ export default function AuthLayout() {
     return <Stack screenOptions={{ headerShown: false }} />;
   }
 
-  // Guests may open register/login from milestone prompts; only auto-redirect when
-  // they land on auth without intentionally navigating to create an account.
+  // Guests may open register/login from milestone prompts. Restore them into
+  // the app on every other auth screen so Guest Mode survives refresh/restart.
   if (isGuest && activeLearner) {
+    const onAccountFlow =
+      pathname.includes('register') ||
+      pathname.includes('login') ||
+      pathname.includes('verify-email') ||
+      pathname.includes('callback') ||
+      pathname.includes('reset-password') ||
+      pathname.includes('forgot-password');
+    if (!onAccountFlow) {
+      return <Redirect href="/(app)/home" />;
+    }
     return <Stack screenOptions={{ headerShown: false }} />;
   }
 

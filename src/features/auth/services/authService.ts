@@ -1,4 +1,6 @@
 import type { Session, User } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
+import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
@@ -11,9 +13,52 @@ export type AuthResult = {
   session: Session | null;
 };
 
-function getAuthRedirectTo(): string | undefined {
-  // Deep link handled by Expo scheme; configure the same URL in Supabase Auth settings.
+export const EMAIL_NOT_CONFIRMED_MESSAGE = 'Please verify your email before signing in.';
+export const RESEND_SUCCESS_MESSAGE =
+  'Verification email sent. Check your inbox and spam folder.';
+export const RESEND_FAILURE_MESSAGE =
+  "We couldn't resend the verification email. Please try again.";
+
+export class EmailAuthError extends Error {
+  readonly code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.name = 'EmailAuthError';
+    this.code = code;
+  }
+}
+
+function throwAuthError(error: { message: string; code?: string }): never {
+  throw new EmailAuthError(error.message, error.code);
+}
+
+function getAuthRedirectTo(): string {
+  // Web must return an https callback already allow-listed in Supabase Auth.
+  // Native keeps the existing custom scheme already listed in those settings.
+  if (Platform.OS === 'web') {
+    const origin =
+      typeof globalThis.location?.origin === 'string' ? globalThis.location.origin : '';
+    if (origin) {
+      return `${origin}/callback`;
+    }
+    return Linking.createURL('/callback');
+  }
   return 'quranfamily://auth/callback';
+}
+
+export function isEmailNotConfirmedError(error: unknown): boolean {
+  if (error instanceof EmailAuthError && error.code === 'email_not_confirmed') {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code ?? '')
+      : '';
+  return (
+    code === 'email_not_confirmed' || /email not confirmed/i.test(message)
+  );
 }
 
 export async function registerAccount(input: RegisterInput): Promise<AuthResult> {
@@ -30,7 +75,12 @@ export async function registerAccount(input: RegisterInput): Promise<AuthResult>
   });
 
   if (error) {
-    throw new Error(error.message);
+    throwAuthError(error);
+  }
+
+  // Supabase returns a user with empty identities when the email is already registered.
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    throw new EmailAuthError('An account with this email already exists. Please sign in.');
   }
 
   return { user: data.user, session: data.session };
@@ -43,7 +93,10 @@ export async function loginAccount(input: LoginInput): Promise<AuthResult> {
   });
 
   if (error) {
-    throw new Error(error.message);
+    if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
+      throw new EmailAuthError(EMAIL_NOT_CONFIRMED_MESSAGE, 'email_not_confirmed');
+    }
+    throwAuthError(error);
   }
 
   return { user: data.user, session: data.session };
@@ -58,26 +111,31 @@ export async function requestPasswordReset(email: string): Promise<void> {
   );
 
   if (error) {
-    throw new Error(error.message);
+    throwAuthError(error);
   }
 }
 
 export async function updatePassword(password: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    throw new Error(error.message);
+    throwAuthError(error);
   }
 }
 
 export async function resendVerificationEmail(email: string): Promise<void> {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed) {
+    throw new EmailAuthError(RESEND_FAILURE_MESSAGE);
+  }
+
   const { error } = await supabase.auth.resend({
     type: 'signup',
-    email: email.trim().toLowerCase(),
+    email: trimmed,
     options: { emailRedirectTo: getAuthRedirectTo() },
   });
 
   if (error) {
-    throw new Error(error.message);
+    throw new EmailAuthError(error.message || RESEND_FAILURE_MESSAGE, error.code);
   }
 }
 

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MilestonePrompt, useAuth } from '@/features/auth';
 import { FamilyCommsEntry } from '@/features/family-comms';
+import { CircleEntry } from '@/features/circles';
 import { useTafsirMode } from '@/features/tafsir';
 import { useI18n } from '@/i18n';
 
@@ -74,6 +75,7 @@ export function HomeDashboard() {
         <WelcomeSection
           greetingLine={dashboard.greetingLine}
           encouragement={dashboard.encouragement}
+          isGuest={isGuest}
         />
 
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
@@ -160,6 +162,12 @@ export function HomeDashboard() {
           activeLearner?.role === 'child' ||
           activeLearner?.role === 'parent') ? (
           <FamilyCommsEntry />
+        ) : null}
+
+        {!isGuest ? (
+          <View className="mb-4 rounded-2xl bg-white px-4 py-4">
+            <CircleEntry compact />
+          </View>
         ) : null}
 
         <View className="mb-4 rounded-2xl bg-white px-4 py-4">

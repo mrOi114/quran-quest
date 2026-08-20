@@ -13,6 +13,10 @@ import type { Database } from '@/types/database';
  *
  * Deep-link sessions are exchanged manually (`detectSessionInUrl: false`) via
  * `sessionLinkService` + `/(auth)/callback`.
+ *
+ * Implicit flow is required for email confirmation in this client-only app:
+ * the verification link is often opened in another tab/browser that does not
+ * have the PKCE code verifier from signup.
  */
 // Expo inlines EXPO_PUBLIC_* at export time. An empty URL makes createClient throw
 // during module init and leaves a blank green #root on static hosts like Vercel.
@@ -31,5 +35,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    flowType: 'implicit',
   },
 });

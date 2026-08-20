@@ -281,6 +281,63 @@ export type FamilyPushToken = {
   updated_at: string;
 };
 
+export type CircleKind = 'public' | 'madrasah';
+export type SocialGroupKind = 'family' | CircleKind;
+export type CircleMemberRole = 'admin' | 'teacher' | 'member' | 'child';
+export type TeacherApprovalStatus = 'pending' | 'approved' | 'revoked';
+
+export type AppGroupLimit = {
+  key: string;
+  member_limit: number;
+  updated_at: string;
+};
+
+export type TeacherApproval = {
+  profile_id: string;
+  status: TeacherApprovalStatus;
+  requested_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+};
+
+export type Circle = {
+  id: string;
+  kind: CircleKind;
+  name: string;
+  creator_id: string;
+  join_code: string;
+  chat_enabled: boolean;
+  audio_enabled: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CircleMember = {
+  circle_id: string;
+  profile_id: string;
+  role: CircleMemberRole;
+  invited_by: string | null;
+  joined_at: string;
+  timeout_until: string | null;
+  permanently_removed: boolean;
+};
+
+export type CircleMessage = {
+  id: string;
+  circle_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+};
+
+export type CircleMessageReaction = {
+  message_id: string;
+  profile_id: string;
+  emoji: string;
+  created_at: string;
+};
+
 type TableDef<Row, Insert, Update> = {
   Row: Row;
   Insert: Insert;
@@ -613,6 +670,76 @@ export type Database = {
         },
         Partial<FamilyPushToken>
       >;
+      app_group_limits: TableDef<
+        AppGroupLimit,
+        {
+          key: string;
+          member_limit: number;
+          updated_at?: string;
+        },
+        Partial<AppGroupLimit>
+      >;
+      teacher_approvals: TableDef<
+        TeacherApproval,
+        {
+          profile_id: string;
+          status?: TeacherApprovalStatus;
+          requested_at?: string;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+        },
+        Partial<TeacherApproval>
+      >;
+      circles: TableDef<
+        Circle,
+        {
+          id?: string;
+          kind: CircleKind;
+          name: string;
+          creator_id: string;
+          join_code: string;
+          chat_enabled?: boolean;
+          audio_enabled?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        },
+        Partial<Circle>
+      >;
+      circle_members: TableDef<
+        CircleMember,
+        {
+          circle_id: string;
+          profile_id: string;
+          role?: CircleMemberRole;
+          invited_by?: string | null;
+          joined_at?: string;
+          timeout_until?: string | null;
+          permanently_removed?: boolean;
+        },
+        Partial<CircleMember>
+      >;
+      circle_messages: TableDef<
+        CircleMessage,
+        {
+          id?: string;
+          circle_id: string;
+          sender_id: string;
+          body: string;
+          created_at?: string;
+        },
+        Partial<CircleMessage>
+      >;
+      circle_message_reactions: TableDef<
+        CircleMessageReaction,
+        {
+          message_id: string;
+          profile_id: string;
+          emoji: string;
+          created_at?: string;
+        },
+        Partial<CircleMessageReaction>
+      >;
     };
     Views: Record<string, never>;
     Functions: {
@@ -668,6 +795,78 @@ export type Database = {
         Args: { p_profile_id: string };
         Returns: boolean;
       };
+      group_member_limit: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      contains_contact_info: {
+        Args: { p_body: string };
+        Returns: boolean;
+      };
+      ensure_family_group: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      is_approved_teacher: {
+        Args: { p_profile_id: string };
+        Returns: boolean;
+      };
+      request_teacher_role: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      approve_teacher: {
+        Args: { p_profile_id: string };
+        Returns: Json;
+      };
+      list_pending_teachers: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      create_circle: {
+        Args: { p_kind: CircleKind; p_name: string };
+        Returns: Json;
+      };
+      join_circle: {
+        Args: { p_join_code: string };
+        Returns: Json;
+      };
+      connect_child_to_circle: {
+        Args: { p_circle_id: string; p_child_id: string };
+        Returns: Json;
+      };
+      timeout_circle_member: {
+        Args: { p_circle_id: string; p_profile_id: string };
+        Returns: Json;
+      };
+      permanently_remove_circle_member: {
+        Args: { p_circle_id: string; p_profile_id: string };
+        Returns: Json;
+      };
+      set_circle_chat_enabled: {
+        Args: { p_circle_id: string; p_enabled: boolean };
+        Returns: Json;
+      };
+      set_circle_audio_enabled: {
+        Args: { p_circle_id: string; p_enabled: boolean };
+        Returns: Json;
+      };
+      list_circle_directory: {
+        Args: { p_circle_id: string };
+        Returns: Json;
+      };
+      get_circle: {
+        Args: { p_circle_id: string };
+        Returns: Json;
+      };
+      list_my_circles: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      circle_timeout_message: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
     };
     Enums: {
       profile_role: ProfileRole;
@@ -679,6 +878,9 @@ export type Database = {
       family_message_kind: FamilyMessageKind;
       family_call_kind: FamilyCallKind;
       family_call_status: FamilyCallStatus;
+      circle_kind: CircleKind;
+      circle_member_role: CircleMemberRole;
+      teacher_approval_status: TeacherApprovalStatus;
     };
   };
 };

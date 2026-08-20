@@ -10,6 +10,8 @@ import {
 const GUEST_PROFILE_KEY = 'qq.guest.profile';
 const GUEST_PROGRESS_KEY = 'qq.guest.progress';
 const GUEST_MILESTONE_DISMISSED_KEY = 'qq.guest.milestone_dismissed';
+/** Explicit Guest Mode flag — restored locally, independent of Supabase Auth. */
+const GUEST_SESSION_KEY = 'qq.guest.session_active';
 const GUEST_MIGRATION_PREFIX = 'qq.migrated_progress.';
 /** Staged separately so Feature 005 reader merge does not race Feature 004 learning merge. */
 const GUEST_READER_MIGRATION_PREFIX = 'qq.migrated_reader.';
@@ -39,6 +41,58 @@ function emptyProgress(): GuestProgress {
     learningPayload: {},
     updatedAt: new Date().toISOString(),
   };
+}
+
+export function resolveGuestSessionActive(
+  flag: string | null,
+  hasProfile: boolean,
+): boolean {
+  if (flag === 'true') {
+    return true;
+  }
+  if (flag === 'false') {
+    return false;
+  }
+  // Legacy guests persisted a profile before the dedicated session flag existed.
+  return hasProfile;
+}
+
+async function markGuestSessionActive(): Promise<void> {
+  await AsyncStorage.setItem(GUEST_SESSION_KEY, 'true');
+}
+
+async function markGuestSessionEnded(): Promise<void> {
+  await AsyncStorage.setItem(GUEST_SESSION_KEY, 'false');
+}
+
+export async function isGuestSessionActive(): Promise<boolean> {
+  const flag = await AsyncStorage.getItem(GUEST_SESSION_KEY);
+  if (flag === 'true') {
+    return true;
+  }
+  if (flag === 'false') {
+    return false;
+  }
+  const profile = await getGuestProfile();
+  const active = resolveGuestSessionActive(flag, Boolean(profile));
+  if (active) {
+    await markGuestSessionActive();
+  }
+  return active;
+}
+
+/** Local Guest Mode profile when the persisted session flag is active. */
+export async function getActiveGuestProfile(): Promise<GuestProfile | null> {
+  const active = await isGuestSessionActive();
+  if (!active) {
+    return null;
+  }
+  const profile = await getGuestProfile();
+  if (!profile) {
+    await markGuestSessionEnded();
+    return null;
+  }
+  return profile;
 }
 
 export async function getGuestProfile(): Promise<GuestProfile | null> {
@@ -78,6 +132,7 @@ export async function saveGuestProfile(
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
   await AsyncStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(profile));
+  await markGuestSessionActive();
 
   const existingProgress = await AsyncStorage.getItem(GUEST_PROGRESS_KEY);
   if (!existingProgress) {
@@ -89,6 +144,7 @@ export async function saveGuestProfile(
 }
 
 export async function clearGuestProfile(): Promise<void> {
+  await markGuestSessionEnded();
   await AsyncStorage.multiRemove([
     GUEST_PROFILE_KEY,
     GUEST_PROGRESS_KEY,

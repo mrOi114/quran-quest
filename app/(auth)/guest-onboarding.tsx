@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -17,7 +17,7 @@ import { useI18n, type MessageKey } from '@/i18n';
 
 export default function GuestOnboardingScreen() {
   const router = useRouter();
-  const { startGuest } = useAuth();
+  const { startGuest, isGuest, activeLearner } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [ageGroup, setAgeGroup] = useState<AgeGroupId>('child_7_10');
   const [countryCode, setCountryCode] = useState('US');
@@ -26,6 +26,10 @@ export default function GuestOnboardingScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { t } = useI18n(preferredLanguage);
+
+  if (isGuest && activeLearner) {
+    return <Redirect href="/(app)/home" />;
+  }
 
   async function onSubmit() {
     setFormError(null);

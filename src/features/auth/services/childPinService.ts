@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { Profile } from '@/types';
+import { MAX_GROUP_MEMBERS } from '@/constants/groupLimits';
 
 import type { CreateChildInput, UpdateChildInput } from '../types';
 import { getDeviceKey } from './deviceService';
@@ -39,6 +40,18 @@ export async function createChildProfile(
   parentId: string,
   input: CreateChildInput,
 ): Promise<Profile> {
+  const { count, error: countError } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('parent_id', parentId)
+    .eq('role', 'child');
+
+  if (countError) {
+    throw new Error(countError.message || 'Could not create child profile');
+  }
+  if ((count ?? 0) + 1 >= MAX_GROUP_MEMBERS) {
+    throw new Error('This family group already has the maximum number of members');
+  }
   const { data, error } = await supabase
     .from('profiles')
     .insert({

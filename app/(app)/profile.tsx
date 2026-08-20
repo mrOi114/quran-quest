@@ -36,6 +36,11 @@ export default function ProfileRoute() {
           {t('profile.title')}
         </Text>
         <Text className="mt-2 text-3xl font-bold text-brand-800">{name}</Text>
+        {isGuest ? (
+          <Text className="mt-2 text-xs font-semibold uppercase tracking-wide text-brand-500">
+            {t('common.guestMode')}
+          </Text>
+        ) : null}
         <Text className="mt-2 text-base text-brand-600">
           {isChildSession ? t('profile.learner') : t('profile.role', { role })}
         </Text>

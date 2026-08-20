@@ -78,7 +78,7 @@ const learnerNavItems: NavItem[] = [
     matches: (pathname) =>
       pathname.startsWith('/leaderboard') || pathname.startsWith('/progress'),
   },
-  { id: 'circle', icon: '👥', href: '/(app)/gates/circle', matches: (pathname) => pathname.startsWith('/gates/circle') },
+  { id: 'circle', icon: '🔵', href: '/(app)/circle', matches: (pathname) => pathname.startsWith('/circle') },
   {
     id: 'chat',
     icon: '💬',
@@ -87,7 +87,7 @@ const learnerNavItems: NavItem[] = [
   },
   {
     id: 'family',
-    icon: '👪',
+    icon: '👨‍👩‍👧',
     href: '/(app)/family',
     matches: (pathname) =>
       (pathname.startsWith('/family') &&
@@ -105,13 +105,19 @@ const parentNavItems: NavItem[] = [
   {
     id: 'myFamily',
     icon: '👨‍👩‍👧',
-    href: '/(app)/parent/dashboard',
+    href: '/(app)/family',
     matches: (pathname) =>
       pathname.startsWith('/parent/') ||
       (pathname.startsWith('/family') &&
         !pathname.startsWith('/family/chat') &&
         !pathname.startsWith('/family/call')) ||
       pathname.startsWith('/child-pin'),
+  },
+  {
+    id: 'circle',
+    icon: '🔵',
+    href: '/(app)/circle',
+    matches: (pathname) => pathname.startsWith('/circle'),
   },
   {
     id: 'chat',
@@ -137,7 +143,7 @@ const parentNavItems: NavItem[] = [
 ];
 
 const learnerQuickIds: NavId[] = ['home', 'learn', 'lesson', 'leaderboard', 'circle'];
-const parentQuickIds: NavId[] = ['home', 'myFamily', 'chat', 'progress', 'settings'];
+const parentQuickIds: NavId[] = ['home', 'myFamily', 'circle', 'chat', 'settings'];
 const childFamilyQuickIds: NavId[] = ['home', 'learn', 'chat', 'leaderboard', 'games'];
 
 function isActiveNavItem(item: NavItem, pathname: string): boolean {
@@ -303,6 +309,11 @@ export function WebAppShell({ children }: WebAppShellProps) {
           {t('nav.learner')}
         </Text>
         <Text className="mt-2 text-base font-semibold text-white">{learnerLabel}</Text>
+        {isGuest ? (
+          <Text className="mt-1 text-xs font-semibold uppercase tracking-wide text-brand-200">
+            {t('common.guestMode')}
+          </Text>
+        ) : null}
         <Text className="mt-1 text-sm text-brand-100">
           {t('nav.currentSection', { section: currentSectionLabel })}
         </Text>
@@ -326,7 +337,9 @@ export function WebAppShell({ children }: WebAppShellProps) {
             <View className="px-6 pt-6">
               <Text className="text-3xl font-bold text-white">QuranFamily</Text>
               <Text className="mt-2 text-sm text-brand-100">
-                {learnerLabel} · {currentSectionLabel}
+                {isGuest
+                  ? `${t('common.guestMode')} · ${learnerLabel} · ${currentSectionLabel}`
+                  : `${learnerLabel} · ${currentSectionLabel}`}
               </Text>
             </View>
             {navigationList}
@@ -349,7 +362,9 @@ export function WebAppShell({ children }: WebAppShellProps) {
               <View className="flex-1 items-center px-2">
                 <Text className="text-lg font-bold text-white">QuranFamily</Text>
                 <Text className="text-xs text-brand-100" numberOfLines={1}>
-                  {learnerLabel} · {currentSectionLabel}
+                  {isGuest
+                    ? `${t('common.guestMode')} · ${learnerLabel}`
+                    : `${learnerLabel} · ${currentSectionLabel}`}
                 </Text>
               </View>
               <Pressable
