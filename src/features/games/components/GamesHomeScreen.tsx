@@ -64,6 +64,22 @@ export function GamesHomeScreen() {
           </View>
         ) : null}
 
+        <View className="mt-5 rounded-3xl bg-white px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            ☪️ {t('qisas.hubEyebrow')}
+          </Text>
+          <Text className="mt-2 text-2xl font-bold text-brand-800">{t('qisas.seriesTitle')}</Text>
+          <Text className="mt-1 text-sm text-brand-600">{t('qisas.seriesHelp')}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('learn.islamicStories')}
+            onPress={() => router.push('/(app)/qisas' as never)}
+            className="mt-4 min-h-12 items-center justify-center rounded-2xl bg-brand-600 px-4 active:opacity-90"
+          >
+            <Text className="text-base font-semibold text-white">{t('learn.islamicStories')}</Text>
+          </Pressable>
+        </View>
+
         <Text className="mb-3 mt-6 text-sm font-semibold uppercase tracking-wide text-brand-100">
           {t('games.chooseAdventure')}
         </Text>

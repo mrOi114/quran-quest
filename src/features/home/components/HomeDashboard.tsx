@@ -124,6 +124,7 @@ export function HomeDashboard() {
           onSomaliTafsir={() => {
             void tafsir.setEnabled(true).then(() => handleContinueLearning());
           }}
+          onIslamicStories={() => router.push('/(app)/qisas' as never)}
           onToggleTafsir={(enabled) => {
             void tafsir.setEnabled(enabled);
           }}

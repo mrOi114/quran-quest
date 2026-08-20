@@ -76,6 +76,18 @@ export default function SettingsRoute() {
           ) : null}
         </View>
 
+        <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            {t('qisas.sourcesTitle')}
+          </Text>
+          <Text className="mt-2 mb-3 text-sm text-brand-600">{t('qisas.sourcesHelp')}</Text>
+          <PrimaryButton
+            label={t('qisas.openSources')}
+            onPress={() => router.push('/(app)/qisas/sources' as never)}
+            variant="secondary"
+          />
+        </View>
+
         <View className="mt-6">
           <PrimaryButton label={t('common.backToHome')} onPress={() => router.replace('/(app)/home')} />
           {canManageFamily ? (

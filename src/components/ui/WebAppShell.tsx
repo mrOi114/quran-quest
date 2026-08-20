@@ -69,7 +69,7 @@ const learnerNavItems: NavItem[] = [
     matches: (pathname) => pathname.startsWith('/lesson'),
   },
   { id: 'revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
-  { id: 'games', icon: '🎮', href: '/(app)/games', matches: (pathname) => pathname.startsWith('/games') || pathname.startsWith('/companion') },
+  { id: 'games', icon: '🎮', href: '/(app)/games', matches: (pathname) => pathname.startsWith('/games') || pathname.startsWith('/companion') || pathname.startsWith('/qisas') },
   { id: 'companion', icon: '🤖', href: '/(app)/companion', matches: (pathname) => pathname.startsWith('/companion') },
   {
     id: 'leaderboard',

@@ -1,4 +1,4 @@
-export type AudioChannel = 'quran' | 'tafsir' | 'meaning';
+export type AudioChannel = 'quran' | 'tafsir' | 'meaning' | 'qisas';
 
 const pauseFns: Partial<Record<AudioChannel, () => Promise<void>>> = {};
 
