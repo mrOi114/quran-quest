@@ -15,6 +15,7 @@ import { ParentAccessLink } from './ParentAccessLink';
 import { PracticeWithAiButton } from './PracticeWithAiButton';
 import { ReadJuz30Button } from './ReadJuz30Button';
 import { TodaysLessonCard } from './TodaysLessonCard';
+import { WelcomeSection } from './WelcomeSection';
 import { FamilyCommsEntry } from '@/features/family-comms';
 
 export function HomeDashboard() {
