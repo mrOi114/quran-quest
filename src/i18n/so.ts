@@ -6,7 +6,7 @@ export const so = {
   'language.englishUntilAvailable':
     'Ingiriis ayaa la muujinayaa ilaa luuqaddaadu diyaar noqoto.',
   'language.quranMeaningNote':
-    'Macnaha Quraanka: Sahih International (Ingiriis). Qoraalka Carabiga lama beddelo.',
+    'Macnaha Quraanka: Cabdullaahi Xasan Yacquub (QuranEnc.com). Qoraalka Carabiga lama beddelo.',
 
   'nav.home': 'Hoyga',
   'nav.learn': 'Baro / Quraanka',
@@ -390,6 +390,10 @@ export const so = {
   'reader.closeBrowse': 'Xir daalacashada',
   'reader.searchSurahs': 'Raadi suuradaha',
   'reader.meaning': 'Macnaha',
+  'reader.somaliMeaning': 'Macnaha Quraanka ee Soomaaliga',
+  'reader.attributionSource': 'Source: {source}',
+  'reader.attributionKey': 'Translation key: {key}',
+  'reader.attributionVersion': 'Version: {version}',
   'reader.showMeaning': 'Muuji macnaha',
   'reader.hideMeaning': 'Qari macnaha',
   'reader.beginnerQari': 'Qaari bilowga',

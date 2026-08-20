@@ -1,5 +1,7 @@
 import { Text, View } from 'react-native';
 
+import { VerseMeaningBody } from '@/features/reader/components/VerseMeaningBody';
+import { resolveVerseMeaning } from '@/features/reader/services/translationResolver';
 import { useI18n } from '@/i18n';
 
 import type { LessonSessionVerse } from '../types';
@@ -10,10 +12,21 @@ type LessonVerseCardProps = {
 };
 
 export function LessonVerseCard({ verse, isActive }: LessonVerseCardProps) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const learned =
     verse.progress.status === 'learned' || verse.progress.status === 'mastered';
   const learnedLabel = learned ? t('common.learned') : t('lesson.notLearned');
+  const meaning =
+    resolveVerseMeaning(verse.id, language) ??
+    ({
+      text: verse.translationEn,
+      footnotes: null,
+      languageCode: 'en',
+      translationId: 'en-sahih-international',
+      sourceLabel: 'Sahih International',
+      attribution: null,
+      isFallback: language !== 'en',
+    } as const);
 
   return (
     <View
@@ -31,9 +44,9 @@ export function LessonVerseCard({ verse, isActive }: LessonVerseCardProps) {
       >
         {verse.textUthmani}
       </Text>
-      <Text className="mt-4 text-center text-base leading-6 text-brand-600">
-        {verse.translationEn}
-      </Text>
+      <View className="mt-4">
+        <VerseMeaningBody meaning={meaning} />
+      </View>
     </View>
   );
 }

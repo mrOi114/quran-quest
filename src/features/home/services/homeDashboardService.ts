@@ -123,7 +123,9 @@ export async function buildHomeDashboard(options: {
     textUthmani: featuredVerseContent.textUthmani,
     translationText:
       featuredMeaning?.text ?? t('home.featuredFallback', language),
+    translationFootnotes: featuredMeaning?.footnotes ?? null,
     translationSourceLabel: featuredMeaning?.sourceLabel ?? t('home.approvedTranslation', language),
+    translationAttribution: featuredMeaning?.attribution ?? null,
     isTranslationFallback: featuredMeaning?.isFallback ?? false,
   };
   // Same effort formula as Leaderboard — one source of truth, no double system.

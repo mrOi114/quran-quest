@@ -35,7 +35,14 @@ export type HomeFeaturedVerse = {
   ayahNumber: number;
   textUthmani: string;
   translationText: string;
+  translationFootnotes: string | null;
   translationSourceLabel: string;
+  translationAttribution: {
+    translator: string;
+    source: string;
+    translationKey: string;
+    version: string;
+  } | null;
   isTranslationFallback: boolean;
 };
 

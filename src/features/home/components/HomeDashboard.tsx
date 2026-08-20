@@ -155,12 +155,44 @@ export function HomeDashboard() {
           <Text className="mt-4 text-base leading-6 text-brand-700">
             {dashboard.featuredVerse.translationText}
           </Text>
-          <Text className="mt-2 text-xs text-brand-500">
-            {t('home.source', { source: dashboard.featuredVerse.translationSourceLabel })}
-            {dashboard.featuredVerse.isTranslationFallback
-              ? ` · ${t('language.englishUntilAvailable')}`
-              : ''}
-          </Text>
+          {dashboard.featuredVerse.translationFootnotes ? (
+            <Text className="mt-2 text-sm leading-5 text-brand-500">
+              {dashboard.featuredVerse.translationFootnotes}
+            </Text>
+          ) : null}
+          {dashboard.featuredVerse.translationAttribution &&
+          !dashboard.featuredVerse.isTranslationFallback ? (
+            <View className="mt-2">
+              <Text className="text-xs font-semibold uppercase tracking-wide text-brand-400">
+                {t('reader.somaliMeaning')}
+              </Text>
+              <Text className="mt-1 text-xs text-brand-500">
+                {dashboard.featuredVerse.translationAttribution.translator}
+              </Text>
+              <Text className="text-xs text-brand-500">
+                {t('reader.attributionSource', {
+                  source: dashboard.featuredVerse.translationAttribution.source,
+                })}
+              </Text>
+              <Text className="text-xs text-brand-500">
+                {t('reader.attributionKey', {
+                  key: dashboard.featuredVerse.translationAttribution.translationKey,
+                })}
+              </Text>
+              <Text className="text-xs text-brand-500">
+                {t('reader.attributionVersion', {
+                  version: dashboard.featuredVerse.translationAttribution.version,
+                })}
+              </Text>
+            </View>
+          ) : (
+            <Text className="mt-2 text-xs text-brand-500">
+              {t('home.source', { source: dashboard.featuredVerse.translationSourceLabel })}
+              {dashboard.featuredVerse.isTranslationFallback
+                ? ` · ${t('language.englishUntilAvailable')}`
+                : ''}
+            </Text>
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('home.openReaderAyah')}

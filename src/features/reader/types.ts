@@ -54,11 +54,20 @@ export type ReaderBrowseState = {
   lastAyahNumber: number;
 };
 
+export type VerseMeaningAttribution = {
+  translator: string;
+  source: string;
+  translationKey: string;
+  version: string;
+};
+
 export type ResolvedVerseMeaning = {
   text: string;
+  footnotes: string | null;
   languageCode: string;
   translationId: string;
   sourceLabel: string;
+  attribution: VerseMeaningAttribution | null;
   isFallback: boolean;
 };
 

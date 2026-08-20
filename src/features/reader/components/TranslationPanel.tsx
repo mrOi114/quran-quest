@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useI18n } from '@/i18n';
 
 import type { ResolvedVerseMeaning } from '../types';
+import { VerseMeaningBody } from './VerseMeaningBody';
 
 type TranslationPanelProps = {
   meaning: ResolvedVerseMeaning | null;
@@ -36,14 +37,7 @@ export function TranslationPanel({
           <Text className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-brand-400">
             {t('reader.meaning')}
           </Text>
-          <Text className="text-center text-base leading-6 text-brand-600">
-            {meaning.text}
-          </Text>
-          {meaning.isFallback ? (
-            <Text className="mt-2 text-center text-xs text-brand-400">
-              {t('language.englishUntilAvailable')}
-            </Text>
-          ) : null}
+          <VerseMeaningBody meaning={meaning} />
           {explanation ? (
             <Text className="mt-3 text-center text-sm leading-5 text-brand-500">
               {explanation}

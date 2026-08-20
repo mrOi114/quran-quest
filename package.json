@@ -20,6 +20,8 @@
     "typecheck": "tsc --noEmit",
     "content:juz30": "node ./scripts/generate-juz30-content.mjs",
     "content:full-quran": "node ./scripts/generate-full-quran-content.mjs",
+    "content:somali-quranenc": "node ./scripts/fetch-quranenc-somali.mjs",
+    "verify:somali-quranenc": "node ./scripts/verify-quranenc-somali.mjs",
     "verify:feature-004": "node ./scripts/verify-feature-004.mjs",
     "verify:feature-005": "node ./scripts/verify-feature-005.mjs",
     "verify:family-comms": "node ./scripts/verify-family-comms.mjs",
