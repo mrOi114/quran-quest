@@ -19,6 +19,7 @@ export default function ReaderRoute() {
       surah={parsePositiveInt(params.surah)}
       ayah={parsePositiveInt(params.ayah)}
       listen={modeRaw === 'listen'}
+      meaningAudio={modeRaw === 'meaning'}
     />
   );
 }

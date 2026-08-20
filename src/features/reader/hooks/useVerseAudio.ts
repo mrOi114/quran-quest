@@ -18,7 +18,7 @@ import {
   type VerseAudioMetadata,
   type VerseAudioStatus,
 } from '../services/audioPlayerService';
-import type { QuranListenCursor } from '../services/quranListenQueue';
+import type { QuranListenCursor, QuranListenKind } from '../services/quranListenQueue';
 import { isQuranListenPaused } from '../services/quranListenQueue';
 
 type UseVerseAudioOptions = {
@@ -33,6 +33,7 @@ type UseVerseAudioOptions = {
   /** Shared continuous Qur’an listen (ayah → ayah → surah). */
   continuous?: boolean;
   cursor?: QuranListenCursor;
+  kind?: QuranListenKind;
 };
 
 type UseVerseAudioResult = {
@@ -68,6 +69,7 @@ export function useVerseAudio({
   autoPlay = false,
   continuous = false,
   cursor,
+  kind = 'quran',
 }: UseVerseAudioOptions): UseVerseAudioResult {
   const { t } = useI18n();
   const audioError = t('audio.error');
@@ -90,6 +92,7 @@ export function useVerseAudio({
   const onPlaybackCompleteRef = useRef(onPlaybackComplete);
   const continuousRef = useRef(continuous);
   const cursorRef = useRef(cursor);
+  const kindRef = useRef(kind);
   const startPlaybackRef = useRef<(resetRemaining: boolean) => Promise<void>>(
     async () => undefined,
   );
@@ -117,6 +120,10 @@ export function useVerseAudio({
   useEffect(() => {
     cursorRef.current = cursor;
   }, [cursor]);
+
+  useEffect(() => {
+    kindRef.current = kind;
+  }, [kind]);
 
   useEffect(() => {
     onPlayedOnceRef.current = onPlayedOnce;
@@ -175,8 +182,9 @@ export function useVerseAudio({
                 cursor: cursorRef.current,
                 repeatCount: repeatCountRef.current,
                 resetRemaining: resetRemaining,
+                kind: kindRef.current,
               }
-            : undefined,
+            : { kind: kindRef.current },
         );
       } catch {
         setIsPlaying(false);
@@ -243,8 +251,9 @@ export function useVerseAudio({
               cursor: cursorRef.current,
               repeatCount: repeatCountRef.current,
               resetRemaining: false,
+              kind: kindRef.current,
             }
-          : undefined,
+          : { kind: kindRef.current },
       );
       setIsPlaying(true);
       return;

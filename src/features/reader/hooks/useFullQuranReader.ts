@@ -27,12 +27,13 @@ import {
 } from '../services/quranListenQueue';
 import type { BrowsableSurah, ReaderPreferences, ReaderVerseViewModel } from '../types';
 
-export type ReaderListenMode = 'read' | 'listen';
+export type ReaderListenMode = 'read' | 'listen' | 'meaning';
 
 type UseFullQuranReaderArgs = {
   surahParam?: number;
   ayahParam?: number;
   listenParam?: boolean;
+  meaningParam?: boolean;
 };
 
 type UseFullQuranReaderResult = {
@@ -70,6 +71,7 @@ export function useFullQuranReader({
   surahParam,
   ayahParam,
   listenParam = false,
+  meaningParam = false,
 }: UseFullQuranReaderArgs): UseFullQuranReaderResult {
   const { activeLearner } = useAuth();
   const { t } = useI18n();
@@ -81,10 +83,10 @@ export function useFullQuranReader({
   const [activeAyahNumber, setActiveAyahNumberState] = useState(1);
   const [preferences, setPreferences] = useState<ReaderPreferences | null>(null);
   const [listenMode, setListenModeState] = useState<ReaderListenMode>(
-    listenParam ? 'listen' : 'read',
+    meaningParam ? 'meaning' : listenParam ? 'listen' : 'read',
   );
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [autoPlayPending, setAutoPlayPending] = useState(listenParam);
+  const [autoPlayPending, setAutoPlayPending] = useState(listenParam || meaningParam);
   const [quranCompleted, setQuranCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,12 +94,17 @@ export function useFullQuranReader({
   const juzOptions = useMemo(() => listJuzOptions(), []);
 
   useEffect(() => {
+    if (meaningParam) {
+      setListenModeState('meaning');
+      setAutoPlayPending(true);
+      return;
+    }
     if (!listenParam) {
       return;
     }
     setListenModeState('listen');
     setAutoPlayPending(true);
-  }, [listenParam]);
+  }, [listenParam, meaningParam]);
 
   const filteredSurahs = useMemo(() => {
     if (searchQuery.trim()) {
@@ -186,7 +193,11 @@ export function useFullQuranReader({
         }
         setPreferences(prefs);
         setListenModeState(
-          listenParam || prefs.futureSettings.autoPlayNextVerse ? 'listen' : 'read',
+          meaningParam
+            ? 'meaning'
+            : listenParam || prefs.futureSettings.autoPlayNextVerse
+              ? 'listen'
+              : 'read',
         );
         setJuzNumber(start.juzNumber);
         await openSurah(
@@ -194,7 +205,7 @@ export function useFullQuranReader({
           prefs,
           start.surahNumber,
           start.ayahNumber,
-          listenParam ? { autoPlay: true } : undefined,
+          listenParam || meaningParam ? { autoPlay: true } : undefined,
         );
       } catch (err) {
         if (!cancelled) {
@@ -211,7 +222,7 @@ export function useFullQuranReader({
     return () => {
       cancelled = true;
     };
-  }, [activeLearner, ayahParam, listenParam, openSurah, surahParam]);
+  }, [activeLearner, ayahParam, listenParam, meaningParam, openSurah, surahParam]);
 
   const followRef = useRef({
     surah,
@@ -373,7 +384,7 @@ export function useFullQuranReader({
   );
 
   const handleVersePlaybackComplete = useCallback(() => {
-    if (listenMode !== 'listen' || !audioEnabled || !surah) {
+    if ((listenMode !== 'listen' && listenMode !== 'meaning') || !audioEnabled || !surah) {
       setAutoPlayPending(false);
       return;
     }
@@ -397,7 +408,7 @@ export function useFullQuranReader({
         return;
       }
       setListenModeState(mode);
-      if (mode === 'listen' && audioEnabled) {
+      if ((mode === 'listen' || mode === 'meaning') && audioEnabled) {
         setQuranCompleted(false);
         setAutoPlayPending(true);
       } else {
@@ -408,7 +419,10 @@ export function useFullQuranReader({
         ...preferences,
         futureSettings: {
           ...preferences.futureSettings,
-          autoPlayNextVerse: mode === 'listen',
+          autoPlayNextVerse:
+            mode === 'meaning'
+              ? preferences.futureSettings.autoPlayNextVerse
+              : mode === 'listen',
         },
       });
     },

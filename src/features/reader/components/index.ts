@@ -1,6 +1,7 @@
 export { ArabicVerseText } from './ArabicVerseText';
 export { BrowseReaderScreen } from './BrowseReaderScreen';
 export { FullQuranReaderScreen } from './FullQuranReaderScreen';
+export { MeaningAudioAttribution } from './MeaningAudioAttribution';
 export { MushafBrowserSheet } from './MushafBrowserSheet';
 export { ReaderChrome } from './ReaderChrome';
 export { ReaderVerseFocus } from './ReaderVerseFocus';

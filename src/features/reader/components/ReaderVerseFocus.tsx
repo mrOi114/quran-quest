@@ -4,9 +4,12 @@ import type { AgeGroupId } from '@/features/auth';
 import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
+import { getSomaliYacobAudioUrl, somaliYacobAudioMetadata } from '../content/somaliYacobAudio';
 import { useVerseAudio } from '../hooks/useVerseAudio';
+import type { QuranListenKind } from '../services/quranListenQueue';
 import type { ReaderFontScale, ReaderMode, ReaderVerseViewModel } from '../types';
 import { ArabicVerseText } from './ArabicVerseText';
+import { MeaningAudioAttribution } from './MeaningAudioAttribution';
 import { TranslationPanel } from './TranslationPanel';
 import { VerseAudioControls } from './VerseAudioControls';
 
@@ -31,6 +34,7 @@ type ReaderVerseFocusProps = {
   quranLayerTitle?: string;
   quranLayerSubtitle?: string;
   meaningHeading?: string;
+  audioKind?: QuranListenKind;
 };
 
 export function ReaderVerseFocus({
@@ -54,19 +58,29 @@ export function ReaderVerseFocus({
   quranLayerTitle,
   quranLayerSubtitle,
   meaningHeading,
+  audioKind = 'quran',
 }: ReaderVerseFocusProps) {
   const { t } = useI18n();
+  const isMeaningAudio = audioKind === 'meaning';
+  const audioUrl = audioEnabled
+    ? isMeaningAudio
+      ? getSomaliYacobAudioUrl(verse.surahNumber, verse.ayahNumber)
+      : verse.audioUrl
+    : null;
   const audio = useVerseAudio({
-    audioUrl: audioEnabled ? verse.audioUrl : null,
+    audioUrl,
     repeatCount,
-    metadata: {
-      title: t('reader.nowPlaying', {
-        surah: verse.surahNumber,
-        ayah: verse.ayahNumber,
-      }),
-      artist: 'Mahmoud Khalil Al-Husary',
-      albumTitle: 'QuranFamily',
-    },
+    kind: audioKind,
+    metadata: isMeaningAudio
+      ? somaliYacobAudioMetadata(verse.surahNumber, verse.ayahNumber)
+      : {
+          title: t('reader.nowPlaying', {
+            surah: verse.surahNumber,
+            ayah: verse.ayahNumber,
+          }),
+          artist: 'Mahmoud Khalil Al-Husary',
+          albumTitle: 'QuranFamily',
+        },
     onPlayedOnce,
     onPlaybackComplete,
     autoPlay: autoPlay && audioEnabled,
@@ -103,6 +117,7 @@ export function ReaderVerseFocus({
         error={audio.error}
         currentTime={audio.currentTime}
         duration={audio.duration}
+        caption={isMeaningAudio ? t('reader.meaningAudioCaption') : undefined}
         onSeek={(seconds) => {
           void audio.seekTo(seconds);
         }}
@@ -123,6 +138,8 @@ export function ReaderVerseFocus({
         }}
         onCycleRepeat={onCycleRepeat}
       />
+
+      {isMeaningAudio ? <MeaningAudioAttribution /> : null}
 
       <TranslationPanel
         meaning={verse.meaning}

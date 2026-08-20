@@ -10,6 +10,7 @@ type VerseAudioControlsProps = {
   error: string | null;
   currentTime?: number;
   duration?: number;
+  caption?: string;
   onSeek?: (seconds: number) => void;
   onPlay: () => void;
   onPause: () => void;
@@ -29,6 +30,7 @@ export function VerseAudioControls({
   error,
   currentTime = 0,
   duration = 0,
+  caption,
   onSeek,
   onPlay,
   onPause,
@@ -49,7 +51,9 @@ export function VerseAudioControls({
   };
   return (
     <View className="mt-4">
-      <Text className="mb-2 text-center text-xs text-brand-400">{t('reader.beginnerQari')}</Text>
+      <Text className="mb-2 text-center text-xs text-brand-400">
+        {caption ?? t('reader.beginnerQari')}
+      </Text>
       <AudioProgressBar
         currentTime={currentTime}
         duration={duration}

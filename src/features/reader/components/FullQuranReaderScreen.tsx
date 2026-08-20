@@ -17,6 +17,7 @@ type FullQuranReaderScreenProps = {
   surah?: number;
   ayah?: number;
   listen?: boolean;
+  meaningAudio?: boolean;
 };
 
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
@@ -25,7 +26,12 @@ function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   return '1';
 }
 
-export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuranReaderScreenProps) {
+export function FullQuranReaderScreen({
+  surah,
+  ayah,
+  listen = false,
+  meaningAudio = false,
+}: FullQuranReaderScreenProps) {
   const router = useRouter();
   const { t } = useI18n();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -56,7 +62,12 @@ export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuran
     handleVersePlaybackComplete,
     quranCompleted,
     ageGroup,
-  } = useFullQuranReader({ surahParam: surah, ayahParam: ayah, listenParam: listen });
+  } = useFullQuranReader({
+    surahParam: surah,
+    ayahParam: ayah,
+    listenParam: listen,
+    meaningParam: meaningAudio,
+  });
 
   const activeVerse =
     verses.find((verse) => verse.ayahNumber === activeAyahNumber) ?? verses[0];
@@ -157,6 +168,24 @@ export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuran
                 {t('reader.listen')}
               </Text>
             </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('reader.meaningListenAuto')}
+              onPress={() => {
+                void setListenMode('meaning');
+              }}
+              className={`min-h-11 rounded-xl px-4 py-3 ${
+                listenMode === 'meaning' ? 'bg-white' : 'bg-brand-700'
+              }`}
+            >
+              <Text
+                className={`text-sm font-semibold ${
+                  listenMode === 'meaning' ? 'text-brand-700' : 'text-white'
+                }`}
+              >
+                {t('reader.meaningListen')}
+              </Text>
+            </Pressable>
           </View>
 
           <MushafBrowserSheet
@@ -206,17 +235,22 @@ export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuran
             showTranslation={preferences.showTranslation}
             repeatCount={preferences.repeatCount}
             fontScale={preferences.fontScale}
-            autoPlay={autoPlayPending && listenMode === 'listen'}
+            autoPlay={
+              autoPlayPending && (listenMode === 'listen' || listenMode === 'meaning')
+            }
             audioEnabled={audioEnabled}
+            audioKind={listenMode === 'meaning' ? 'meaning' : 'quran'}
             onToggleAudioEnabled={() => setAudioEnabled(!audioEnabled)}
             onPrevious={() =>
               goToPreviousAyah({
-                autoPlay: listenMode === 'listen' && audioEnabled,
+                autoPlay:
+                  (listenMode === 'listen' || listenMode === 'meaning') && audioEnabled,
               })
             }
             onNext={() =>
               goToNextAyah({
-                autoPlay: listenMode === 'listen' && audioEnabled,
+                autoPlay:
+                  (listenMode === 'listen' || listenMode === 'meaning') && audioEnabled,
               })
             }
             canGoPrevious={!(currentSurah.number === 1 && activeAyahNumber === 1)}
@@ -245,7 +279,9 @@ export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuran
                   accessibilityLabel={`${t('common.ayah')} ${verse.ayahNumber}`}
                   onPress={() =>
                     setActiveAyahNumber(verse.ayahNumber, {
-                      autoPlay: listenMode === 'listen' && audioEnabled,
+                      autoPlay:
+                        (listenMode === 'listen' || listenMode === 'meaning') &&
+                        audioEnabled,
                     })
                   }
                   className={`mb-2 rounded-2xl px-3 py-3 ${

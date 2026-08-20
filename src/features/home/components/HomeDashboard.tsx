@@ -115,6 +115,12 @@ export function HomeDashboard() {
               params: { mode: 'listen' },
             })
           }
+          onSomaliMeaningAudio={() =>
+            router.push({
+              pathname: '/(app)/reader',
+              params: { mode: 'meaning' },
+            })
+          }
           onSomaliTafsir={() => {
             void tafsir.setEnabled(true).then(() => handleContinueLearning());
           }}

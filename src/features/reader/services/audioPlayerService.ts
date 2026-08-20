@@ -12,6 +12,7 @@ import type { AudioRepeatCount } from '@/types';
 import {
   disableQuranListen,
   enableQuranListen,
+  getQuranListenKind,
   handleQuranListenEnded,
   isQuranListenEnabled,
   pauseQuranListen,
@@ -20,6 +21,7 @@ import {
   setQuranListenRepeat,
   syncQuranListenCursor,
   type QuranListenCursor,
+  type QuranListenKind,
 } from './quranListenQueue';
 
 export type VerseAudioMetadata = BackgroundAudioMetadata;
@@ -32,6 +34,7 @@ export type PlayVerseAudioOptions = PlayBackgroundAudioOptions & {
   cursor?: QuranListenCursor;
   repeatCount?: AudioRepeatCount;
   resetRemaining?: boolean;
+  kind?: QuranListenKind;
 };
 
 const quranSession = createBackgroundAudioSession({
@@ -39,6 +42,34 @@ const quranSession = createBackgroundAudioSession({
   defaultArtist: 'Mahmoud Khalil Al-Husary',
   defaultAlbum: 'QuranFamily',
 });
+
+const meaningSession = createBackgroundAudioSession({
+  defaultTitle: 'Somali Qur’an Meaning Audio',
+  defaultArtist: 'Cabdullaahi Xasan Yacquub',
+  defaultAlbum: 'QuranEnc.com',
+});
+
+function sessionFor(kind: QuranListenKind) {
+  return kind === 'meaning' ? meaningSession : quranSession;
+}
+
+function channelFor(kind: QuranListenKind) {
+  return kind === 'meaning' ? 'meaning' : 'quran';
+}
+
+function activeKind(): QuranListenKind {
+  if (meaningSession.getUrl() && (meaningSession.wantsPlayback() || meaningSession.isPlaying())) {
+    return 'meaning';
+  }
+  if (quranSession.getUrl() && (quranSession.wantsPlayback() || quranSession.isPlaying())) {
+    return 'quran';
+  }
+  return getQuranListenKind();
+}
+
+function activeSession() {
+  return sessionFor(activeKind());
+}
 
 let uiCallbacks: PlaybackCallbacks = {};
 
@@ -66,40 +97,47 @@ function mergedCallbacks(ui: PlaybackCallbacks): PlaybackCallbacks {
 
 registerQuranListenEngine({
   playImmediate: (url, metadata) => {
-    quranSession.playImmediate(url, mergedCallbacks(uiCallbacks), metadata);
+    sessionFor(getQuranListenKind()).playImmediate(
+      url,
+      mergedCallbacks(uiCallbacks),
+      metadata,
+    );
   },
-  stop: () => quranSession.stop(),
+  stop: () => sessionFor(getQuranListenKind()).stop(),
 });
 
 registerExclusivePause('quran', () => quranSession.pause());
+registerExclusivePause('meaning', () => meaningSession.pause());
 
 export function maintainBackgroundPlayback(): void {
   quranSession.maintainBackground();
+  meaningSession.maintainBackground();
 }
 
 export function isVerseAudioPlaying(): boolean {
-  return quranSession.isPlaying();
+  return quranSession.isPlaying() || meaningSession.isPlaying();
 }
 
 export function getVerseAudioUrl(): string | null {
-  return quranSession.getUrl();
+  return activeSession().getUrl() ?? quranSession.getUrl() ?? meaningSession.getUrl();
 }
 
 export function getVerseAudioStatus(): BackgroundAudioStatus {
-  return quranSession.getStatus();
+  return activeSession().getStatus();
 }
 
 export function verseAudioWantsPlayback(): boolean {
-  return quranSession.wantsPlayback();
+  return quranSession.wantsPlayback() || meaningSession.wantsPlayback();
 }
 
 export async function seekVerseAudio(seconds: number): Promise<void> {
-  await quranSession.seekTo(seconds);
+  await activeSession().seekTo(seconds);
 }
 
 export async function stopVerseAudio(): Promise<void> {
   disableQuranListen();
   await quranSession.stop();
+  await meaningSession.stop();
 }
 
 export async function playVerseAudio(
@@ -108,37 +146,47 @@ export async function playVerseAudio(
   metadata?: VerseAudioMetadata,
   options?: PlayVerseAudioOptions,
 ): Promise<void> {
-  await exclusiveAcquire('quran');
+  const kind = options?.kind ?? 'quran';
+  await exclusiveAcquire(channelFor(kind));
+  if (kind === 'meaning') {
+    await quranSession.stop();
+  } else {
+    await meaningSession.stop();
+  }
   if (options?.continuous && options.cursor) {
     enableQuranListen(options.cursor, options.repeatCount ?? '1', {
       resetRemaining: options.resetRemaining,
+      kind,
     });
   } else {
     disableQuranListen();
   }
-  await quranSession.play(url, mergedCallbacks(callbacks), metadata, options);
+  await sessionFor(kind).play(url, mergedCallbacks(callbacks), metadata, options);
 }
 
 export async function pauseVerseAudio(): Promise<void> {
   pauseQuranListen();
   await quranSession.pause();
+  await meaningSession.pause();
 }
 
 export async function resumeVerseAudio(
   metadata?: VerseAudioMetadata,
 ): Promise<boolean> {
-  await exclusiveAcquire('quran');
+  const kind = activeKind();
+  await exclusiveAcquire(channelFor(kind));
   resumeQuranListenIntent();
-  return quranSession.resume(metadata);
+  return sessionFor(kind).resume(metadata);
 }
 
 export async function replayVerseAudio(
   url: string,
   callbacks: PlaybackCallbacks = {},
   metadata?: VerseAudioMetadata,
+  kind: QuranListenKind = 'quran',
 ): Promise<void> {
-  await exclusiveAcquire('quran');
-  await quranSession.replay(url, mergedCallbacks(callbacks), metadata);
+  await exclusiveAcquire(channelFor(kind));
+  await sessionFor(kind).replay(url, mergedCallbacks(callbacks), metadata);
 }
 
 export function syncVerseAudioPlayingState(): boolean {

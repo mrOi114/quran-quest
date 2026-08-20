@@ -7,4 +7,8 @@ export {
   type BackgroundAudioStatus,
   type PlayBackgroundAudioOptions,
 } from './createBackgroundAudioSession';
-export { exclusiveAcquire, registerExclusivePause } from './exclusiveAudio';
+export {
+  exclusiveAcquire,
+  registerExclusivePause,
+  type AudioChannel,
+} from './exclusiveAudio';

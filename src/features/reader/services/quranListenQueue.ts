@@ -2,6 +2,12 @@ import type { AudioRepeatCount } from '@/types';
 
 import { DEFAULT_RECITER_KEY } from '../constants';
 import { getMushafSurah, resolveMushafVerseAudio } from '../content';
+import {
+  getSomaliYacobAudioUrl,
+  somaliYacobAudioMetadata,
+} from '../content/somaliYacobAudio';
+
+export type QuranListenKind = 'quran' | 'meaning';
 
 export type QuranListenCursor = {
   surahNumber: number;
@@ -26,6 +32,7 @@ const LAST_SURAH = 114;
 let engine: ListenEngine | null = null;
 let enabled = false;
 let pausedByUser = false;
+let listenKind: QuranListenKind = 'quran';
 let cursor: QuranListenCursor = { surahNumber: 1, ayahNumber: 1 };
 let remainingPlays = 1;
 let repeatCount: AudioRepeatCount = '1';
@@ -46,7 +53,14 @@ function verseId(surahNumber: number, ayahNumber: number): string {
   return `${surahNumber}:${ayahNumber}`;
 }
 
-export function resolveQuranListenUrl(surahNumber: number, ayahNumber: number): string | null {
+export function resolveQuranListenUrl(
+  surahNumber: number,
+  ayahNumber: number,
+  kind: QuranListenKind = listenKind,
+): string | null {
+  if (kind === 'meaning') {
+    return getSomaliYacobAudioUrl(surahNumber, ayahNumber);
+  }
   return (
     resolveMushafVerseAudio(verseId(surahNumber, ayahNumber), DEFAULT_RECITER_KEY)?.audioUrl ??
     null
@@ -87,7 +101,13 @@ export function previousQuranListenCursor(
   return { surahNumber: previous.number, ayahNumber: previous.ayahCount };
 }
 
-export function quranListenMetadata(position: QuranListenCursor) {
+export function quranListenMetadata(
+  position: QuranListenCursor,
+  kind: QuranListenKind = listenKind,
+) {
+  if (kind === 'meaning') {
+    return somaliYacobAudioMetadata(position.surahNumber, position.ayahNumber);
+  }
   return {
     title: `Surah ${position.surahNumber} · Ayah ${position.ayahNumber}`,
     artist: 'Mahmoud Khalil Al-Husary',
@@ -99,7 +119,7 @@ function snapshot(): QuranListenSnapshot {
   return {
     surahNumber: cursor.surahNumber,
     ayahNumber: cursor.ayahNumber,
-    url: resolveQuranListenUrl(cursor.surahNumber, cursor.ayahNumber),
+    url: resolveQuranListenUrl(cursor.surahNumber, cursor.ayahNumber, listenKind),
     completed,
   };
 }
@@ -110,12 +130,12 @@ function emit(): void {
 }
 
 function playCursor(): boolean {
-  const url = resolveQuranListenUrl(cursor.surahNumber, cursor.ayahNumber);
+  const url = resolveQuranListenUrl(cursor.surahNumber, cursor.ayahNumber, listenKind);
   if (!url || !engine) {
     return false;
   }
   completed = false;
-  engine.playImmediate(url, quranListenMetadata(cursor));
+  engine.playImmediate(url, quranListenMetadata(cursor, listenKind));
   emit();
   return true;
 }
@@ -145,14 +165,21 @@ export function getQuranListenSnapshot(): QuranListenSnapshot {
   return snapshot();
 }
 
+export function getQuranListenKind(): QuranListenKind {
+  return listenKind;
+}
+
 export function enableQuranListen(
   position: QuranListenCursor,
   nextRepeatCount: AudioRepeatCount,
-  options?: { resetRemaining?: boolean },
+  options?: { resetRemaining?: boolean; kind?: QuranListenKind },
 ): void {
   enabled = true;
   pausedByUser = false;
   completed = false;
+  if (options?.kind) {
+    listenKind = options.kind;
+  }
   const sameCursor =
     cursor.surahNumber === position.surahNumber &&
     cursor.ayahNumber === position.ayahNumber;

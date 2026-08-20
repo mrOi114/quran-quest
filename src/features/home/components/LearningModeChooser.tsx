@@ -6,6 +6,7 @@ type LearningModeChooserProps = {
   tafsirEnabled: boolean;
   onReadQuran: () => void;
   onQuranAudio: () => void;
+  onSomaliMeaningAudio: () => void;
   onSomaliTafsir: () => void;
   onToggleTafsir: (enabled: boolean) => void;
 };
@@ -14,6 +15,7 @@ export function LearningModeChooser({
   tafsirEnabled,
   onReadQuran,
   onQuranAudio,
+  onSomaliMeaningAudio,
   onSomaliTafsir,
   onToggleTafsir,
 }: LearningModeChooserProps) {
@@ -40,6 +42,16 @@ export function LearningModeChooser({
         className="mt-2 min-h-12 items-center justify-center rounded-2xl bg-brand-50 px-4 py-3"
       >
         <Text className="text-base font-semibold text-brand-800">{t('learn.quranAudio')}</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('learn.somaliMeaningAudio')}
+        onPress={onSomaliMeaningAudio}
+        className="mt-2 min-h-12 items-center justify-center rounded-2xl bg-brand-50 px-4 py-3"
+      >
+        <Text className="text-base font-semibold text-brand-800">
+          {t('learn.somaliMeaningAudio')}
+        </Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
