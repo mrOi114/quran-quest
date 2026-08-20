@@ -20,14 +20,33 @@ import {
 } from '../content';
 import { useLessonSession } from '../hooks/useLessonSession';
 import { resolveAgeGroup } from '../services/ageGroup';
-import { listLessonSummariesForSurah } from '../services/lessonPlanner';
+import {
+  getRequiredPriorLessons,
+  listLessonSummariesForSurah,
+} from '../services/lessonPlanner';
+import { buildMasteryQuestions, buildUnlockQuestions } from '../services/lessonMastery';
 import { loadLearningSnapshot } from '../services/progressService';
-import type { LessonSummary, SurahMeta } from '../types';
+import type { LessonMasteryResult, LessonSummary, LessonTestQuestion, SurahMeta } from '../types';
 import { LessonBrowserSheet } from './LessonBrowserSheet';
+import { LessonLockedGate } from './LessonLockedGate';
+import { LessonMasteryResultCard } from './LessonMasteryResultCard';
+import { LessonMasteryTest } from './LessonMasteryTest';
 
 type LessonScreenProps = {
   lessonKey?: string;
 };
+
+type TestKind = 'mastery' | 'unlock';
+
+type TestRun = {
+  kind: TestKind;
+  questions: LessonTestQuestion[];
+  index: number;
+  correct: number;
+  selectedId: string | null;
+};
+
+type TestOutcome = LessonMasteryResult & { kind: TestKind };
 
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   if (current === '1') return '3';
@@ -51,7 +70,9 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     activeVerseIndex,
     setActiveVerseIndex,
     markCurrentVerseLearned,
-    completeCurrentLesson,
+    submitMasteryTest,
+    submitUnlockCheck,
+    reload,
   } = useLessonSession(lessonKey);
 
   const [playedVerseIds, setPlayedVerseIds] = useState<Record<string, true>>({});
@@ -61,6 +82,9 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   const [juzNumber, setJuzNumber] = useState(30);
   const [browseSurahNumber, setBrowseSurahNumber] = useState<number | null>(null);
   const [lessonSummaries, setLessonSummaries] = useState<LessonSummary[]>([]);
+  const [testRun, setTestRun] = useState<TestRun | null>(null);
+  const [outcome, setOutcome] = useState<TestOutcome | null>(null);
+  const [postponeTest, setPostponeTest] = useState(false);
 
   const ageGroup = activeLearner ? resolveAgeGroup(activeLearner) : 'adult_18_plus';
   const encourageListenFirst = ageGroup === 'child_3_6';
@@ -68,6 +92,9 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
   useEffect(() => {
     if (!session || !lessonKey) {
+      return;
+    }
+    if (session.mode === 'locked') {
       return;
     }
     if (session.lesson.lessonKey !== lessonKey) {
@@ -90,6 +117,32 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     }
     setBrowseSurahNumber(session.lesson.surahNumber);
   }, [session]);
+
+  useEffect(() => {
+    setTestRun(null);
+    setOutcome(null);
+    setPostponeTest(false);
+  }, [lessonKey]);
+
+  useEffect(() => {
+    if (!session || session.mode !== 'learn' || !session.canCompleteLesson) {
+      return;
+    }
+    if (testRun || outcome || postponeTest) {
+      return;
+    }
+    const questions = buildMasteryQuestions(session.lesson);
+    if (questions.length === 0) {
+      return;
+    }
+    setTestRun({
+      kind: 'mastery',
+      questions,
+      index: 0,
+      correct: 0,
+      selectedId: null,
+    });
+  }, [outcome, postponeTest, session, testRun]);
 
   const filteredSurahs: SurahMeta[] = useMemo(() => {
     if (searchQuery.trim()) {
@@ -132,6 +185,110 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     [setActiveVerseIndex],
   );
 
+  const startUnlockCheck = useCallback(async () => {
+    if (!session || !activeLearner) {
+      return;
+    }
+    const snapshot = await loadLearningSnapshot(activeLearner);
+    const prior = getRequiredPriorLessons(session.lesson, snapshot, ageGroup);
+    const questions = buildUnlockQuestions(prior.length > 0 ? prior : [session.lesson]);
+    if (questions.length === 0) {
+      return;
+    }
+    setOutcome(null);
+    setTestRun({
+      kind: 'unlock',
+      questions,
+      index: 0,
+      correct: 0,
+      selectedId: null,
+    });
+  }, [activeLearner, ageGroup, session]);
+
+  const startMasteryTest = useCallback(() => {
+    if (!session) {
+      return;
+    }
+    const questions = buildMasteryQuestions(session.lesson);
+    if (questions.length === 0) {
+      return;
+    }
+    setPostponeTest(false);
+    setOutcome(null);
+    setTestRun({
+      kind: 'mastery',
+      questions,
+      index: 0,
+      correct: 0,
+      selectedId: null,
+    });
+  }, [session]);
+
+  async function confirmAnswer() {
+    if (!testRun || !testRun.selectedId) {
+      return;
+    }
+    const current = testRun.questions[testRun.index];
+    if (!current) {
+      return;
+    }
+    const nextCorrect =
+      testRun.correct + (testRun.selectedId === current.correctChoiceId ? 1 : 0);
+    if (testRun.index + 1 < testRun.questions.length) {
+      setTestRun({
+        ...testRun,
+        index: testRun.index + 1,
+        correct: nextCorrect,
+        selectedId: null,
+      });
+      return;
+    }
+
+    const result =
+      testRun.kind === 'unlock'
+        ? await submitUnlockCheck(nextCorrect, testRun.questions.length)
+        : await submitMasteryTest(nextCorrect, testRun.questions.length);
+    if (!result) {
+      return;
+    }
+    setTestRun(null);
+    setOutcome({ ...result, kind: testRun.kind });
+  }
+
+  function goToLesson(nextLessonKey: string) {
+    setOutcome(null);
+    setTestRun(null);
+    router.replace({
+      pathname: '/(app)/lesson',
+      params: { lessonId: nextLessonKey },
+    });
+  }
+
+  async function handleOutcomeContinue() {
+    if (!outcome || !session) {
+      return;
+    }
+    if (outcome.kind === 'unlock' && outcome.passed) {
+      setOutcome(null);
+      await reload();
+      return;
+    }
+    if (outcome.passed && outcome.nextLessonKey) {
+      goToLesson(outcome.nextLessonKey);
+      return;
+    }
+    if (outcome.passed) {
+      router.replace('/(app)/progress');
+      return;
+    }
+    if (outcome.practiceLessonKey && outcome.practiceLessonKey !== session.lesson.lessonKey) {
+      goToLesson(outcome.practiceLessonKey);
+      return;
+    }
+    setOutcome(null);
+    setPostponeTest(true);
+  }
+
   if ((isLoading || prefsLoading) && !session) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
@@ -172,6 +329,8 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       verse.progress.status === 'learned' || verse.progress.status === 'mastered',
   ).length;
   const isReview = session.mode === 'review';
+  const isLocked = session.mode === 'locked';
+  const showingTest = Boolean(testRun) || Boolean(outcome);
   const activeLearned =
     activeVerse?.progress.status === 'learned' ||
     activeVerse?.progress.status === 'mastered';
@@ -180,18 +339,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     ? lessonVerseToReaderViewModel(activeVerse, activeLearner, preferences)
     : null;
   const hasPlayedOnce = activeVerse ? Boolean(playedVerseIds[activeVerse.id]) : false;
-
-  async function handleComplete() {
-    const nextKey = await completeCurrentLesson();
-    if (nextKey) {
-      router.replace({
-        pathname: '/(app)/lesson',
-        params: { lessonId: nextKey },
-      });
-      return;
-    }
-    router.replace('/(app)/home');
-  }
+  const currentQuestion = testRun?.questions[testRun.index] ?? null;
 
   function handleMarkLearned() {
     if (encourageListenFirst && !hasPlayedOnce && !activeLearned) {
@@ -234,6 +382,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
         <Text className="mt-2 text-center text-base font-medium text-white">
           {session.summary.lessonLabel}
           {isReview ? ' · Review' : ''}
+          {isLocked ? ' · Locked' : ''}
         </Text>
         <Text className="mt-1 text-center text-sm text-brand-100">
           Ayah {session.summary.startAyah}
@@ -257,7 +406,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
           </Text>
         </Pressable>
         <Text className="mt-2 text-center text-xs text-brand-100">
-          All 30 Juz available · {session.verses.length}-ayah Hifz chunks
+          Learn → Test → Next lesson · Keep going until the Qur’an is complete
         </Text>
 
         <LessonBrowserSheet
@@ -279,129 +428,190 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
             setBrowseSurahNumber(surahNumber);
           }}
           onSelectLesson={(nextLessonKey) => {
-            router.replace({
-              pathname: '/(app)/lesson',
-              params: { lessonId: nextLessonKey },
-            });
+            goToLesson(nextLessonKey);
           }}
           onClose={() => setBrowserOpen(false)}
         />
 
-        <View className="mt-5">
-          {readerVerse ? (
-            <ReaderVerseFocus
-              key={readerVerse.id}
-              verse={readerVerse}
-              ageGroup={ageGroup}
-              mode="lesson"
-              showTranslation={preferences.showTranslation}
-              repeatCount={preferences.repeatCount}
-              fontScale={preferences.fontScale}
-              onToggleTranslation={() => {
-                void setShowTranslation(!preferences.showTranslation);
-              }}
-              onCycleRepeat={() => {
-                void setRepeatCount(nextRepeat(preferences.repeatCount));
-              }}
-              onPlayedOnce={() => handlePlayedOnce(readerVerse.id)}
-            />
-          ) : null}
-        </View>
-
-        {session.verses.length > 1 ? (
-          <View className="mt-4 flex-row flex-wrap justify-center gap-2">
-            {session.verses.map((verse, index) => {
-              const learned =
-                verse.progress.status === 'learned' ||
-                verse.progress.status === 'mastered';
-              const selected = index === activeVerseIndex;
-              return (
-                <Pressable
-                  key={verse.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Go to ayah ${verse.ayahNumber}`}
-                  onPress={() => selectVerse(index)}
-                  className={`min-h-11 min-w-11 items-center justify-center rounded-xl px-3 ${
-                    selected ? 'bg-white' : learned ? 'bg-brand-400' : 'bg-brand-700'
-                  }`}
-                >
-                  <Text
-                    className={`text-sm font-semibold ${
-                      selected ? 'text-brand-700' : 'text-white'
-                    }`}
-                  >
-                    {verse.ayahNumber}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        {isLocked && !showingTest ? (
+          <LessonLockedGate
+            lessonLabel={session.summary.lessonLabel}
+            onStartCheck={() => {
+              void startUnlockCheck();
+            }}
+            onGoBack={() => {
+              if (session.unlockPracticeLessonKey) {
+                goToLesson(session.unlockPracticeLessonKey);
+                return;
+              }
+              router.replace('/(app)/home');
+            }}
+          />
         ) : null}
 
-        <View className="mt-6 rounded-2xl bg-brand-50 px-4 py-4">
-          {error ? <Text className="mb-3 text-sm text-red-700">{error}</Text> : null}
-          {listenHint ? (
-            <Text className="mb-3 text-center text-sm text-brand-600">{listenHint}</Text>
-          ) : null}
+        {currentQuestion && testRun ? (
+          <LessonMasteryTest
+            title={testRun.kind === 'unlock' ? 'Quick Knowledge Check' : 'Lesson Test'}
+            subtitle={
+              testRun.kind === 'unlock'
+                ? 'Show what you already know'
+                : 'Let’s see how well you know this lesson'
+            }
+            question={currentQuestion}
+            questionNumber={testRun.index + 1}
+            questionCount={testRun.questions.length}
+            selectedChoiceId={testRun.selectedId}
+            disabled={isLoading}
+            onSelectChoice={(choiceId) => {
+              setTestRun({ ...testRun, selectedId: choiceId });
+            }}
+            onConfirm={() => {
+              void confirmAnswer();
+            }}
+          />
+        ) : null}
 
-          {!isReview && activeVerse && !activeLearned ? (
-            <PrimaryButton
-              label="I learned this ayah"
-              loading={isLoading}
-              onPress={handleMarkLearned}
-            />
-          ) : null}
-
-          {!isReview && session.canCompleteLesson ? (
-            <PrimaryButton
-              label={session.nextLessonKey ? 'Complete & continue' : 'Complete lesson'}
-              loading={isLoading}
-              onPress={() => {
-                void handleComplete();
-              }}
-            />
-          ) : null}
-
-          {isReview ? (
-            <>
-              <Text className="mb-3 text-center text-base text-brand-600">
-                You can review these ayahs anytime. Next chunks unlock in order within
-                this Surah.
-              </Text>
-              {session.nextLessonKey ? (
-                <PrimaryButton
-                  label="Continue to next lesson"
-                  onPress={() => {
-                    const nextLessonKey = session.nextLessonKey;
-                    if (!nextLessonKey) {
-                      return;
-                    }
-                    router.replace({
-                      pathname: '/(app)/lesson',
-                      params: { lessonId: nextLessonKey },
-                    });
-                  }}
-                />
-              ) : (
-                <PrimaryButton
-                  label="Back to Home"
-                  onPress={() => router.replace('/(app)/home')}
-                />
-              )}
-            </>
-          ) : null}
-
-          {!isReview && !session.canCompleteLesson && activeLearned ? (
-            <PrimaryButton
-              label="Next ayah"
-              variant="secondary"
-              disabled={activeVerseIndex >= session.verses.length - 1}
-              onPress={() =>
-                selectVerse(Math.min(activeVerseIndex + 1, session.verses.length - 1))
+        {outcome ? (
+          <LessonMasteryResultCard
+            passed={outcome.passed}
+            percent={outcome.percent}
+            correctCount={outcome.correctCount}
+            totalCount={outcome.totalCount}
+            message={outcome.message}
+            hasNextLesson={Boolean(
+              outcome.kind === 'unlock'
+                ? outcome.passed
+                : outcome.nextLessonKey,
+            )}
+            onContinue={() => {
+              void handleOutcomeContinue();
+            }}
+            onRetry={() => {
+              if (outcome.kind === 'unlock') {
+                void startUnlockCheck();
+                return;
               }
-            />
-          ) : null}
-        </View>
+              startMasteryTest();
+            }}
+            onPractice={() => {
+              void handleOutcomeContinue();
+            }}
+          />
+        ) : null}
+
+        {!isLocked && !showingTest ? (
+          <>
+            <View className="mt-5">
+              {readerVerse ? (
+                <ReaderVerseFocus
+                  key={readerVerse.id}
+                  verse={readerVerse}
+                  ageGroup={ageGroup}
+                  mode="lesson"
+                  showTranslation={preferences.showTranslation}
+                  repeatCount={preferences.repeatCount}
+                  fontScale={preferences.fontScale}
+                  onToggleTranslation={() => {
+                    void setShowTranslation(!preferences.showTranslation);
+                  }}
+                  onCycleRepeat={() => {
+                    void setRepeatCount(nextRepeat(preferences.repeatCount));
+                  }}
+                  onPlayedOnce={() => handlePlayedOnce(readerVerse.id)}
+                />
+              ) : null}
+            </View>
+
+            {session.verses.length > 1 ? (
+              <View className="mt-4 flex-row flex-wrap justify-center gap-2">
+                {session.verses.map((verse, index) => {
+                  const learned =
+                    verse.progress.status === 'learned' ||
+                    verse.progress.status === 'mastered';
+                  const selected = index === activeVerseIndex;
+                  return (
+                    <Pressable
+                      key={verse.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Go to ayah ${verse.ayahNumber}`}
+                      onPress={() => selectVerse(index)}
+                      className={`min-h-11 min-w-11 items-center justify-center rounded-xl px-3 ${
+                        selected ? 'bg-white' : learned ? 'bg-brand-400' : 'bg-brand-700'
+                      }`}
+                    >
+                      <Text
+                        className={`text-sm font-semibold ${
+                          selected ? 'text-brand-700' : 'text-white'
+                        }`}
+                      >
+                        {verse.ayahNumber}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
+
+            <View className="mt-6 rounded-2xl bg-brand-50 px-4 py-4">
+              {error ? <Text className="mb-3 text-sm text-red-700">{error}</Text> : null}
+              {listenHint ? (
+                <Text className="mb-3 text-center text-sm text-brand-600">{listenHint}</Text>
+              ) : null}
+
+              {!isReview && activeVerse && !activeLearned ? (
+                <PrimaryButton
+                  label="I learned this ayah"
+                  loading={isLoading}
+                  onPress={handleMarkLearned}
+                />
+              ) : null}
+
+              {!isReview && session.canCompleteLesson ? (
+                <PrimaryButton
+                  label="Take the test"
+                  loading={isLoading}
+                  onPress={startMasteryTest}
+                />
+              ) : null}
+
+              {isReview ? (
+                <>
+                  <Text className="mb-3 text-center text-base text-brand-600">
+                    🌟 You already know this lesson. Keep going whenever you are ready.
+                  </Text>
+                  {session.nextLessonKey ? (
+                    <PrimaryButton
+                      label="Continue to next lesson"
+                      onPress={() => {
+                        const nextLessonKey = session.nextLessonKey;
+                        if (!nextLessonKey) {
+                          return;
+                        }
+                        goToLesson(nextLessonKey);
+                      }}
+                    />
+                  ) : (
+                    <PrimaryButton
+                      label="See your progress"
+                      onPress={() => router.replace('/(app)/progress')}
+                    />
+                  )}
+                </>
+              ) : null}
+
+              {!isReview && !session.canCompleteLesson && activeLearned ? (
+                <PrimaryButton
+                  label="Next ayah"
+                  variant="secondary"
+                  disabled={activeVerseIndex >= session.verses.length - 1}
+                  onPress={() =>
+                    selectVerse(Math.min(activeVerseIndex + 1, session.verses.length - 1))
+                  }
+                />
+              ) : null}
+            </View>
+          </>
+        ) : null}
 
         <Text className="mt-4 text-center text-xs text-brand-100">
           Arabic is for memorization. Translation helps understanding only.

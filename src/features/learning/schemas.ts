@@ -31,7 +31,7 @@ export const verseProgressRecordSchema = z.object({
 });
 
 export const learnerLearningStateSchema = z.object({
-  currentSurahNumber: z.number().int().min(78).max(114),
+  currentSurahNumber: z.number().int().min(1).max(114),
   currentAyahNumber: z.number().int().positive(),
   currentLessonKey: z.string().min(1),
   ageGroupSnapshot: ageGroupSchema,
@@ -39,7 +39,7 @@ export const learnerLearningStateSchema = z.object({
 });
 
 export const surahProgressRecordSchema = z.object({
-  surahNumber: z.number().int().min(78).max(114),
+  surahNumber: z.number().int().min(1).max(114),
   versesLearned: z.number().int().nonnegative(),
   versesTotal: z.number().int().positive(),
   status: z.enum(['not_started', 'in_progress', 'completed']),
@@ -48,11 +48,12 @@ export const surahProgressRecordSchema = z.object({
 
 export const lessonCompletionRecordSchema = z.object({
   lessonKey: z.string().min(1),
-  surahNumber: z.number().int().min(78).max(114),
+  surahNumber: z.number().int().min(1).max(114),
   startAyah: z.number().int().positive(),
   endAyah: z.number().int().positive(),
   ageGroup: ageGroupSchema,
   completedAt: z.string(),
+  testScorePercent: z.number().min(0).max(100).optional(),
 });
 
 export const guestLearningPayloadSchema = z.object({

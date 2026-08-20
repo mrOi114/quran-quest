@@ -3,6 +3,7 @@ export * from './childFamilyProgressStore';
 export * from './cloudProgressStore';
 export * from './guestMigration';
 export * from './guestProgressStore';
+export * from './lessonMastery';
 export * from './lessonPlanner';
 export * from './progressHelpers';
 export * from './progressService';

@@ -3,12 +3,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth';
 
 import {
-  completeLesson,
   markVerseLearned,
   openLessonSession,
   resolveContinueLessonKey,
+  submitLessonMasteryTest,
+  submitLessonUnlockCheck,
 } from '../services';
-import type { LessonSession } from '../types';
+import type { LessonMasteryResult, LessonSession } from '../types';
 
 type UseLessonSessionResult = {
   session: LessonSession | null;
@@ -17,7 +18,14 @@ type UseLessonSessionResult = {
   activeVerseIndex: number;
   setActiveVerseIndex: (index: number) => void;
   markCurrentVerseLearned: () => Promise<void>;
-  completeCurrentLesson: () => Promise<string | null>;
+  submitMasteryTest: (
+    correctCount: number,
+    totalCount: number,
+  ) => Promise<LessonMasteryResult | null>;
+  submitUnlockCheck: (
+    correctCount: number,
+    totalCount: number,
+  ) => Promise<LessonMasteryResult | null>;
   reload: () => Promise<void>;
 };
 
@@ -105,26 +113,55 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
     }
   }, [activeLearner, activeVerseIndex, refreshGuestProgress, session]);
 
-  const completeCurrentLesson = useCallback(async () => {
-    if (!activeLearner || !session) {
-      return null;
-    }
-    setIsLoading(true);
-    try {
-      const { nextLessonKey, session: nextSession } = await completeLesson(
-        activeLearner,
-        session.lesson,
-      );
-      setSession(nextSession);
-      await refreshGuestProgress();
-      return nextLessonKey;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not complete the lesson.');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeLearner, refreshGuestProgress, session]);
+  const submitMasteryTest = useCallback(
+    async (correctCount: number, totalCount: number) => {
+      if (!activeLearner || !session) {
+        return null;
+      }
+      setIsLoading(true);
+      try {
+        const result = await submitLessonMasteryTest(
+          activeLearner,
+          session.lesson,
+          correctCount,
+          totalCount,
+        );
+        await refreshGuestProgress();
+        return result;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not save your test.');
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [activeLearner, refreshGuestProgress, session],
+  );
+
+  const submitUnlockCheck = useCallback(
+    async (correctCount: number, totalCount: number) => {
+      if (!activeLearner || !session) {
+        return null;
+      }
+      setIsLoading(true);
+      try {
+        const result = await submitLessonUnlockCheck(
+          activeLearner,
+          session.lesson,
+          correctCount,
+          totalCount,
+        );
+        await refreshGuestProgress();
+        return result;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not check this lesson.');
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [activeLearner, refreshGuestProgress, session],
+  );
 
   return {
     session,
@@ -133,7 +170,8 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
     activeVerseIndex,
     setActiveVerseIndex,
     markCurrentVerseLearned,
-    completeCurrentLesson,
+    submitMasteryTest,
+    submitUnlockCheck,
     reload,
   };
 }

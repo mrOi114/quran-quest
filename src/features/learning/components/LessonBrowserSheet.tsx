@@ -51,7 +51,8 @@ export function LessonBrowserSheet({
       </View>
 
       <Text className="mb-2 px-2 text-xs text-brand-500">
-        Pick any Juz and Surah. Lessons stay in small verse chunks for memorisation.
+        Pick any Juz and Surah. Completed lessons stay open. Locked lessons can be unlocked
+        with a short knowledge check.
       </Text>
 
       <TextInput
@@ -152,28 +153,30 @@ export function LessonBrowserSheet({
             ) : (
               lessons.map((lesson) => {
                 const locked = lesson.isLocked;
+                const statusLabel = lesson.isComplete
+                  ? '✅ Completed'
+                  : lesson.isCurrent
+                    ? '▶️ Continue'
+                    : locked
+                      ? '🔒 Locked'
+                      : 'Start';
                 return (
                   <Pressable
                     key={lesson.lessonKey}
                     accessibilityRole="button"
                     accessibilityLabel={`${lesson.lessonLabel}, ayah ${lesson.startAyah} to ${lesson.endAyah}${locked ? ', locked' : ''}`}
-                    disabled={locked}
                     onPress={() => {
-                      if (locked) {
-                        return;
-                      }
                       onSelectLesson(lesson.lessonKey);
                       onClose();
                     }}
                     className={`mb-1 min-h-12 flex-row items-center justify-between rounded-xl px-3 py-2 ${
-                      locked ? 'opacity-45' : 'bg-brand-50'
+                      locked ? 'bg-brand-50/70' : 'bg-brand-50'
                     }`}
                   >
                     <View className="flex-1 pr-2">
                       <Text className="text-sm font-semibold text-brand-800">
                         {lesson.lessonLabel}
                         {lesson.isComplete ? ' · Done' : ''}
-                        {locked ? ' · Locked' : ''}
                       </Text>
                       <Text className="text-xs text-brand-500">
                         Ayah {lesson.startAyah}
@@ -183,9 +186,7 @@ export function LessonBrowserSheet({
                           : ''}
                       </Text>
                     </View>
-                    <Text className="text-xs font-semibold text-brand-600">
-                      {locked ? '🔒' : 'Open'}
-                    </Text>
+                    <Text className="text-xs font-semibold text-brand-600">{statusLabel}</Text>
                   </Pressable>
                 );
               })

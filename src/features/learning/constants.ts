@@ -18,6 +18,18 @@ export const VERSES_PER_LESSON: Record<AgeGroupId, number> = {
   adult_18_plus: 5,
 };
 
+/** Lesson / unlock knowledge-check pass mark (inclusive). */
+export const LESSON_PASS_PERCENT = 60;
+
+export const MASTERY_ENCOURAGEMENT = {
+  pass: '🌟 Amazing! You know this. Let’s keep going.',
+  fail: '🌱 Almost there! Let’s practice once more.',
+  keepGoing: '💚 Keep going — you’re getting stronger.',
+  unlockPass: '✅ You know this!',
+  unlockFail: '🌱 Keep practicing!',
+  quranComplete: '🏆 Qur’an completed — you kept going all the way.',
+} as const;
+
 export const DEFAULT_TRANSLATION_LANGUAGE = 'en';
 
 /**

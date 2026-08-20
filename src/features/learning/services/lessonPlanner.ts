@@ -124,13 +124,7 @@ export function isLessonCompleted(
   lesson: LessonPlan,
   snapshot: LearningSnapshot,
 ): boolean {
-  if (snapshot.lessonCompletions.some((item) => item.lessonKey === lesson.lessonKey)) {
-    return true;
-  }
-  return lesson.verseIds.every((verseId) => {
-    const status = snapshot.verseProgress[verseId]?.status;
-    return status === 'learned' || status === 'mastered';
-  });
+  return snapshot.lessonCompletions.some((item) => item.lessonKey === lesson.lessonKey);
 }
 
 /**
@@ -138,6 +132,20 @@ export function isLessonCompleted(
  * unlock after prior lessons in the same surah are complete.
  * (Enables Juz → Surah choice across all 30 Juz without a 6k-verse gate.)
  */
+/**
+ * Incomplete prior lessons in the same surah that must be known to unlock `lesson`.
+ */
+export function getRequiredPriorLessons(
+  lesson: LessonPlan,
+  snapshot: LearningSnapshot,
+  ageGroup: AgeGroupId,
+): LessonPlan[] {
+  return planSurahLessons(lesson.surahNumber, ageGroup).filter(
+    (prior) =>
+      prior.lessonIndex < lesson.lessonIndex && !isLessonCompleted(prior, snapshot),
+  );
+}
+
 export function isLessonUnlocked(
   lesson: LessonPlan,
   snapshot: LearningSnapshot,
@@ -218,6 +226,7 @@ export function toLessonSummary(
     hasStarted: snapshot.hasStarted || progressPercent > 0 || complete,
     isComplete: complete,
     isLocked: !unlocked,
+    isCurrent: snapshot.state.currentLessonKey === lesson.lessonKey,
   };
 }
 

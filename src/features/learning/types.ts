@@ -60,6 +60,7 @@ export type LessonSummary = {
   hasStarted: boolean;
   isComplete: boolean;
   isLocked: boolean;
+  isCurrent: boolean;
 };
 
 export type VerseProgressRecord = {
@@ -95,6 +96,8 @@ export type LessonCompletionRecord = {
   endAyah: number;
   ageGroup: AgeGroupId;
   completedAt: string;
+  /** 0–100 when the lesson was passed via a mastery test. Optional for older records. */
+  testScorePercent?: number;
 };
 
 export type LearningSnapshot = {
@@ -117,11 +120,37 @@ export type LessonSessionVerse = VerseContent & {
   progress: VerseProgressRecord;
 };
 
+export type LessonTestChoice = {
+  id: string;
+  label: string;
+  isArabic?: boolean;
+};
+
+export type LessonTestQuestion = {
+  id: string;
+  prompt: string;
+  promptArabic?: string;
+  choices: LessonTestChoice[];
+  correctChoiceId: string;
+};
+
+export type LessonMasteryResult = {
+  passed: boolean;
+  percent: number;
+  correctCount: number;
+  totalCount: number;
+  nextLessonKey: string | null;
+  practiceLessonKey: string | null;
+  message: string;
+};
+
 export type LessonSession = {
   lesson: LessonPlan;
   summary: LessonSummary;
   verses: LessonSessionVerse[];
-  mode: 'learn' | 'review';
+  mode: 'learn' | 'review' | 'locked';
   canCompleteLesson: boolean;
   nextLessonKey: string | null;
+  /** First incomplete prior lesson to practise when a knowledge check is not passed. */
+  unlockPracticeLessonKey: string | null;
 };
