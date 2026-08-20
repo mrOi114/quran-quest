@@ -7,19 +7,21 @@ type IceCandidateInit = {
   sdpMLineIndex?: number | null;
 };
 
+type FamilyRtcPeer = {
+  localDescription: { type: string; sdp: string } | null;
+  addTrack: (track: MediaStreamTrack, stream: MediaStream) => void;
+  addIceCandidate: (candidate: IceCandidateInit) => Promise<void>;
+  setLocalDescription: (desc: { type: string; sdp: string }) => Promise<void>;
+  setRemoteDescription: (desc: { type: string; sdp: string }) => Promise<void>;
+  createOffer: () => Promise<{ type: string; sdp: string }>;
+  createAnswer: () => Promise<{ type: string; sdp: string }>;
+  close: () => void;
+  onicecandidate: ((event: { candidate: IceCandidateInit | null }) => void) | null;
+  ontrack: ((event: { streams: MediaStream[] }) => void) | null;
+};
+
 type WebRtcGlobals = {
-  RTCPeerConnection: new (config?: { iceServers?: Array<{ urls: string }> }) => {
-    localDescription: { type: string; sdp: string } | null;
-    addTrack: (track: MediaStreamTrack, stream: MediaStream) => void;
-    addIceCandidate: (candidate: IceCandidateInit) => Promise<void>;
-    setLocalDescription: (desc: { type: string; sdp: string }) => Promise<void>;
-    setRemoteDescription: (desc: { type: string; sdp: string }) => Promise<void>;
-    createOffer: () => Promise<{ type: string; sdp: string }>;
-    createAnswer: () => Promise<{ type: string; sdp: string }>;
-    close: () => void;
-    onicecandidate: ((event: { candidate: IceCandidateInit | null }) => void) | null;
-    ontrack: ((event: { streams: MediaStream[] }) => void) | null;
-  };
+  RTCPeerConnection: new (config?: { iceServers?: Array<{ urls: string }> }) => FamilyRtcPeer;
 };
 
 function getWebRtc(): WebRtcGlobals | null {
@@ -53,7 +55,7 @@ export function isFamilyCallAudioSupported(): boolean {
 }
 
 export class FamilyCallPeer {
-  private connection: ReturnType<WebRtcGlobals['RTCPeerConnection']> | null = null;
+  private connection: FamilyRtcPeer | null = null;
   private localStream: MediaStream | null = null;
   private remoteAudio: HTMLAudioElement | null = null;
   private muted = false;

@@ -6,6 +6,7 @@ import {
   markVerseLearned,
   openLessonSession,
   resolveContinueLessonKey,
+  completeLesson,
   submitLessonMasteryTest,
   submitLessonUnlockCheck,
 } from '../services';
@@ -18,6 +19,7 @@ type UseLessonSessionResult = {
   activeVerseIndex: number;
   setActiveVerseIndex: (index: number) => void;
   markCurrentVerseLearned: () => Promise<void>;
+  completeCurrentLesson: () => Promise<string | null>;
   submitMasteryTest: (
     correctCount: number,
     totalCount: number,
@@ -113,6 +115,27 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
     }
   }, [activeLearner, activeVerseIndex, refreshGuestProgress, session]);
 
+  const completeCurrentLesson = useCallback(async () => {
+    if (!activeLearner || !session) {
+      return null;
+    }
+    setIsLoading(true);
+    try {
+      const { nextLessonKey, session: nextSession } = await completeLesson(
+        activeLearner,
+        session.lesson,
+      );
+      setSession(nextSession);
+      await refreshGuestProgress();
+      return nextLessonKey;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not complete the lesson.');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeLearner, refreshGuestProgress, session]);
+
   const submitMasteryTest = useCallback(
     async (correctCount: number, totalCount: number) => {
       if (!activeLearner || !session) {
@@ -170,6 +193,7 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
     activeVerseIndex,
     setActiveVerseIndex,
     markCurrentVerseLearned,
+    completeCurrentLesson,
     submitMasteryTest,
     submitUnlockCheck,
     reload,

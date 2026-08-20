@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,7 @@ import {
   lessonVerseToReaderViewModel,
   useReaderPreferences,
 } from '@/features/reader';
+import { localizeLessonTestQuestion, useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import {
@@ -57,6 +58,7 @@ function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
 export function LessonScreen({ lessonKey }: LessonScreenProps) {
   const router = useRouter();
   const { activeLearner } = useAuth();
+  const { language, t, lessonLabel, ayahRange } = useI18n();
   const {
     preferences,
     setShowTranslation,
@@ -85,6 +87,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   const [testRun, setTestRun] = useState<TestRun | null>(null);
   const [outcome, setOutcome] = useState<TestOutcome | null>(null);
   const [postponeTest, setPostponeTest] = useState(false);
+  const submittingRef = useRef(false);
 
   const ageGroup = activeLearner ? resolveAgeGroup(activeLearner) : 'adult_18_plus';
   const encourageListenFirst = ageGroup === 'child_3_6';
@@ -122,6 +125,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     setTestRun(null);
     setOutcome(null);
     setPostponeTest(false);
+    submittingRef.current = false;
   }, [lessonKey]);
 
   useEffect(() => {
@@ -225,7 +229,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   }, [session]);
 
   async function confirmAnswer() {
-    if (!testRun || !testRun.selectedId) {
+    if (!testRun || !testRun.selectedId || submittingRef.current) {
       return;
     }
     const current = testRun.questions[testRun.index];
@@ -244,10 +248,12 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       return;
     }
 
+    submittingRef.current = true;
     const result =
       testRun.kind === 'unlock'
         ? await submitUnlockCheck(nextCorrect, testRun.questions.length)
         : await submitMasteryTest(nextCorrect, testRun.questions.length);
+    submittingRef.current = false;
     if (!result) {
       return;
     }
@@ -293,7 +299,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
-        <Text className="mt-3 text-base text-brand-50">Opening your lesson…</Text>
+        <Text className="mt-3 text-base text-brand-50">{t('lesson.loading')}</Text>
       </SafeAreaView>
     );
   }
@@ -301,10 +307,10 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   if (error && !session) {
     return (
       <SafeAreaView className="flex-1 justify-center bg-brand-50 px-6">
-        <Text className="mb-2 text-2xl font-semibold text-brand-800">Lesson</Text>
+        <Text className="mb-2 text-2xl font-semibold text-brand-800">{t('lesson.title')}</Text>
         <Text className="mb-6 text-base text-brand-600">{error}</Text>
         <PrimaryButton
-          label="Back to Home"
+          label={t('common.backToHome')}
           onPress={() => router.replace('/(app)/home')}
         />
       </SafeAreaView>
@@ -314,9 +320,9 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   if (!session || !activeLearner || !preferences) {
     return (
       <SafeAreaView className="flex-1 justify-center bg-brand-50 px-6">
-        <Text className="mb-6 text-base text-brand-600">No lesson available yet.</Text>
+        <Text className="mb-6 text-base text-brand-600">{t('lesson.none')}</Text>
         <PrimaryButton
-          label="Back to Home"
+          label={t('common.backToHome')}
           onPress={() => router.replace('/(app)/home')}
         />
       </SafeAreaView>
@@ -339,11 +345,13 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     ? lessonVerseToReaderViewModel(activeVerse, activeLearner, preferences)
     : null;
   const hasPlayedOnce = activeVerse ? Boolean(playedVerseIds[activeVerse.id]) : false;
-  const currentQuestion = testRun?.questions[testRun.index] ?? null;
+  const currentQuestion = testRun?.questions[testRun.index]
+    ? localizeLessonTestQuestion(testRun.questions[testRun.index]!, language)
+    : null;
 
   function handleMarkLearned() {
     if (encourageListenFirst && !hasPlayedOnce && !activeLearned) {
-      setListenHint('Listen first, then mark this ayah.');
+      setListenHint(t('lesson.listenFirst'));
       return;
     }
     setListenHint(null);
@@ -363,11 +371,11 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Back to Home"
+          accessibilityLabel={t('common.backToHome')}
           onPress={() => router.replace('/(app)/home')}
           className="mb-4 min-h-11 justify-center self-start"
         >
-          <Text className="text-base text-brand-100">← Home</Text>
+          <Text className="text-base text-brand-100">← {t('nav.home')}</Text>
         </Pressable>
 
         <Text
@@ -380,33 +388,33 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
           {session.summary.surahName}
         </Text>
         <Text className="mt-2 text-center text-base font-medium text-white">
-          {session.summary.lessonLabel}
-          {isReview ? ' · Review' : ''}
-          {isLocked ? ' · Locked' : ''}
+          {lessonLabel(session.summary.lessonIndex)}
+          {isReview ? ` · ${t('lesson.review')}` : ''}
+          {isLocked ? ` · ${t('common.locked')}` : ''}
         </Text>
         <Text className="mt-1 text-center text-sm text-brand-100">
-          Ayah {session.summary.startAyah}
-          {session.summary.endAyah !== session.summary.startAyah
-            ? `–${session.summary.endAyah}`
-            : ''}
+          {ayahRange(session.summary.startAyah, session.summary.endAyah)}
           {' · '}
-          {learnedCount}/{session.verses.length} learned
+          {t('lesson.learnedCount', {
+            learned: learnedCount,
+            total: session.verses.length,
+          })}
           {' · '}
-          Juz {juzNumber}
+          {t('lesson.juz', { n: juzNumber })}
         </Text>
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Choose Juz, Surah, or lesson"
+          accessibilityLabel={t('lesson.chooseA11y')}
           onPress={() => setBrowserOpen((value) => !value)}
           className="mt-4 min-h-12 items-center justify-center self-center rounded-2xl bg-white px-5 py-3"
         >
           <Text className="text-base font-semibold text-brand-700">
-            {browserOpen ? 'Hide lesson picker' : 'Choose Juz / Surah / Lesson'}
+            {browserOpen ? t('lesson.hidePicker') : t('lesson.choosePicker')}
           </Text>
         </Pressable>
         <Text className="mt-2 text-center text-xs text-brand-100">
-          Learn → Test → Next lesson · Keep going until the Qur’an is complete
+          {t('lesson.chunksHint', { count: session.verses.length })}
         </Text>
 
         <LessonBrowserSheet
@@ -435,7 +443,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
         {isLocked && !showingTest ? (
           <LessonLockedGate
-            lessonLabel={session.summary.lessonLabel}
+            lessonLabel={lessonLabel(session.summary.lessonIndex)}
             onStartCheck={() => {
               void startUnlockCheck();
             }}
@@ -451,11 +459,9 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
         {currentQuestion && testRun ? (
           <LessonMasteryTest
-            title={testRun.kind === 'unlock' ? 'Quick Knowledge Check' : 'Lesson Test'}
+            title={testRun.kind === 'unlock' ? t('test.unlockTitle') : t('test.title')}
             subtitle={
-              testRun.kind === 'unlock'
-                ? 'Show what you already know'
-                : 'Let’s see how well you know this lesson'
+              testRun.kind === 'unlock' ? t('test.unlockSubtitle') : t('test.subtitle')
             }
             question={currentQuestion}
             questionNumber={testRun.index + 1}
@@ -533,7 +539,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                     <Pressable
                       key={verse.id}
                       accessibilityRole="button"
-                      accessibilityLabel={`Go to ayah ${verse.ayahNumber}`}
+                      accessibilityLabel={t('lesson.goToAyah', { ayah: verse.ayahNumber })}
                       onPress={() => selectVerse(index)}
                       className={`min-h-11 min-w-11 items-center justify-center rounded-xl px-3 ${
                         selected ? 'bg-white' : learned ? 'bg-brand-400' : 'bg-brand-700'
@@ -560,7 +566,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
               {!isReview && activeVerse && !activeLearned ? (
                 <PrimaryButton
-                  label="I learned this ayah"
+                  label={t('lesson.iLearned')}
                   loading={isLoading}
                   onPress={handleMarkLearned}
                 />
@@ -568,7 +574,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
               {!isReview && session.canCompleteLesson ? (
                 <PrimaryButton
-                  label="Take the test"
+                  label={t('lesson.takeTest')}
                   loading={isLoading}
                   onPress={startMasteryTest}
                 />
@@ -577,11 +583,11 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
               {isReview ? (
                 <>
                   <Text className="mb-3 text-center text-base text-brand-600">
-                    🌟 You already know this lesson. Keep going whenever you are ready.
+                    {t('lesson.reviewHelp')}
                   </Text>
                   {session.nextLessonKey ? (
                     <PrimaryButton
-                      label="Continue to next lesson"
+                      label={t('lesson.continueNext')}
                       onPress={() => {
                         const nextLessonKey = session.nextLessonKey;
                         if (!nextLessonKey) {
@@ -592,7 +598,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                     />
                   ) : (
                     <PrimaryButton
-                      label="See your progress"
+                      label={t('test.seeProgress')}
                       onPress={() => router.replace('/(app)/progress')}
                     />
                   )}
@@ -601,7 +607,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
               {!isReview && !session.canCompleteLesson && activeLearned ? (
                 <PrimaryButton
-                  label="Next ayah"
+                  label={t('lesson.nextAyah')}
                   variant="secondary"
                   disabled={activeVerseIndex >= session.verses.length - 1}
                   onPress={() =>
@@ -614,7 +620,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
         ) : null}
 
         <Text className="mt-4 text-center text-xs text-brand-100">
-          Arabic is for memorization. Translation helps understanding only.
+          {t('lesson.arabicNote')}
         </Text>
       </ScrollView>
     </SafeAreaView>

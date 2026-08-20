@@ -477,6 +477,27 @@ export const en = {
   'settings.familyCode': 'Family code: {code}',
   'settings.language': 'Language',
 
+  'reader.practiceInLesson': 'Practice in lesson',
+  'reader.turnAudioOff': 'Turn audio off',
+  'reader.turnAudioOn': 'Turn audio on',
+  'reader.lockedSurah': 'This surah is not unlocked yet. Keep learning in order.',
+  'reader.openError': 'Could not open the reader.',
+  'reader.openSurahError': 'Could not open this surah.',
+  'reader.openQuranError': 'Could not open the Qur’an reader.',
+  'reader.settingsLoadError': 'Could not load reader settings.',
+  'reader.settingsSaveError': 'Could not save reader settings.',
+  'lesson.notLearned': 'Not learned yet.',
+  'progress.myChildren': 'My Children',
+  'progress.loadingChildren': 'Loading children…',
+  'progress.noChildren': 'No children yet. Add a child from My Family.',
+  'progress.openFamily': 'Open My Family',
+  'progress.childRow': '{xp} XP · {lessons} lessons · {surahs} surahs',
+  'age.child_3_6': 'Ages 3–6',
+  'age.child_7_10': 'Ages 7–10',
+  'age.child_11_14': 'Ages 11–14',
+  'age.teen_15_17': 'Ages 15–17',
+  'age.adult_18_plus': '18+',
+
   'audio.error': 'Audio could not play. Try again.',
 } as const;
 

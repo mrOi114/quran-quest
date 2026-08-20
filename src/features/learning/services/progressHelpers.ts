@@ -11,7 +11,7 @@ import type {
   VerseProgressRecord,
 } from '../types';
 import { LEARNING_PAYLOAD_VERSION } from '../constants';
-import { getFirstLessonPlan } from './lessonPlanner';
+import { getFirstLessonPlan, parseLessonKey, planSurahLessons } from './lessonPlanner';
 
 export function emptyVerseProgress(verseId: string): VerseProgressRecord {
   return {
@@ -48,6 +48,60 @@ export function createEmptySnapshot(ageGroup: AgeGroupId): LearningSnapshot {
 
 export function isLearnedStatus(status: VerseLearningStatus | undefined): boolean {
   return status === 'learned' || status === 'mastered';
+}
+
+/**
+ * Lessons moved past under the old “all verses learned = complete” rule
+ * keep their unlock, without auto-passing the lesson the child is on now.
+ */
+export function backfillImpliedCompletions(
+  snapshot: LearningSnapshot,
+  ageGroup: AgeGroupId,
+  now: string = new Date().toISOString(),
+): LearningSnapshot {
+  const parsed = parseLessonKey(snapshot.state.currentLessonKey);
+  if (!parsed) {
+    return snapshot;
+  }
+
+  const existing = new Set(snapshot.lessonCompletions.map((item) => item.lessonKey));
+  const additions: LessonCompletionRecord[] = [];
+
+  for (let surahNumber = 1; surahNumber <= parsed.surahNumber; surahNumber += 1) {
+    const plans = planSurahLessons(surahNumber, ageGroup);
+    for (const lesson of plans) {
+      if (surahNumber === parsed.surahNumber && lesson.lessonIndex >= parsed.lessonIndex) {
+        break;
+      }
+      if (existing.has(lesson.lessonKey)) {
+        continue;
+      }
+      const allLearned = lesson.verseIds.every((verseId) =>
+        isLearnedStatus(snapshot.verseProgress[verseId]?.status),
+      );
+      if (!allLearned) {
+        continue;
+      }
+      additions.push({
+        lessonKey: lesson.lessonKey,
+        surahNumber: lesson.surahNumber,
+        startAyah: lesson.startAyah,
+        endAyah: lesson.endAyah,
+        ageGroup,
+        completedAt: now,
+      });
+      existing.add(lesson.lessonKey);
+    }
+  }
+
+  if (additions.length === 0) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    lessonCompletions: [...snapshot.lessonCompletions, ...additions],
+  };
 }
 
 export function recomputeSurahProgress(

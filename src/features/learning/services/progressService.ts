@@ -2,7 +2,8 @@ import type { ActiveLearner } from '@/features/auth';
 import { isChildFamilyLearner, isGuestLearner } from '@/features/auth';
 import type { Json } from '@/types';
 
-import { LESSON_PASS_PERCENT, MASTERY_ENCOURAGEMENT } from '../constants';
+import { t } from '@/i18n';
+
 import type {
   LearningSnapshot,
   LessonCompletionRecord,
@@ -44,6 +45,7 @@ import {
   emptyVerseProgress,
   isLearnedStatus,
   recomputeSurahProgress,
+  backfillImpliedCompletions,
 } from './progressHelpers';
 
 function usesCloudProgress(learner: ActiveLearner): boolean {
@@ -54,13 +56,19 @@ export async function loadLearningSnapshot(
   learner: ActiveLearner,
 ): Promise<LearningSnapshot> {
   const ageGroup = resolveAgeGroup(learner);
+  let snapshot: LearningSnapshot;
   if (isGuestLearner(learner)) {
-    return ensureGuestLearningSnapshot(ageGroup);
+    snapshot = await ensureGuestLearningSnapshot(ageGroup);
+  } else if (isChildFamilyLearner(learner)) {
+    snapshot = await loadChildFamilyLearningSnapshot(learner.id, ageGroup);
+  } else {
+    snapshot = await loadCloudLearningSnapshot(learner.id, ageGroup);
   }
-  if (isChildFamilyLearner(learner)) {
-    return loadChildFamilyLearningSnapshot(learner.id, ageGroup);
+  const migrated = backfillImpliedCompletions(snapshot, ageGroup);
+  if (migrated.lessonCompletions.length !== snapshot.lessonCompletions.length) {
+    await persistSnapshot(learner, migrated);
   }
-  return loadCloudLearningSnapshot(learner.id, ageGroup);
+  return migrated;
 }
 
 export async function getCurrentLessonSummary(
@@ -322,10 +330,9 @@ export async function completeLesson(
   const now = new Date().toISOString();
   const nextLesson = getNextLessonPlan(lesson, ageGroup);
   const nextStateLesson = nextLesson ?? lesson;
-  const mastered = (options?.testScorePercent ?? 0) >= LESSON_PASS_PERCENT;
 
   const nextSnapshot = applyLessonCompletion(snapshot, lesson, ageGroup, now, {
-    verseStatus: mastered ? 'mastered' : 'learned',
+    verseStatus: 'learned',
     testScorePercent: options?.testScorePercent,
     currentLesson: nextStateLesson,
   });
@@ -407,7 +414,9 @@ export async function submitLessonMasteryTest(
       nextLessonKey: session.nextLessonKey,
       practiceLessonKey: lesson.lessonKey,
       message:
-        percent >= 40 ? MASTERY_ENCOURAGEMENT.fail : MASTERY_ENCOURAGEMENT.keepGoing,
+        percent >= 40
+          ? t('test.fail', learner.preferred_language)
+          : t('test.keepGoing', learner.preferred_language),
     };
   }
 
@@ -422,8 +431,8 @@ export async function submitLessonMasteryTest(
     nextLessonKey,
     practiceLessonKey: null,
     message: nextLesson
-      ? MASTERY_ENCOURAGEMENT.pass
-      : MASTERY_ENCOURAGEMENT.quranComplete,
+      ? t('test.pass', learner.preferred_language)
+      : t('test.quranComplete', learner.preferred_language),
   };
 }
 
@@ -451,7 +460,7 @@ export async function submitLessonUnlockCheck(
       totalCount,
       nextLessonKey: null,
       practiceLessonKey,
-      message: MASTERY_ENCOURAGEMENT.unlockFail,
+      message: t('test.unlockFail', learner.preferred_language),
     };
   }
 
@@ -490,7 +499,7 @@ export async function submitLessonUnlockCheck(
     totalCount,
     nextLessonKey: lesson.lessonKey,
     practiceLessonKey: null,
-    message: MASTERY_ENCOURAGEMENT.unlockPass,
+    message: t('test.unlockPass', learner.preferred_language),
   };
 }
 

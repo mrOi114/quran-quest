@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 import { LESSON_PASS_PERCENT } from '../constants';
 import type { LessonTestQuestion } from '../types';
@@ -28,6 +29,7 @@ export function LessonMasteryTest({
   onConfirm,
   disabled,
 }: LessonMasteryTestProps) {
+  const { t } = useI18n();
   return (
     <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-5">
       <Text className="text-center text-sm font-semibold uppercase tracking-wide text-brand-500">
@@ -35,7 +37,11 @@ export function LessonMasteryTest({
       </Text>
       <Text className="mt-1 text-center text-base text-brand-600">{subtitle}</Text>
       <Text className="mt-3 text-center text-sm font-medium text-brand-500">
-        Question {questionNumber} of {questionCount} · Pass at {LESSON_PASS_PERCENT}%
+        {t('test.questionOf', {
+          n: questionNumber,
+          total: questionCount,
+          pass: LESSON_PASS_PERCENT,
+        })}
       </Text>
 
       <Text className="mt-4 text-lg font-semibold text-brand-800">{question.prompt}</Text>
@@ -77,7 +83,7 @@ export function LessonMasteryTest({
 
       <View className="mt-5">
         <PrimaryButton
-          label="Check answer"
+          label={t('test.checkAnswer')}
           disabled={disabled || !selectedChoiceId}
           loading={disabled}
           onPress={onConfirm}

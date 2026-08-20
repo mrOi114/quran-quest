@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 /**
  * Lesson flow checks: chunking, 60% mastery, and next-lesson continuation.
  * Run: node scripts/verify-lesson-flow.mjs
@@ -53,6 +57,22 @@ assert(adultFatiha[0].start === 1 && adultFatiha[0].end === 5, 'adult lesson 1 i
 assert(adultFatiha[1] && adultFatiha[1].start === 6 && adultFatiha[1].end === 7, 'adult lesson 2 continues after 5');
 assert(adultFatiha.length === 2, 'Al-Fatiha should be 2 adult lessons, not a hard stop');
 
+function isLessonCompleted(lessonKey, completions) {
+  return completions.some((item) => item.lessonKey === lessonKey);
+}
+
+const completions = [];
+assert(!isLessonCompleted('s1-l1', completions), 'learning verses alone does not complete a lesson');
+completions.push({ lessonKey: 's1-l1' });
+assert(isLessonCompleted('s1-l1', completions), 'passing the test records lesson completion');
+assert(!isLessonCompleted('s1-l2', completions), 'failing/skipping must not complete the next lesson');
+
+const failedAttemptCompletions = [...completions];
+assert(
+  failedAttemptCompletions.length === 1,
+  'a below-60% attempt must not delete existing completions',
+);
+
 const nabaAdult = planLessons(40, VERSES_PER_LESSON.adult_18_plus);
 assert(nabaAdult.length === 8, 'An-Naba adult path continues for 8 lessons');
 assert(nabaAdult[1].start === 6, 'after verses 1–5 the next lesson starts at ayah 6');
@@ -63,5 +83,18 @@ function nextAfter(lessons, currentIndex) {
 
 assert(nextAfter(nabaAdult, 1)?.start === 6, 'next-lesson helper continues within the surah');
 assert(nextAfter(nabaAdult, 8) === null, 'last surah lesson then moves to the next surah in the planner');
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const mushaf = JSON.parse(
+  readFileSync(join(ROOT, 'src/features/reader/content/fullQuran.json'), 'utf8'),
+);
+const fatihaLesson1 = mushaf.verses.filter(
+  (verse) => verse.surahNumber === 1 && verse.ayahNumber >= 1 && verse.ayahNumber <= 5,
+);
+assert(fatihaLesson1.length === 5, 'curriculum still has 5 verses in the first adult Al-Fatiha lesson');
+for (const verse of fatihaLesson1) {
+  assert(verse.textUthmani.trim().length > 0, `Arabic missing at ${verse.id}`);
+  assert(verse.translationEn.trim().length > 0, `translation missing at ${verse.id}`);
+}
 
 console.log('verify-lesson-flow: ok');

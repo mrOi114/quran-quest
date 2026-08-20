@@ -1,6 +1,8 @@
 import { en, type MessageKey } from './en';
 import { so } from './so';
 
+export type { MessageKey };
+
 export type UiLanguage = 'en' | 'so';
 
 const catalogs: Record<UiLanguage, Record<MessageKey, string>> = {

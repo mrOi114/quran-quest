@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import {
   createContext,
   useContext,
@@ -105,7 +105,7 @@ export function FamilyCommsProvider({ children }: { children: ReactNode }) {
           callerName={callerName}
           busy={busy}
           onAccept={() =>
-            void acceptCall(incoming).then(() => router.push('/(app)/family/call'))
+            void acceptCall(incoming).then(() => router.push('/(app)/family/call' as Href))
           }
           onDecline={() => void declineCall(incoming)}
         />

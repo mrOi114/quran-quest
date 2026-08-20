@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 
 import { PrimaryButton } from '@/features/auth';
 
@@ -157,14 +157,14 @@ export function FamilyChatScreen() {
         ) : null}
         <View className="mt-3 flex-row gap-2">
           <Pressable
-            onPress={() => router.push('/(app)/family/call')}
+            onPress={() => router.push('/(app)/family/call' as Href)}
             className="min-h-11 flex-1 items-center justify-center rounded-xl bg-white/10"
           >
             <Text className="text-sm font-semibold text-white">📞 Family Call</Text>
           </Pressable>
           {call.activeCall?.status === 'accepted' ? (
             <Pressable
-              onPress={() => router.push('/(app)/family/call')}
+              onPress={() => router.push('/(app)/family/call' as Href)}
               className="min-h-11 flex-1 items-center justify-center rounded-xl bg-brand-500"
             >
               <Text className="text-sm font-semibold text-white">Return to call</Text>

@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 
 import { PrimaryButton } from '@/features/auth';
 
@@ -120,7 +120,7 @@ export function FamilyCallScreen() {
 
           <PrimaryButton
             label="Open Family Chat"
-            onPress={() => router.push('/(app)/family/chat')}
+            onPress={() => router.push('/(app)/family/chat' as Href)}
             variant="secondary"
           />
           <PrimaryButton label="Back" onPress={() => router.back()} variant="secondary" />

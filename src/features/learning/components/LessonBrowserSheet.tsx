@@ -1,5 +1,7 @@
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 import type { JuzMeta } from '../content';
 import type { LessonSummary, SurahMeta } from '../types';
 
@@ -32,6 +34,7 @@ export function LessonBrowserSheet({
   onSelectLesson,
   onClose,
 }: LessonBrowserSheetProps) {
+  const { t, lessonLabel, ayahRange } = useI18n();
   if (!visible) {
     return null;
   }
@@ -39,33 +42,32 @@ export function LessonBrowserSheet({
   return (
     <View className="mt-3 max-h-[28rem] rounded-2xl bg-white/95 px-2 py-3">
       <View className="mb-2 flex-row items-center justify-between px-2">
-        <Text className="text-base font-semibold text-brand-800">Choose a lesson</Text>
+        <Text className="text-base font-semibold text-brand-800">{t('lesson.chooseLesson')}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close lesson browser"
+          accessibilityLabel={t('lesson.closeBrowser')}
           onPress={onClose}
           className="min-h-11 justify-center px-2"
         >
-          <Text className="text-sm font-medium text-brand-500">Close</Text>
+          <Text className="text-sm font-medium text-brand-500">{t('common.close')}</Text>
         </Pressable>
       </View>
 
       <Text className="mb-2 px-2 text-xs text-brand-500">
-        Pick any Juz and Surah. Completed lessons stay open. Locked lessons can be unlocked
-        with a short knowledge check.
+        {t('lesson.pickerHelp')}
       </Text>
 
       <TextInput
         value={searchQuery}
         onChangeText={onChangeSearch}
-        placeholder="Search surah name, number, or juz…"
+        placeholder={t('lesson.searchPlaceholder')}
         placeholderTextColor="#6BA58F"
-        accessibilityLabel="Search surahs for lessons"
+        accessibilityLabel={t('reader.searchSurahs')}
         className="mx-2 mb-3 min-h-11 rounded-xl border border-brand-100 bg-brand-50 px-3 text-base text-brand-800"
       />
 
       <Text className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-brand-500">
-        Juz (1–30)
+        {t('lesson.juzRange')}
       </Text>
       <ScrollView
         horizontal
@@ -79,7 +81,7 @@ export function LessonBrowserSheet({
             <Pressable
               key={juz.number}
               accessibilityRole="button"
-              accessibilityLabel={`Juz ${juz.number}`}
+              accessibilityLabel={`${t('common.juz')} ${juz.number}`}
               onPress={() => onSelectJuz(juz.number)}
               className={`min-h-10 min-w-12 items-center justify-center rounded-xl px-3 ${
                 selected ? 'bg-brand-600' : 'bg-brand-100'
@@ -98,7 +100,7 @@ export function LessonBrowserSheet({
       </ScrollView>
 
       <Text className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-brand-500">
-        Surahs
+        {t('lesson.surahs')}
       </Text>
       <ScrollView
         nestedScrollEnabled
@@ -107,7 +109,7 @@ export function LessonBrowserSheet({
         className="mb-3"
       >
         {surahs.length === 0 ? (
-          <Text className="px-3 py-4 text-sm text-brand-500">No surahs match that search.</Text>
+          <Text className="px-3 py-4 text-sm text-brand-500">{t('lesson.noSurahs')}</Text>
         ) : (
           surahs.map((item) => {
             const selected = item.number === selectedSurahNumber;
@@ -115,7 +117,7 @@ export function LessonBrowserSheet({
               <Pressable
                 key={item.number}
                 accessibilityRole="button"
-                accessibilityLabel={`${item.number}. ${item.nameLatin}. ${item.ayahCount} ayahs.`}
+                accessibilityLabel={`${item.number}. ${item.nameLatin}. ${t('lesson.ayahsCount', { count: item.ayahCount })}`}
                 onPress={() => onSelectSurah(item.number)}
                 className={`min-h-12 flex-row items-center justify-between rounded-xl px-3 py-2 ${
                   selected ? 'bg-brand-100' : ''
@@ -135,7 +137,7 @@ export function LessonBrowserSheet({
                     <Text className="text-sm text-brand-500">{item.nameLatin}</Text>
                   </View>
                 </View>
-                <Text className="text-xs text-brand-400">{item.ayahCount} ayahs</Text>
+                <Text className="text-xs text-brand-400">{t('lesson.ayahsCount', { count: item.ayahCount })}</Text>
               </Pressable>
             );
           })
@@ -145,26 +147,26 @@ export function LessonBrowserSheet({
       {selectedSurahNumber ? (
         <>
           <Text className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-brand-500">
-            Lessons in this Surah
+            {t('lesson.lessonsInSurah')}
           </Text>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} style={{ maxHeight: 140 }}>
             {lessons.length === 0 ? (
-              <Text className="px-3 py-3 text-sm text-brand-500">No lessons for this Surah.</Text>
+              <Text className="px-3 py-3 text-sm text-brand-500">{t('lesson.noLessons')}</Text>
             ) : (
               lessons.map((lesson) => {
                 const locked = lesson.isLocked;
                 const statusLabel = lesson.isComplete
-                  ? '✅ Completed'
+                  ? `✅ ${t('common.completed')}`
                   : lesson.isCurrent
-                    ? '▶️ Continue'
+                    ? `▶️ ${t('common.continue')}`
                     : locked
-                      ? '🔒 Locked'
-                      : 'Start';
+                      ? `🔒 ${t('common.locked')}`
+                      : t('common.start');
                 return (
                   <Pressable
                     key={lesson.lessonKey}
                     accessibilityRole="button"
-                    accessibilityLabel={`${lesson.lessonLabel}, ayah ${lesson.startAyah} to ${lesson.endAyah}${locked ? ', locked' : ''}`}
+                    accessibilityLabel={`${lessonLabel(lesson.lessonIndex)}, ${ayahRange(lesson.startAyah, lesson.endAyah)}${locked ? `, ${t('common.locked')}` : ''}`}
                     onPress={() => {
                       onSelectLesson(lesson.lessonKey);
                       onClose();
@@ -175,12 +177,11 @@ export function LessonBrowserSheet({
                   >
                     <View className="flex-1 pr-2">
                       <Text className="text-sm font-semibold text-brand-800">
-                        {lesson.lessonLabel}
-                        {lesson.isComplete ? ' · Done' : ''}
+                        {lessonLabel(lesson.lessonIndex)}
+                        {lesson.isComplete ? ` · ${t('common.done')}` : ''}
                       </Text>
                       <Text className="text-xs text-brand-500">
-                        Ayah {lesson.startAyah}
-                        {lesson.endAyah !== lesson.startAyah ? `–${lesson.endAyah}` : ''}
+                        {ayahRange(lesson.startAyah, lesson.endAyah)}
                         {lesson.progressPercent > 0 && !lesson.isComplete
                           ? ` · ${lesson.progressPercent}%`
                           : ''}
@@ -194,7 +195,7 @@ export function LessonBrowserSheet({
           </ScrollView>
         </>
       ) : (
-        <Text className="px-3 py-2 text-sm text-brand-500">Select a Surah to see its lessons.</Text>
+        <Text className="px-3 py-2 text-sm text-brand-500">{t('lesson.selectSurah')}</Text>
       )}
     </View>
   );
