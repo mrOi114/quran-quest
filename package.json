@@ -27,6 +27,8 @@
     "verify:family-comms": "node ./scripts/verify-family-comms.mjs",
     "verify:family-circle": "node ./scripts/verify-family-circle.mjs",
     "verify:qisas": "node ./scripts/verify-qisas-catalog.mjs",
+    "verify:guest-session": "node ./scripts/verify-guest-session.mjs",
+    "verify:email-auth": "node ./scripts/verify-email-auth-flow.mjs",
     "postinstall": "node ./scripts/ensure-native-deps.js"
   },
   "dependencies": {

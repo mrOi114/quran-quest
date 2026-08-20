@@ -32,6 +32,7 @@ import {
   getGuestProgress,
   getInitialAuthUrl,
   getSession,
+  isAuthCallbackLocation,
   isGuestSessionActive,
   getStoredActiveLearnerId,
   handleAuthRedirectUrl,
@@ -70,6 +71,7 @@ import { canManageFamily } from '../utils/access';
 
 type AuthContextValue = {
   isBootstrapping: boolean;
+  isAccountHydrating: boolean;
   session: Session | null;
   user: User | null;
   profile: Profile | null;
@@ -121,6 +123,7 @@ type AuthContextValue = {
 
 const missingAuthContextValue: AuthContextValue = {
   isBootstrapping: false,
+  isAccountHydrating: false,
   session: null,
   user: null,
   profile: null,
@@ -192,6 +195,7 @@ function guestToLearner(guest: GuestProfile): GuestLearner {
 
 export function AuthProvider({ children: reactChildren }: { children: ReactNode }) {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isAccountHydrating, setIsAccountHydrating] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -203,6 +207,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
   const [familyCode, setFamilyCode] = useState<string | null>(null);
   const sessionRef = useRef<Session | null>(null);
+  const bootstrappedRef = useRef(false);
   sessionRef.current = session;
 
   const syncGuestMilestone = useCallback(async (progress: GuestProgress | null) => {
@@ -320,7 +325,11 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           }
         }
 
-        if (guestRestored && !authLinkHandled) {
+        if (
+          guestRestored &&
+          !authLinkHandled &&
+          !isAuthCallbackLocation(initialUrl)
+        ) {
           // Guest Mode is local. Do not call email session restore to keep it alive.
           return;
         }
@@ -409,6 +418,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           await hydrateGuestFromStorage();
         }
       } finally {
+        bootstrappedRef.current = true;
         if (mounted) {
           setIsBootstrapping(false);
         }
@@ -423,6 +433,15 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, nextSession) => {
+        const shouldHydrateAccount =
+          bootstrappedRef.current &&
+          Boolean(nextSession?.user) &&
+          (event === 'SIGNED_IN' || event === 'USER_UPDATED');
+
+        if (shouldHydrateAccount) {
+          setIsAccountHydrating(true);
+        }
+
         try {
           if (event === 'PASSWORD_RECOVERY') {
             setNeedsPasswordReset(true);
@@ -433,7 +452,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
             guestActive &&
             (event === 'INITIAL_SESSION' ||
               event === 'TOKEN_REFRESHED' ||
-              event === 'USER_UPDATED')
+              (event === 'USER_UPDATED' && !isAuthCallbackLocation()))
           ) {
             return;
           }
@@ -442,6 +461,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           setUser(nextSession?.user ?? null);
 
           if (!nextSession?.user) {
+            setIsAccountHydrating(false);
             setProfile(null);
             setChildProfiles([]);
             setActiveLearner(null);
@@ -496,7 +516,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           await hydrateActiveLearner(nextProfile, kids);
 
           // Feature 005 then 004 then games: merge staged guest reader prefs, learning, games.
-          if (nextProfile) {
+          if (nextProfile && transferred.migrated) {
             const learner = toFamilyMember(nextProfile);
             const { mergeMigratedGuestReaderSettings } = await import('@/features/reader');
             await mergeMigratedGuestReaderSettings(nextSession.user.id, learner);
@@ -508,6 +528,10 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         } catch (error) {
           if (process.env.NODE_ENV !== 'production') {
             console.error('Auth state sync failed', error);
+          }
+        } finally {
+          if (shouldHydrateAccount) {
+            setIsAccountHydrating(false);
           }
         }
       },
@@ -842,6 +866,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const value = useMemo<AuthContextValue>(
     () => ({
       isBootstrapping,
+      isAccountHydrating,
       session,
       user,
       profile,
@@ -897,6 +922,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       familyManageAllowed,
       guestProfile,
       guestProgress,
+      isAccountHydrating,
       isBootstrapping,
       isChildFamilySession,
       isGuest,

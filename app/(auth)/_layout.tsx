@@ -7,6 +7,7 @@ export default function AuthLayout() {
   const pathname = usePathname();
   const {
     isBootstrapping,
+    isAccountHydrating,
     session,
     isEmailVerified,
     activeLearner,
@@ -15,7 +16,7 @@ export default function AuthLayout() {
     needsPasswordReset,
   } = useAuth();
 
-  if (isBootstrapping) {
+  if (isBootstrapping || (isAccountHydrating && !isGuest)) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />

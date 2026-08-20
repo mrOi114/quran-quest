@@ -12,6 +12,7 @@ export default function FamilyLearnersScreen() {
     selectSelfAsLearner,
     ensureDeviceRegistered,
     refreshChildren,
+    refreshProfile,
     isGuest,
     canManageFamily,
     session,
@@ -30,6 +31,30 @@ export default function FamilyLearnersScreen() {
 
   if (isGuest || !session || !isEmailVerified) {
     return <Redirect href="/(auth)/child-entry" />;
+  }
+
+  if (!profile) {
+    return (
+      <AuthScreen
+        title="Who is learning?"
+        subtitle="We couldn't load your profile yet."
+      >
+        <Text className="mb-3 text-sm text-red-600">
+          Verification could not be completed. Please try again.
+        </Text>
+        <PrimaryButton
+          label="Try again"
+          onPress={() => {
+            void refreshProfile().catch(() => undefined);
+          }}
+        />
+        <PrimaryButton
+          label="Back to login"
+          onPress={() => router.replace('/(auth)/login')}
+          variant="secondary"
+        />
+      </AuthScreen>
+    );
   }
 
   async function chooseSelf() {

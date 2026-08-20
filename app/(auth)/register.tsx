@@ -4,6 +4,7 @@ import { Pressable, Text } from 'react-native';
 
 import {
   AuthScreen,
+  isEmailVerified,
   PrimaryButton,
   RolePicker,
   TextField,
@@ -50,7 +51,12 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await registerAccount(parsed.data);
+      const result = await registerAccount(parsed.data);
+      if (result.session && isEmailVerified(result.user)) {
+        router.replace('/');
+        return;
+      }
+
       router.replace({
         pathname: '/(auth)/verify-email',
         params: { email: parsed.data.email },
@@ -120,6 +126,9 @@ export default function RegisterScreen() {
           Already have an account?{' '}
           <Text className="font-semibold text-brand-600">Log in</Text>
         </Text>
+      </Pressable>
+      <Pressable onPress={() => router.replace('/(auth)/welcome')} className="py-2">
+        <Text className="text-center text-sm text-brand-600">Back</Text>
       </Pressable>
     </AuthScreen>
   );

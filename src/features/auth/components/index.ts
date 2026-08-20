@@ -1,4 +1,5 @@
 export { AccountRequiredGate } from './AccountRequiredGate';
+export { AuthCallbackScreen } from './AuthCallbackScreen';
 export { AuthScreen } from './AuthScreen';
 export { AvatarPicker } from './AvatarPicker';
 export { CountryPicker } from './CountryPicker';

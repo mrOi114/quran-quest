@@ -1,26 +1,44 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text } from 'react-native';
 
 import {
   AuthScreen,
   PrimaryButton,
+  RESEND_FAILURE_MESSAGE,
+  RESEND_SUCCESS_MESSAGE,
   resendVerificationEmail,
   useAuth,
 } from '@/features/auth';
 
+const RESEND_COOLDOWN_MS = 20_000;
+
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string }>();
-  const { user, signOut, refreshProfile, ensureDeviceRegistered } = useAuth();
-  const email = params.email ?? user?.email ?? '';
+  const { user } = useAuth();
+  const email = (typeof params.email === 'string' ? params.email : '') || user?.email || '';
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(Date.now());
+  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+
+  useEffect(() => {
+    if (cooldownUntil <= Date.now()) {
+      return;
+    }
+    const timer = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(timer);
+  }, [cooldownUntil]);
 
   async function onResend() {
     if (!email) {
-      setError('Missing email address');
+      setError('Enter your email address to resend the verification link.');
+      return;
+    }
+    if (Date.now() < cooldownUntil) {
       return;
     }
 
@@ -29,43 +47,11 @@ export default function VerifyEmailScreen() {
     setMessage(null);
     try {
       await resendVerificationEmail(email);
-      setMessage('Verification email sent. Check your inbox.');
+      setMessage(RESEND_SUCCESS_MESSAGE);
+      setCooldownUntil(Date.now() + RESEND_COOLDOWN_MS);
+      setNow(Date.now());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not resend email');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function onContinue() {
-    setLoading(true);
-    setError(null);
-    try {
-      // Force session refresh so email_confirmed_at is up to date.
-      const { supabase } = await import('@/lib/supabase');
-      const { data, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        throw refreshError;
-      }
-
-      const confirmed = Boolean(data.user?.email_confirmed_at ?? data.user?.confirmed_at);
-
-      if (!confirmed) {
-        setError(
-          'Email is not verified yet. Open the link in your inbox, then try again.',
-        );
-        return;
-      }
-
-      await refreshProfile();
-      try {
-        await ensureDeviceRegistered();
-      } catch {
-        // Non-blocking
-      }
-      router.replace('/(app)/family');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not continue');
+      setError(err instanceof Error ? err.message : RESEND_FAILURE_MESSAGE);
     } finally {
       setLoading(false);
     }
@@ -73,8 +59,8 @@ export default function VerifyEmailScreen() {
 
   return (
     <AuthScreen
-      title="Verify your email"
-      subtitle="Confirm your email to protect your account before entering the app."
+      title="Check your email"
+      subtitle="We've sent a verification link to your email address. Verify your email, then return here to continue."
     >
       <Text className="mb-4 text-base text-brand-700">
         We sent a verification link to{' '}
@@ -83,25 +69,22 @@ export default function VerifyEmailScreen() {
       {message ? <Text className="mb-3 text-sm text-brand-600">{message}</Text> : null}
       {error ? <Text className="mb-3 text-sm text-red-600">{error}</Text> : null}
       <PrimaryButton
-        label="I verified my email"
-        onPress={() => void onContinue()}
-        loading={loading}
-      />
-      <PrimaryButton
-        label="Resend verification email"
+        label={
+          cooldownRemaining > 0
+            ? `Resend verification (${cooldownRemaining}s)`
+            : 'Resend verification'
+        }
         onPress={() => void onResend()}
         loading={loading}
+        disabled={cooldownRemaining > 0}
+      />
+      <PrimaryButton
+        label="Sign in"
+        onPress={() => router.replace('/(auth)/login')}
         variant="secondary"
       />
-      <Pressable
-        onPress={() => {
-          void signOut().then(() => router.replace('/(auth)/login'));
-        }}
-        className="py-2"
-      >
-        <Text className="text-center text-sm font-medium text-brand-600">
-          Use a different account
-        </Text>
+      <Pressable onPress={() => router.replace('/(auth)/welcome')} className="py-2">
+        <Text className="text-center text-sm font-medium text-brand-600">Back</Text>
       </Pressable>
     </AuthScreen>
   );

@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth';
 export default function Index() {
   const {
     isBootstrapping,
+    isAccountHydrating,
     session,
     user,
     isEmailVerified,
@@ -15,7 +16,7 @@ export default function Index() {
     needsPasswordReset,
   } = useAuth();
 
-  if (isBootstrapping) {
+  if (isBootstrapping || isAccountHydrating) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
