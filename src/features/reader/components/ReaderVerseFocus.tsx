@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import type { AgeGroupId } from '@/features/auth';
 import { useI18n } from '@/i18n';
@@ -28,6 +28,9 @@ type ReaderVerseFocusProps = {
   onNext?: () => void;
   canGoPrevious?: boolean;
   canGoNext?: boolean;
+  quranLayerTitle?: string;
+  quranLayerSubtitle?: string;
+  meaningHeading?: string;
 };
 
 export function ReaderVerseFocus({
@@ -48,6 +51,9 @@ export function ReaderVerseFocus({
   onNext,
   canGoPrevious,
   canGoNext,
+  quranLayerTitle,
+  quranLayerSubtitle,
+  meaningHeading,
 }: ReaderVerseFocusProps) {
   const { t } = useI18n();
   const audio = useVerseAudio({
@@ -64,10 +70,25 @@ export function ReaderVerseFocus({
     onPlayedOnce,
     onPlaybackComplete,
     autoPlay: autoPlay && audioEnabled,
+    continuous: autoPlay && audioEnabled,
+    cursor: {
+      surahNumber: verse.surahNumber,
+      ayahNumber: verse.ayahNumber,
+    },
   });
 
   return (
     <View className="rounded-2xl bg-white px-4 py-5">
+      {quranLayerTitle ? (
+        <View className="mb-3">
+          <Text className="text-center text-lg font-bold text-brand-800">{quranLayerTitle}</Text>
+          {quranLayerSubtitle ? (
+            <Text className="mt-1 text-center text-sm font-semibold text-brand-500">
+              {quranLayerSubtitle}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
       <ArabicVerseText
         textUthmani={verse.textUthmani}
         ayahNumber={verse.ayahNumber}
@@ -80,6 +101,11 @@ export function ReaderVerseFocus({
         isPlaying={audio.isPlaying}
         repeatCount={repeatCount}
         error={audio.error}
+        currentTime={audio.currentTime}
+        duration={audio.duration}
+        onSeek={(seconds) => {
+          void audio.seekTo(seconds);
+        }}
         audioEnabled={audioEnabled}
         onToggleAudioEnabled={onToggleAudioEnabled}
         onPrevious={onPrevious}
@@ -102,6 +128,7 @@ export function ReaderVerseFocus({
         meaning={verse.meaning}
         explanation={verse.explanation}
         visible={showTranslation}
+        heading={meaningHeading}
         onToggleVisible={onToggleTranslation}
       />
     </View>

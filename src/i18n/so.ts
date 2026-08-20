@@ -99,6 +99,38 @@ export const so = {
   'home.featuredFallback': 'Fur akhriska si aad u aragto tarjumaadda la ansixiyay.',
   'home.approvedTranslation': 'Tarjumaad la ansixiyay',
 
+  'learn.modesTitle': 'Barashada',
+  'learn.modesHelp': 'Dooro sida aad maanta u baranayso. Casharrada xifziga way sii ahaanayaan.',
+  'learn.readQuran': '📖 Akhri Quraanka',
+  'learn.quranAudio': '🎧 Codka Quraanka',
+  'learn.somaliTafsir': '💡 Tafsiiir Soomaali',
+
+  'tafsir.title': 'Tafsiiir Soomaali',
+  'tafsir.quranArabic': 'القرآن',
+  'tafsir.quranEnglish': '🎧 Quraanka',
+  'tafsir.meaningHeading': 'المعنى · 🇸🇴 Macnaha Soomaaliga',
+  'tafsir.arabicLabel': 'التفسير',
+  'tafsir.englishLabel': '💡 Tafsiiir Soomaali',
+  'tafsir.notQuran': 'Kani waa tafsiiir faham. Maaha qiraat Quraan.',
+  'tafsir.toggleLabel': 'Habka tafsiiirka',
+  'tafsir.toggleHelp':
+    'Haddii uu furan yahay, casharka wuxuu ku darayaa tafsiiir Soomaali ka dib Quraanka iyo macnaha. Haddii uu xidhan yahay, casharrada xifziga way sii ahaanayaan.',
+  'tafsir.hifzNote': 'Tafsiiirku ma beddelo qaybaha xifziga, ku celcelinta, ama xeerarka la-qabsiga.',
+  'tafsir.on': 'FURAN',
+  'tafsir.off': 'XIDHAN',
+  'tafsir.listen': 'Dhageyso tafsiiirka',
+  'tafsir.audioUnavailable':
+    'Codka tafsiiirka lama heli karo. Waad sii wadi kartaa akhriska iyo barashada.',
+  'tafsir.whatDidWeLearn': 'Maxaan bartay?',
+  'tafsir.questionFromMeaning':
+    'Su’aashan waxay ka timid macnaha la ansixiyay oo keliya. Tafsiiir cusub kuma jiro.',
+  'tafsir.understood': 'Haa — taasi waa macnaha la ansixiyay.',
+  'tafsir.tryMeaningAgain': 'Weli maya — mar kale eeg macnaha Soomaaliga.',
+  'tafsir.nowPlaying': 'Tafsiiir · Suurad {surah} · Aayad {ayah}',
+  'tafsir.lessonIndicator': 'Cashar {lesson} · Suurad {surah} · Aayad {ayah} ({start}–{end})',
+  'tafsir.listenedPercent': 'La dhageystay {percent}%',
+  'tafsir.completed': 'Tafsiiir waa la dhammeeyay',
+
   'guest.keepJourney': '⭐ Ilaali safarkaaga Quraanka',
   'guest.progressValue':
     'Horumar ayaad horay u samaysay. Samee akoon bilaash ah si aad u kaydiso dhibcahaaga, taxanaha, guulaha, oo aad ugu biirto Horyaalka — adigoon dib uga bilowayn.',

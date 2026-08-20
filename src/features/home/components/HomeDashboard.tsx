@@ -3,6 +3,8 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MilestonePrompt, useAuth } from '@/features/auth';
+import { FamilyCommsEntry } from '@/features/family-comms';
+import { useTafsirMode } from '@/features/tafsir';
 import { useI18n } from '@/i18n';
 
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
@@ -12,12 +14,12 @@ import { ContinueLearningButton } from './ContinueLearningButton';
 import { DailyRevisionCard } from './DailyRevisionCard';
 import { GuestAccountReminder } from './GuestAccountReminder';
 import { HifzCirclePlaceholder } from './HifzCirclePlaceholder';
+import { LearningModeChooser } from './LearningModeChooser';
 import { ParentAccessLink } from './ParentAccessLink';
 import { PracticeWithAiButton } from './PracticeWithAiButton';
 import { ReadJuz30Button } from './ReadJuz30Button';
 import { TodaysLessonCard } from './TodaysLessonCard';
 import { WelcomeSection } from './WelcomeSection';
-import { FamilyCommsEntry } from '@/features/family-comms';
 
 export function HomeDashboard() {
   const router = useRouter();
@@ -35,6 +37,7 @@ export function HomeDashboard() {
   } = useAuth();
   const { dashboard, isLoading, refresh } = useHomeDashboard();
   const { t } = useI18n();
+  const tafsir = useTafsirMode();
 
   async function handleContinueLearning() {
     if (!activeLearner || !dashboard) {
@@ -100,6 +103,23 @@ export function HomeDashboard() {
           hasStarted={dashboard.todaysLesson.hasStarted}
           onPress={() => {
             void handleContinueLearning();
+          }}
+        />
+
+        <LearningModeChooser
+          tafsirEnabled={tafsir.enabled}
+          onReadQuran={() => router.push('/(app)/reader')}
+          onQuranAudio={() =>
+            router.push({
+              pathname: '/(app)/reader',
+              params: { mode: 'listen' },
+            })
+          }
+          onSomaliTafsir={() => {
+            void tafsir.setEnabled(true).then(() => handleContinueLearning());
+          }}
+          onToggleTafsir={(enabled) => {
+            void tafsir.setEnabled(enabled);
           }}
         />
 

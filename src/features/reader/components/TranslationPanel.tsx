@@ -10,6 +10,7 @@ type TranslationPanelProps = {
   explanation: string | null;
   visible: boolean;
   onToggleVisible: () => void;
+  heading?: string;
 };
 
 export function TranslationPanel({
@@ -17,6 +18,7 @@ export function TranslationPanel({
   explanation,
   visible,
   onToggleVisible,
+  heading,
 }: TranslationPanelProps) {
   const { t } = useI18n();
   return (
@@ -35,7 +37,7 @@ export function TranslationPanel({
       {visible && meaning ? (
         <View className="mt-2 rounded-xl bg-brand-50/80 px-3 py-3">
           <Text className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-brand-400">
-            {t('reader.meaning')}
+            {heading ?? t('reader.meaning')}
           </Text>
           <VerseMeaningBody meaning={meaning} />
           {explanation ? (

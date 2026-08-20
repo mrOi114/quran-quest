@@ -10,6 +10,7 @@ import {
   useReaderPreferences,
 } from '@/features/reader';
 import { localizeLessonTestQuestion, useI18n } from '@/i18n';
+import { TafsirLessonPanel, stopTafsirAudio, useTafsirMode } from '@/features/tafsir';
 import type { AudioRepeatCount } from '@/types';
 
 import {
@@ -94,7 +95,17 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   const [testRun, setTestRun] = useState<TestRun | null>(null);
   const [outcome, setOutcome] = useState<TestOutcome | null>(null);
   const [postponeTest, setPostponeTest] = useState(false);
+  const [tafsirAutoPlay, setTafsirAutoPlay] = useState(false);
   const submittingRef = useRef(false);
+  const tafsir = useTafsirMode();
+
+  useEffect(() => {
+    if (tafsir.enabled) {
+      return;
+    }
+    void stopTafsirAudio();
+    setTafsirAutoPlay(false);
+  }, [tafsir.enabled]);
 
   const ageGroup = activeLearner ? resolveAgeGroup(activeLearner) : 'adult_18_plus';
   const encourageListenFirst = ageGroup === 'child_3_6';
@@ -132,6 +143,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     setTestRun(null);
     setOutcome(null);
     setPostponeTest(false);
+    setTafsirAutoPlay(false);
     submittingRef.current = false;
   }, [lessonKey]);
 
@@ -171,6 +183,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   const selectVerse = useCallback(
     (index: number) => {
       setListenHint(null);
+      setTafsirAutoPlay(false);
       setActiveVerseIndex(index);
     },
     [setActiveVerseIndex],
@@ -422,6 +435,36 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
           {t('lesson.chunksHint', { count: session.verses.length })}
         </Text>
 
+        <View className="mt-4 flex-row items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
+          <View className="flex-1 pr-3">
+            <Text className="text-sm font-semibold text-white">{t('tafsir.toggleLabel')}</Text>
+            <Text className="mt-1 text-xs text-brand-100">{t('tafsir.hifzNote')}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="switch"
+            accessibilityState={{ checked: tafsir.enabled }}
+            onPress={() => {
+              const next = !tafsir.enabled;
+              if (!next) {
+                void stopTafsirAudio();
+                setTafsirAutoPlay(false);
+              }
+              void tafsir.setEnabled(next);
+            }}
+            className={`min-h-11 min-w-[84px] items-center justify-center rounded-xl px-3 ${
+              tafsir.enabled ? 'bg-white' : 'bg-brand-700'
+            }`}
+          >
+            <Text
+              className={`text-sm font-semibold ${
+                tafsir.enabled ? 'text-brand-700' : 'text-white'
+              }`}
+            >
+              {tafsir.enabled ? t('tafsir.on') : t('tafsir.off')}
+            </Text>
+          </Pressable>
+        </View>
+
         <LessonBrowserSheet
           visible={browserOpen}
           juzNumber={juzNumber}
@@ -525,6 +568,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
           <>
             <View className="mt-5">
               {readerVerse ? (
+                <>
                 <ReaderVerseFocus
                   key={readerVerse.id}
                   verse={readerVerse}
@@ -533,6 +577,11 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                   showTranslation={preferences.showTranslation}
                   repeatCount={preferences.repeatCount}
                   fontScale={preferences.fontScale}
+                  quranLayerTitle={tafsir.enabled ? t('tafsir.quranArabic') : undefined}
+                  quranLayerSubtitle={tafsir.enabled ? t('tafsir.quranEnglish') : undefined}
+                  meaningHeading={
+                    tafsir.enabled ? t('tafsir.meaningHeading') : undefined
+                  }
                   onToggleTranslation={() => {
                     void setShowTranslation(!preferences.showTranslation);
                   }}
@@ -540,7 +589,61 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                     void setRepeatCount(nextRepeat(preferences.repeatCount));
                   }}
                   onPlayedOnce={() => handlePlayedOnce(readerVerse.id)}
+                  onPlaybackComplete={() => {
+                    if (tafsir.enabled && !isReview) {
+                      setTafsirAutoPlay(true);
+                    }
+                  }}
+                  onPrevious={
+                    tafsir.enabled
+                      ? () => selectVerse(Math.max(0, activeVerseIndex - 1))
+                      : undefined
+                  }
+                  onNext={
+                    tafsir.enabled
+                      ? () =>
+                          selectVerse(
+                            Math.min(session.verses.length - 1, activeVerseIndex + 1),
+                          )
+                      : undefined
+                  }
+                  canGoPrevious={tafsir.enabled ? activeVerseIndex > 0 : undefined}
+                  canGoNext={
+                    tafsir.enabled
+                      ? activeVerseIndex < session.verses.length - 1
+                      : undefined
+                  }
                 />
+                {tafsir.enabled && activeVerse ? (
+                  <TafsirLessonPanel
+                    verseId={activeVerse.id}
+                    surahNumber={activeVerse.surahNumber}
+                    ayahNumber={activeVerse.ayahNumber}
+                    lessonIndex={session.summary.lessonIndex}
+                    startAyah={session.summary.startAyah}
+                    endAyah={session.summary.endAyah}
+                    canGoPrevious={activeVerseIndex > 0}
+                    canGoNext={activeVerseIndex < session.verses.length - 1}
+                    autoPlay={tafsirAutoPlay && !isReview}
+                    progress={tafsir.verseProgress(activeVerse.id)}
+                    onPrevious={() => selectVerse(Math.max(0, activeVerseIndex - 1))}
+                    onNext={() =>
+                      selectVerse(Math.min(session.verses.length - 1, activeVerseIndex + 1))
+                    }
+                    onListenProgress={(currentTime, duration, completed) => {
+                      void tafsir.saveListenProgress(
+                        activeVerse.id,
+                        currentTime,
+                        duration,
+                        completed,
+                      );
+                    }}
+                    onUnderstanding={(correct) => {
+                      void tafsir.saveUnderstanding(activeVerse.id, correct);
+                    }}
+                  />
+                ) : null}
+                </>
               ) : null}
             </View>
 

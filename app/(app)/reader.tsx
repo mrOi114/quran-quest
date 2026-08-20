@@ -12,11 +12,13 @@ function parsePositiveInt(value: string | string[] | undefined): number | undefi
 }
 
 export default function ReaderRoute() {
-  const params = useLocalSearchParams<{ surah?: string; ayah?: string }>();
+  const params = useLocalSearchParams<{ surah?: string; ayah?: string; mode?: string }>();
+  const modeRaw = Array.isArray(params.mode) ? params.mode[0] : params.mode;
   return (
     <FullQuranReaderScreen
       surah={parsePositiveInt(params.surah)}
       ayah={parsePositiveInt(params.ayah)}
+      listen={modeRaw === 'listen'}
     />
   );
 }

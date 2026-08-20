@@ -97,6 +97,37 @@ export const en = {
   'home.featuredFallback': 'Open the reader to view the approved translation.',
   'home.approvedTranslation': 'Approved translation',
 
+  'learn.modesTitle': 'Learning',
+  'learn.modesHelp': 'Choose how you want to learn today. Hifz lessons stay the same.',
+  'learn.readQuran': '📖 Read Qur’an',
+  'learn.quranAudio': '🎧 Qur’an Audio',
+  'learn.somaliTafsir': '💡 Somali Tafsir',
+
+  'tafsir.title': 'Somali Tafsir',
+  'tafsir.quranArabic': 'القرآن',
+  'tafsir.quranEnglish': '🎧 Qur’an',
+  'tafsir.meaningHeading': 'المعنى · 🇸🇴 Somali Meaning',
+  'tafsir.arabicLabel': 'التفسير',
+  'tafsir.englishLabel': '💡 Somali Tafsir',
+  'tafsir.notQuran': 'This is tafsir for understanding. It is not Qur’an recitation.',
+  'tafsir.toggleLabel': 'Tafsir mode',
+  'tafsir.toggleHelp': 'When ON, the lesson includes Somali tafsir after Qur’an and meaning. When OFF, Hifz lessons stay exactly as they are.',
+  'tafsir.hifzNote': 'Tafsir does not change Hifz chunks, repetition, or mastery rules.',
+  'tafsir.on': 'ON',
+  'tafsir.off': 'OFF',
+  'tafsir.listen': 'Listen to tafsir',
+  'tafsir.audioUnavailable':
+    'Tafsir audio is unavailable. You can continue reading and learning.',
+  'tafsir.whatDidWeLearn': 'What did we learn?',
+  'tafsir.questionFromMeaning':
+    'This question uses the approved meaning only. It does not add new tafsir.',
+  'tafsir.understood': 'Yes — that is the approved meaning.',
+  'tafsir.tryMeaningAgain': 'Not yet — look at the Somali meaning again.',
+  'tafsir.nowPlaying': 'Tafsir · Surah {surah} · Ayah {ayah}',
+  'tafsir.lessonIndicator': 'Lesson {lesson} · Surah {surah} · Ayah {ayah} ({start}–{end})',
+  'tafsir.listenedPercent': 'Listened {percent}%',
+  'tafsir.completed': 'Tafsir completed',
+
   'guest.keepJourney': "⭐ Keep your Qur'an journey",
   'guest.progressValue':
     "You've already made progress. Create a free account to save your points, streak, achievements, and join the Leaderboard — without starting over.",

@@ -16,6 +16,7 @@ import { ReaderVerseFocus } from './ReaderVerseFocus';
 type FullQuranReaderScreenProps = {
   surah?: number;
   ayah?: number;
+  listen?: boolean;
 };
 
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
@@ -24,7 +25,7 @@ function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   return '1';
 }
 
-export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProps) {
+export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuranReaderScreenProps) {
   const router = useRouter();
   const { t } = useI18n();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -54,7 +55,7 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
     setRepeatCount,
     handleVersePlaybackComplete,
     ageGroup,
-  } = useFullQuranReader({ surahParam: surah, ayahParam: ayah });
+  } = useFullQuranReader({ surahParam: surah, ayahParam: ayah, listenParam: listen });
 
   const activeVerse =
     verses.find((verse) => verse.ayahNumber === activeAyahNumber) ?? verses[0];

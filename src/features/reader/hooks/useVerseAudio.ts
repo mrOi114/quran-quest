@@ -5,15 +5,21 @@ import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import {
+  getVerseAudioStatus,
   getVerseAudioUrl,
   isVerseAudioPlaying,
   maintainBackgroundPlayback,
   pauseVerseAudio,
   playVerseAudio,
   resumeVerseAudio,
+  seekVerseAudio,
   stopVerseAudio,
+  verseAudioWantsPlayback,
   type VerseAudioMetadata,
+  type VerseAudioStatus,
 } from '../services/audioPlayerService';
+import type { QuranListenCursor } from '../services/quranListenQueue';
+import { isQuranListenPaused } from '../services/quranListenQueue';
 
 type UseVerseAudioOptions = {
   audioUrl: string | null;
@@ -24,16 +30,22 @@ type UseVerseAudioOptions = {
   onPlaybackComplete?: () => void;
   /** Start playback automatically when a URL is ready (listen mode). */
   autoPlay?: boolean;
+  /** Shared continuous Qur’an listen (ayah → ayah → surah). */
+  continuous?: boolean;
+  cursor?: QuranListenCursor;
 };
 
 type UseVerseAudioResult = {
   isPlaying: boolean;
   hasPlayedOnce: boolean;
   error: string | null;
+  currentTime: number;
+  duration: number;
   play: () => Promise<void>;
   pause: () => Promise<void>;
   replay: () => Promise<void>;
   stop: () => Promise<void>;
+  seekTo: (seconds: number) => Promise<void>;
   clearError: () => void;
 };
 
@@ -54,6 +66,8 @@ export function useVerseAudio({
   onPlayedOnce,
   onPlaybackComplete,
   autoPlay = false,
+  continuous = false,
+  cursor,
 }: UseVerseAudioOptions): UseVerseAudioResult {
   const { t } = useI18n();
   const audioError = t('audio.error');
@@ -61,6 +75,12 @@ export function useVerseAudio({
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<VerseAudioStatus>({
+    playing: false,
+    currentTime: 0,
+    duration: 0,
+    url: null,
+  });
   const remainingRef = useRef(0);
   const ownedUrlRef = useRef<string | null>(null);
   const audioUrlRef = useRef(audioUrl);
@@ -68,6 +88,8 @@ export function useVerseAudio({
   const metadataRef = useRef(metadata);
   const onPlayedOnceRef = useRef(onPlayedOnce);
   const onPlaybackCompleteRef = useRef(onPlaybackComplete);
+  const continuousRef = useRef(continuous);
+  const cursorRef = useRef(cursor);
   const startPlaybackRef = useRef<(resetRemaining: boolean) => Promise<void>>(
     async () => undefined,
   );
@@ -87,6 +109,14 @@ export function useVerseAudio({
   useEffect(() => {
     metadataRef.current = metadata;
   }, [metadata]);
+
+  useEffect(() => {
+    continuousRef.current = continuous;
+  }, [continuous]);
+
+  useEffect(() => {
+    cursorRef.current = cursor;
+  }, [cursor]);
 
   useEffect(() => {
     onPlayedOnceRef.current = onPlayedOnce;
@@ -133,8 +163,19 @@ export function useVerseAudio({
             onPlayingChange: (playing) => {
               setIsPlaying(playing);
             },
+            onStatus: (next) => {
+              setStatus(next);
+              setIsPlaying(next.playing);
+            },
           },
           metadataRef.current,
+          continuousRef.current && cursorRef.current
+            ? {
+                continuous: true,
+                cursor: cursorRef.current,
+                repeatCount: repeatCountRef.current,
+              }
+            : undefined,
         );
       } catch {
         setIsPlaying(false);
@@ -162,6 +203,17 @@ export function useVerseAudio({
     if (!autoPlay) {
       return;
     }
+    if (isQuranListenPaused()) {
+      setIsPlaying(false);
+      return;
+    }
+    if (
+      getVerseAudioUrl() === audioUrl &&
+      (isVerseAudioPlaying() || verseAudioWantsPlayback())
+    ) {
+      setIsPlaying(true);
+      return;
+    }
     void startPlaybackRef.current(true);
   }, [audioUrl, autoPlay]);
 
@@ -172,7 +224,9 @@ export function useVerseAudio({
         return;
       }
       if (next === 'active') {
-        setIsPlaying(isVerseAudioPlaying());
+        const nextStatus = getVerseAudioStatus();
+        setStatus(nextStatus);
+        setIsPlaying(nextStatus.playing);
       }
     };
     const sub = AppState.addEventListener('change', onAppState);
@@ -214,14 +268,22 @@ export function useVerseAudio({
     setIsPlaying(false);
   }, []);
 
+  const seekTo = useCallback(async (seconds: number) => {
+    await seekVerseAudio(seconds);
+    setStatus(getVerseAudioStatus());
+  }, []);
+
   return {
     isPlaying,
     hasPlayedOnce,
     error,
+    currentTime: status.currentTime,
+    duration: status.duration,
     play,
     pause,
     replay,
     stop,
+    seekTo,
     clearError: () => setError(null),
   };
 }

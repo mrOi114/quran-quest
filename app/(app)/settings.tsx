@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
 import { LanguagePicker, PrimaryButton, useAuth } from '@/features/auth';
+import { useTafsirMode } from '@/features/tafsir';
 import { useI18n } from '@/i18n';
 
 export default function SettingsRoute() {
@@ -18,6 +19,7 @@ export default function SettingsRoute() {
     setPreferredLanguage,
   } = useAuth();
   const { t } = useI18n();
+  const tafsir = useTafsirMode();
   const languageValue = activeLearner?.preferred_language ?? 'en';
 
   return (
@@ -39,6 +41,20 @@ export default function SettingsRoute() {
             onChange={(code) => {
               void setPreferredLanguage(code);
             }}
+          />
+        </View>
+
+        <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            {t('tafsir.toggleLabel')}
+          </Text>
+          <Text className="mt-2 mb-3 text-sm text-brand-600">{t('tafsir.toggleHelp')}</Text>
+          <PrimaryButton
+            label={tafsir.enabled ? t('tafsir.on') : t('tafsir.off')}
+            onPress={() => {
+              void tafsir.setEnabled(!tafsir.enabled);
+            }}
+            variant="secondary"
           />
         </View>
 

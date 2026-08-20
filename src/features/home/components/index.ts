@@ -4,6 +4,7 @@ export { DailyRevisionCard } from './DailyRevisionCard';
 export { GuestAccountReminder } from './GuestAccountReminder';
 export { HifzCirclePlaceholder } from './HifzCirclePlaceholder';
 export { default as HifzCircleScreen } from './HifzCircleScreen';
+export { LearningModeChooser } from './LearningModeChooser';
 export { HomeDashboard } from './HomeDashboard';
 export { ParentAccessLink } from './ParentAccessLink';
 export { PracticeWithAiButton } from './PracticeWithAiButton';

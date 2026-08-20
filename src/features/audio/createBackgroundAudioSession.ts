@@ -1,0 +1,658 @@
+import {
+  createAudioPlayer,
+  requestNotificationPermissionsAsync,
+  setAudioModeAsync,
+  type AudioMetadata,
+  type AudioPlayer,
+  type AudioStatus,
+} from 'expo-audio';
+import { AppState, Platform } from 'react-native';
+
+export type BackgroundAudioMetadata = {
+  title?: string;
+  artist?: string;
+  albumTitle?: string;
+  artworkUrl?: string;
+};
+
+export type BackgroundAudioStatus = {
+  playing: boolean;
+  currentTime: number;
+  duration: number;
+  url: string | null;
+};
+
+export type BackgroundAudioCallbacks = {
+  /** Return true when the next track was started immediately (keep session alive). */
+  onEnded?: () => boolean | void;
+  onError?: (message: string) => void;
+  onPlayingChange?: (playing: boolean) => void;
+  onStatus?: (status: BackgroundAudioStatus) => void;
+};
+
+export type PlayBackgroundAudioOptions = {
+  startAt?: number;
+};
+
+export type BackgroundAudioSession = {
+  play: (
+    url: string,
+    callbacks?: BackgroundAudioCallbacks,
+    metadata?: BackgroundAudioMetadata,
+    options?: PlayBackgroundAudioOptions,
+  ) => Promise<void>;
+  pause: () => Promise<void>;
+  stop: () => Promise<void>;
+  resume: (metadata?: BackgroundAudioMetadata) => Promise<boolean>;
+  replay: (
+    url: string,
+    callbacks?: BackgroundAudioCallbacks,
+    metadata?: BackgroundAudioMetadata,
+  ) => Promise<void>;
+  seekTo: (seconds: number) => Promise<void>;
+  getStatus: () => BackgroundAudioStatus;
+  isPlaying: () => boolean;
+  getUrl: () => string | null;
+  maintainBackground: () => void;
+  wantsPlayback: () => boolean;
+  playImmediate: (
+    url: string,
+    callbacks?: BackgroundAudioCallbacks,
+    metadata?: BackgroundAudioMetadata,
+  ) => void;
+};
+
+type SessionOptions = {
+  defaultTitle: string;
+  defaultArtist: string;
+  defaultAlbum: string;
+};
+
+let notificationPermissionRequested = false;
+
+function isWeb(): boolean {
+  return Platform.OS === 'web';
+}
+
+async function ensureAudioMode(): Promise<void> {
+  await setAudioModeAsync({
+    playsInSilentMode: true,
+    shouldPlayInBackground: true,
+    allowsRecording: false,
+    allowsBackgroundRecording: false,
+    interruptionMode: 'doNotMix',
+  });
+}
+
+async function ensureNotificationPermission(): Promise<void> {
+  if (Platform.OS !== 'android' || notificationPermissionRequested) {
+    return;
+  }
+  notificationPermissionRequested = true;
+  try {
+    await requestNotificationPermissionsAsync();
+  } catch {
+    // Older Android / missing native binary — playback can still work in-app.
+  }
+}
+
+/**
+ * Shared lock-screen / background playback engine used by Qur’an recitation
+ * and Somali tafsir. Each caller must use its own session instance.
+ */
+export function createBackgroundAudioSession(
+  options: SessionOptions,
+): BackgroundAudioSession {
+  let player: AudioPlayer | null = null;
+  let currentUrl: string | null = null;
+  let currentCallbacks: BackgroundAudioCallbacks = {};
+  let lastMetadata: BackgroundAudioMetadata | undefined;
+  let playGeneration = 0;
+  let userWantsPlayback = false;
+  let appStateWired = false;
+  let webAudio: HTMLAudioElement | null = null;
+  let webListenersBound = false;
+  let webResumeInFlight = false;
+  let lastTime = 0;
+  let lastDuration = 0;
+  let readyForFinish = false;
+
+  const session: BackgroundAudioSession = {
+    play: playNow,
+    pause: pauseNow,
+    stop: stopNow,
+    resume: resumeNow,
+    replay: replayNow,
+    seekTo,
+    getStatus,
+    isPlaying,
+    getUrl: () => currentUrl,
+    maintainBackground,
+    wantsPlayback: () => userWantsPlayback,
+    playImmediate: playImmediateNow,
+  };
+
+  function emitStatus(playing: boolean) {
+    const status = getStatus();
+    currentCallbacks.onPlayingChange?.(playing);
+    currentCallbacks.onStatus?.({ ...status, playing });
+  }
+
+  function toLockScreenMetadata(
+    metadata?: BackgroundAudioMetadata,
+  ): AudioMetadata | undefined {
+    if (!metadata) {
+      return undefined;
+    }
+    return {
+      title: metadata.title,
+      artist: metadata.artist,
+      albumTitle: metadata.albumTitle,
+      artworkUrl: metadata.artworkUrl,
+    };
+  }
+
+  function activateLockScreen(
+    activePlayer: AudioPlayer,
+    metadata?: BackgroundAudioMetadata,
+  ) {
+    try {
+      activePlayer.setActiveForLockScreen(true, toLockScreenMetadata(metadata), {
+        showSeekForward: false,
+        showSeekBackward: false,
+      });
+    } catch {
+      // Web / Expo Go without native media session support.
+    }
+  }
+
+  function clearLockScreen(activePlayer: AudioPlayer) {
+    try {
+      activePlayer.clearLockScreenControls();
+    } catch {
+      // Ignore missing native support.
+    }
+  }
+
+  function applyWebMediaSession(metadata?: BackgroundAudioMetadata) {
+    if (typeof navigator === 'undefined' || !navigator.mediaSession) {
+      return;
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: metadata?.title ?? options.defaultTitle,
+      artist: metadata?.artist ?? options.defaultArtist,
+      album: metadata?.albumTitle ?? options.defaultAlbum,
+      artwork: metadata?.artworkUrl ? [{ src: metadata.artworkUrl }] : [],
+    });
+    navigator.mediaSession.playbackState = userWantsPlayback ? 'playing' : 'paused';
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      void resumeNow(lastMetadata);
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+      void pauseNow();
+    });
+  }
+
+  function clearWebMediaSession() {
+    if (typeof navigator === 'undefined' || !navigator.mediaSession) {
+      return;
+    }
+    navigator.mediaSession.playbackState = 'none';
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.setActionHandler('play', null);
+    navigator.mediaSession.setActionHandler('pause', null);
+  }
+
+  function bindWebAudioElement(el: HTMLAudioElement) {
+    if (webListenersBound) {
+      return;
+    }
+    webListenersBound = true;
+
+    el.addEventListener('timeupdate', () => {
+      lastTime = el.currentTime || 0;
+      lastDuration = Number.isFinite(el.duration) ? el.duration : lastDuration;
+      currentCallbacks.onStatus?.(getStatus());
+    });
+
+    el.addEventListener('play', () => {
+      readyForFinish = true;
+      emitStatus(true);
+      if (typeof navigator !== 'undefined' && navigator.mediaSession) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
+    });
+
+    el.addEventListener('pause', () => {
+      emitStatus(false);
+      if (typeof navigator !== 'undefined' && navigator.mediaSession) {
+        navigator.mediaSession.playbackState = userWantsPlayback ? 'playing' : 'paused';
+      }
+      if (userWantsPlayback && !el.ended && !webResumeInFlight) {
+        webResumeInFlight = true;
+        void el
+          .play()
+          .catch(() => undefined)
+          .finally(() => {
+            webResumeInFlight = false;
+          });
+      }
+    });
+
+    el.addEventListener('ended', () => {
+      if (!readyForFinish) {
+        return;
+      }
+      readyForFinish = false;
+      const continued = currentCallbacks.onEnded?.() === true;
+      if (!continued) {
+        userWantsPlayback = false;
+        emitStatus(false);
+      }
+    });
+
+    el.addEventListener('error', () => {
+      userWantsPlayback = false;
+      currentCallbacks.onError?.('Audio could not play. Try again.');
+      emitStatus(false);
+    });
+  }
+
+  function ensureWebAudioElement(): HTMLAudioElement {
+    if (webAudio) {
+      return webAudio;
+    }
+
+    const el = document.createElement('audio');
+    el.setAttribute('playsinline', 'true');
+    el.setAttribute('webkit-playsinline', 'true');
+    el.preload = 'auto';
+    el.style.position = 'absolute';
+    el.style.width = '1px';
+    el.style.height = '1px';
+    el.style.opacity = '0';
+    el.style.pointerEvents = 'none';
+    document.body.appendChild(el);
+    bindWebAudioElement(el);
+    webAudio = el;
+    return el;
+  }
+
+  function resumeWebIfWanted() {
+    if (!userWantsPlayback || !webAudio || webAudio.ended) {
+      return;
+    }
+    if (webAudio.paused) {
+      void webAudio.play().catch(() => undefined);
+    }
+  }
+
+  function wireAppLifecycle() {
+    if (appStateWired) {
+      return;
+    }
+    appStateWired = true;
+
+    AppState.addEventListener('change', (next) => {
+      if (next === 'background' || next === 'inactive') {
+        maintainBackground();
+      }
+    });
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+          maintainBackground();
+        }
+      });
+      window.addEventListener('pagehide', () => {
+        maintainBackground();
+      });
+    }
+  }
+
+  function ensurePlayer(): AudioPlayer {
+    if (player) {
+      return player;
+    }
+
+    player = createAudioPlayer(null, {
+      updateInterval: 500,
+      keepAudioSessionActive: true,
+    });
+
+    player.addListener('playbackStatusUpdate', (status: AudioStatus) => {
+      lastTime = status.currentTime || 0;
+      lastDuration = status.duration || lastDuration;
+      if (status.playing) {
+        readyForFinish = true;
+      }
+      emitStatus(Boolean(status.playing));
+
+      if (status.error) {
+        userWantsPlayback = false;
+        readyForFinish = false;
+        currentCallbacks.onError?.('Audio could not play. Try again.');
+        return;
+      }
+
+      if (status.didJustFinish) {
+        if (!readyForFinish) {
+          return;
+        }
+        readyForFinish = false;
+        const continued = currentCallbacks.onEnded?.() === true;
+        if (!continued) {
+          userWantsPlayback = false;
+        }
+      }
+    });
+
+    return player;
+  }
+
+  function getStatus(): BackgroundAudioStatus {
+    if (isWeb() && webAudio) {
+      lastTime = webAudio.currentTime || lastTime;
+      lastDuration = Number.isFinite(webAudio.duration) ? webAudio.duration : lastDuration;
+      return {
+        playing: Boolean(userWantsPlayback && !webAudio.paused),
+        currentTime: lastTime,
+        duration: lastDuration,
+        url: currentUrl,
+      };
+    }
+    if (player) {
+      lastTime = player.currentTime || lastTime;
+      lastDuration = player.duration || lastDuration;
+      return {
+        playing: Boolean(player.playing),
+        currentTime: lastTime,
+        duration: lastDuration,
+        url: currentUrl,
+      };
+    }
+    return {
+      playing: false,
+      currentTime: lastTime,
+      duration: lastDuration,
+      url: currentUrl,
+    };
+  }
+
+  function isPlaying(): boolean {
+    return getStatus().playing;
+  }
+
+  function maintainBackground(): void {
+    if (!userWantsPlayback || !currentUrl) {
+      return;
+    }
+    void ensureAudioMode();
+    if (isWeb()) {
+      resumeWebIfWanted();
+      applyWebMediaSession(lastMetadata);
+      return;
+    }
+    if (player) {
+      activateLockScreen(player, lastMetadata);
+      if (!player.playing) {
+        try {
+          player.play();
+        } catch {
+          // Native session may still be starting.
+        }
+      }
+    }
+  }
+
+  async function seekTo(seconds: number): Promise<void> {
+    const next = Math.max(0, seconds);
+    lastTime = next;
+    if (isWeb()) {
+      if (webAudio) {
+        webAudio.currentTime = next;
+      }
+      currentCallbacks.onStatus?.(getStatus());
+      return;
+    }
+    if (player) {
+      await player.seekTo(next);
+      currentCallbacks.onStatus?.(getStatus());
+    }
+  }
+
+  async function stopNow(): Promise<void> {
+    playGeneration += 1;
+    userWantsPlayback = false;
+    currentCallbacks = {};
+    currentUrl = null;
+    lastTime = 0;
+
+    if (isWeb()) {
+      if (webAudio) {
+        webAudio.pause();
+        webAudio.currentTime = 0;
+      }
+      clearWebMediaSession();
+      return;
+    }
+
+    if (!player) {
+      return;
+    }
+
+    try {
+      player.pause();
+    } catch {
+      // Ignore pause races while tearing down.
+    }
+
+    clearLockScreen(player);
+  }
+
+  async function pauseNow(): Promise<void> {
+    userWantsPlayback = false;
+
+    if (isWeb()) {
+      webAudio?.pause();
+      if (typeof navigator !== 'undefined' && navigator.mediaSession) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
+      emitStatus(false);
+      return;
+    }
+
+    if (!player) {
+      return;
+    }
+    try {
+      player.pause();
+      emitStatus(false);
+    } catch {
+      // Ignore pause race conditions.
+    }
+  }
+
+  async function playNow(
+    url: string,
+    callbacks: BackgroundAudioCallbacks = {},
+    metadata?: BackgroundAudioMetadata,
+    playOptions?: PlayBackgroundAudioOptions,
+  ): Promise<void> {
+    wireAppLifecycle();
+    await ensureAudioMode();
+    await ensureNotificationPermission();
+
+    const generation = ++playGeneration;
+    currentCallbacks = callbacks;
+    lastMetadata = metadata;
+    userWantsPlayback = true;
+    readyForFinish = false;
+    const startAt = playOptions?.startAt;
+
+    try {
+      if (isWeb()) {
+        const el = ensureWebAudioElement();
+        const alreadyThisTrack =
+          currentUrl === url && Boolean(el.src) && !el.ended && !el.paused;
+        const sameSourcePaused =
+          currentUrl === url && Boolean(el.src) && el.paused && !el.ended;
+
+        currentUrl = url;
+        applyWebMediaSession(metadata);
+
+        if (alreadyThisTrack) {
+          emitStatus(true);
+          return;
+        }
+        if (!sameSourcePaused) {
+          el.src = url;
+          el.load();
+        }
+        if (typeof startAt === 'number' && startAt > 0) {
+          el.currentTime = startAt;
+          lastTime = startAt;
+        }
+
+        await el.play();
+        if (generation !== playGeneration) {
+          return;
+        }
+        emitStatus(true);
+        return;
+      }
+
+      const activePlayer = ensurePlayer();
+      const alreadyThisTrack =
+        currentUrl === url && activePlayer.isLoaded && activePlayer.playing;
+      const sameSourcePaused =
+        currentUrl === url && activePlayer.isLoaded && !activePlayer.playing;
+
+      if (alreadyThisTrack) {
+        activateLockScreen(activePlayer, metadata);
+        emitStatus(true);
+        return;
+      }
+
+      if (sameSourcePaused) {
+        activateLockScreen(activePlayer, metadata);
+        if (typeof startAt === 'number' && startAt > 0) {
+          await activePlayer.seekTo(startAt);
+          lastTime = startAt;
+        }
+        activePlayer.play();
+        emitStatus(true);
+        return;
+      }
+
+      currentUrl = url;
+      activePlayer.loop = false;
+      activePlayer.replace({ uri: url });
+      activateLockScreen(activePlayer, metadata);
+      if (typeof startAt === 'number' && startAt > 0) {
+        await activePlayer.seekTo(startAt);
+        lastTime = startAt;
+      }
+      activePlayer.play();
+      emitStatus(true);
+
+      if (generation !== playGeneration) {
+        return;
+      }
+    } catch {
+      userWantsPlayback = false;
+      currentCallbacks.onError?.('Audio could not play. Try again.');
+      throw new Error('Audio could not play. Try again.');
+    }
+  }
+
+  function playImmediateNow(
+    url: string,
+    callbacks: BackgroundAudioCallbacks = {},
+    metadata?: BackgroundAudioMetadata,
+  ): void {
+    wireAppLifecycle();
+    void ensureAudioMode();
+    playGeneration += 1;
+    currentCallbacks = callbacks;
+    lastMetadata = metadata;
+    userWantsPlayback = true;
+    readyForFinish = false;
+    currentUrl = url;
+    lastTime = 0;
+
+    if (isWeb()) {
+      const el = ensureWebAudioElement();
+      applyWebMediaSession(metadata);
+      el.src = url;
+      el.load();
+      void el.play().then(() => emitStatus(true)).catch(() => {
+        userWantsPlayback = false;
+        currentCallbacks.onError?.('Audio could not play. Try again.');
+      });
+      return;
+    }
+
+    const activePlayer = ensurePlayer();
+    activePlayer.loop = false;
+    activePlayer.replace({ uri: url });
+    activateLockScreen(activePlayer, metadata);
+    activePlayer.play();
+    emitStatus(true);
+  }
+
+  async function resumeNow(metadata?: BackgroundAudioMetadata): Promise<boolean> {
+    if (!currentUrl) {
+      return false;
+    }
+
+    lastMetadata = metadata ?? lastMetadata;
+    userWantsPlayback = true;
+    wireAppLifecycle();
+
+    try {
+      await ensureAudioMode();
+
+      if (isWeb()) {
+        if (!webAudio) {
+          userWantsPlayback = false;
+          return false;
+        }
+        applyWebMediaSession(lastMetadata);
+        await webAudio.play();
+        emitStatus(true);
+        return true;
+      }
+
+      if (!player || !player.isLoaded) {
+        userWantsPlayback = false;
+        return false;
+      }
+
+      if (!player.playing) {
+        activateLockScreen(player, lastMetadata);
+        player.play();
+        emitStatus(true);
+      }
+      return true;
+    } catch {
+      userWantsPlayback = false;
+      return false;
+    }
+  }
+
+  async function replayNow(
+    url: string,
+    callbacks: BackgroundAudioCallbacks = {},
+    metadata?: BackgroundAudioMetadata,
+  ): Promise<void> {
+    currentUrl = null;
+    lastTime = 0;
+    await playNow(url, callbacks, metadata);
+  }
+
+  return session;
+}

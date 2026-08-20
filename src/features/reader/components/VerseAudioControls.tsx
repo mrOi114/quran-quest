@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { AudioProgressBar } from '@/features/audio';
 import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
@@ -7,6 +8,9 @@ type VerseAudioControlsProps = {
   isPlaying: boolean;
   repeatCount: AudioRepeatCount;
   error: string | null;
+  currentTime?: number;
+  duration?: number;
+  onSeek?: (seconds: number) => void;
   onPlay: () => void;
   onPause: () => void;
   onReplay: () => void;
@@ -23,6 +27,9 @@ export function VerseAudioControls({
   isPlaying,
   repeatCount,
   error,
+  currentTime = 0,
+  duration = 0,
+  onSeek,
   onPlay,
   onPause,
   onReplay,
@@ -43,7 +50,12 @@ export function VerseAudioControls({
   return (
     <View className="mt-4">
       <Text className="mb-2 text-center text-xs text-brand-400">{t('reader.beginnerQari')}</Text>
-      <View className="flex-row flex-wrap items-center justify-center gap-2">
+      <AudioProgressBar
+        currentTime={currentTime}
+        duration={duration}
+        onSeek={onSeek}
+      />
+      <View className="mt-3 flex-row flex-wrap items-center justify-center gap-2">
         {onPrevious ? (
           <Pressable
             accessibilityRole="button"

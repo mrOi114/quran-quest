@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from '@/features/auth';
 import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
@@ -19,6 +19,11 @@ import {
   saveReaderBrowseState,
   saveReaderPreferences,
 } from '../services/readerPreferencesStore';
+import { setContinuousListenRepeat } from '../services/audioPlayerService';
+import {
+  nextQuranListenCursor,
+  subscribeQuranListen,
+} from '../services/quranListenQueue';
 import type { BrowsableSurah, ReaderPreferences, ReaderVerseViewModel } from '../types';
 
 export type ReaderListenMode = 'read' | 'listen';
@@ -26,6 +31,7 @@ export type ReaderListenMode = 'read' | 'listen';
 type UseFullQuranReaderArgs = {
   surahParam?: number;
   ayahParam?: number;
+  listenParam?: boolean;
 };
 
 type UseFullQuranReaderResult = {
@@ -55,12 +61,14 @@ type UseFullQuranReaderResult = {
   setShowTranslation: (value: boolean) => Promise<void>;
   setRepeatCount: (value: AudioRepeatCount) => Promise<void>;
   handleVersePlaybackComplete: () => void;
+  quranCompleted: boolean;
   ageGroup: ReturnType<typeof resolveAgeGroup> | null;
 };
 
 export function useFullQuranReader({
   surahParam,
   ayahParam,
+  listenParam = false,
 }: UseFullQuranReaderArgs): UseFullQuranReaderResult {
   const { activeLearner } = useAuth();
   const { t } = useI18n();
@@ -71,13 +79,24 @@ export function useFullQuranReader({
   const [verses, setVerses] = useState<ReaderVerseViewModel[]>([]);
   const [activeAyahNumber, setActiveAyahNumberState] = useState(1);
   const [preferences, setPreferences] = useState<ReaderPreferences | null>(null);
-  const [listenMode, setListenModeState] = useState<ReaderListenMode>('read');
+  const [listenMode, setListenModeState] = useState<ReaderListenMode>(
+    listenParam ? 'listen' : 'read',
+  );
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [autoPlayPending, setAutoPlayPending] = useState(false);
+  const [autoPlayPending, setAutoPlayPending] = useState(listenParam);
+  const [quranCompleted, setQuranCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const juzOptions = useMemo(() => listJuzOptions(), []);
+
+  useEffect(() => {
+    if (!listenParam) {
+      return;
+    }
+    setListenModeState('listen');
+    setAutoPlayPending(true);
+  }, [listenParam]);
 
   const filteredSurahs = useMemo(() => {
     if (searchQuery.trim()) {
@@ -266,17 +285,36 @@ export function useFullQuranReader({
 
   const goToNextAyah = useCallback(
     (options?: { autoPlay?: boolean }) => {
-      if (!surah) {
+      if (!surah || !activeLearner || !preferences) {
         return;
       }
-      if (activeAyahNumber < surah.ayahCount) {
-        setActiveAyahNumber(activeAyahNumber + 1, options);
+      const next = nextQuranListenCursor(surah.number, activeAyahNumber);
+      if (!next) {
+        setAutoPlayPending(false);
+        setQuranCompleted(true);
         return;
       }
-      // End of surah — stop (do not auto-cross into next surah).
-      setAutoPlayPending(false);
+      setQuranCompleted(false);
+      if (next.surahNumber === surah.number) {
+        setActiveAyahNumber(next.ayahNumber, options);
+        return;
+      }
+      void openSurah(
+        activeLearner,
+        preferences,
+        next.surahNumber,
+        next.ayahNumber,
+        options,
+      );
     },
-    [activeAyahNumber, setActiveAyahNumber, surah],
+    [
+      activeAyahNumber,
+      activeLearner,
+      openSurah,
+      preferences,
+      setActiveAyahNumber,
+      surah,
+    ],
   );
 
   const handleVersePlaybackComplete = useCallback(() => {
@@ -284,12 +322,8 @@ export function useFullQuranReader({
       setAutoPlayPending(false);
       return;
     }
-    if (activeAyahNumber >= surah.ayahCount) {
-      setAutoPlayPending(false);
-      return;
-    }
-    setActiveAyahNumber(activeAyahNumber + 1, { autoPlay: true });
-  }, [activeAyahNumber, audioEnabled, listenMode, setActiveAyahNumber, surah]);
+    goToNextAyah({ autoPlay: true });
+  }, [audioEnabled, goToNextAyah, listenMode, surah]);
 
   const persistPrefs = useCallback(
     async (next: ReaderPreferences) => {
@@ -309,6 +343,7 @@ export function useFullQuranReader({
       }
       setListenModeState(mode);
       if (mode === 'listen' && audioEnabled) {
+        setQuranCompleted(false);
         setAutoPlayPending(true);
       } else {
         setAutoPlayPending(false);
@@ -339,6 +374,7 @@ export function useFullQuranReader({
       if (!preferences) {
         return;
       }
+      setContinuousListenRepeat(value);
       await persistPrefs({ ...preferences, repeatCount: value });
     },
     [persistPrefs, preferences],
@@ -376,6 +412,7 @@ export function useFullQuranReader({
     setShowTranslation,
     setRepeatCount,
     handleVersePlaybackComplete,
+    quranCompleted,
     ageGroup: activeLearner ? resolveAgeGroup(activeLearner) : null,
   };
 }
