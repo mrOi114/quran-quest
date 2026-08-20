@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/features/auth';
 import { useI18n } from '@/i18n';
+import { useVerseAudio } from '@/features/reader';
 
 import { LESSON_PASS_PERCENT } from '../constants';
 import type { LessonTestQuestion } from '../types';
@@ -30,6 +31,11 @@ export function LessonMasteryTest({
   disabled,
 }: LessonMasteryTestProps) {
   const { t } = useI18n();
+  const audio = useVerseAudio({
+    audioUrl: question.audioUrl ?? null,
+    repeatCount: '1',
+  });
+
   return (
     <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-5">
       <Text className="text-center text-sm font-semibold uppercase tracking-wide text-brand-500">
@@ -52,6 +58,18 @@ export function LessonMasteryTest({
         >
           {question.promptArabic}
         </Text>
+      ) : null}
+
+      {question.audioUrl ? (
+        <View className="mt-3">
+          <PrimaryButton
+            label={audio.isPlaying ? t('test.playingAudio') : t('test.playAudio')}
+            variant="secondary"
+            onPress={() => {
+              void audio.play();
+            }}
+          />
+        </View>
       ) : null}
 
       <View className="mt-4 gap-3">

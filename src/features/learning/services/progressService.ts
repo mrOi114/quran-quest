@@ -415,7 +415,7 @@ export async function submitLessonMasteryTest(
       practiceLessonKey: lesson.lessonKey,
       message:
         percent >= 40
-          ? t('test.fail', learner.preferred_language)
+          ? t('test.notYet', learner.preferred_language)
           : t('test.keepGoing', learner.preferred_language),
     };
   }
@@ -431,7 +431,9 @@ export async function submitLessonMasteryTest(
     nextLessonKey,
     practiceLessonKey: null,
     message: nextLesson
-      ? t('test.pass', learner.preferred_language)
+      ? percent >= 90
+        ? t('test.mastered', learner.preferred_language)
+        : t('test.nextPart', learner.preferred_language)
       : t('test.quranComplete', learner.preferred_language),
   };
 }

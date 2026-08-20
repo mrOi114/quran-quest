@@ -20,3 +20,22 @@ export function resolveAgeGroup(learner: ActiveLearner): AgeGroupId {
   }
   return 'adult_18_plus';
 }
+
+/** Best available age in years (profile age, else a gentle midpoint for the age group). */
+export function resolveLearnerAgeYears(learner: ActiveLearner): number {
+  if (typeof learner.age === 'number' && Number.isFinite(learner.age) && learner.age > 0) {
+    return learner.age;
+  }
+  switch (resolveAgeGroup(learner)) {
+    case 'child_3_6':
+      return 5;
+    case 'child_7_10':
+      return 8;
+    case 'child_11_14':
+      return 12;
+    case 'teen_15_17':
+      return 16;
+    default:
+      return 18;
+  }
+}

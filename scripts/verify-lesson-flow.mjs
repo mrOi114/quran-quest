@@ -84,6 +84,76 @@ function nextAfter(lessons, currentIndex) {
 assert(nextAfter(nabaAdult, 1)?.start === 6, 'next-lesson helper continues within the surah');
 assert(nextAfter(nabaAdult, 8) === null, 'last surah lesson then moves to the next surah in the planner');
 
+function isUnderEight(ageYears) {
+  return ageYears < 8;
+}
+
+function capBandByAge(band, ageYears) {
+  const rank = ['beginner', 'improving', 'strong', 'excellent'];
+  let max = 'excellent';
+  if (isUnderEight(ageYears)) {
+    max = 'improving';
+  } else if (ageYears <= 10) {
+    max = 'strong';
+  }
+  return rank[Math.min(rank.indexOf(band), rank.indexOf(max))];
+}
+
+function allowsMeaningQuestions(ageYears, band) {
+  if (isUnderEight(ageYears)) {
+    return false;
+  }
+  if (ageYears <= 10) {
+    return band === 'strong' || band === 'excellent';
+  }
+  return band !== 'beginner';
+}
+
+function allowedQuestionKinds(ageYears, band, style) {
+  const capped = capBandByAge(band, ageYears);
+  const easy = ['listen', 'match', 'next', 'surah'];
+  if (style === 'game' || capped === 'beginner' || isUnderEight(ageYears)) {
+    return easy;
+  }
+  if (capped === 'improving') {
+    return [...easy, 'missing'];
+  }
+  const withMemory = [...easy, 'missing', 'before'];
+  if (!allowsMeaningQuestions(ageYears, capped)) {
+    return withMemory;
+  }
+  if (capped === 'strong') {
+    return [...withMemory, 'meaning'];
+  }
+  return [...withMemory, 'meaning', 'identify'];
+}
+
+const youngKinds = allowedQuestionKinds(6, 'excellent', 'test');
+assert(youngKinds.every((kind) => !['meaning', 'identify'].includes(kind)), 'age 6 must not get meaning questions');
+assert(youngKinds.includes('listen') && youngKinds.includes('match'), 'age 6 uses game-style recognition');
+
+const age7Game = allowedQuestionKinds(7, 'strong', 'game');
+assert(!age7Game.includes('meaning'), 'age 7 game has no meaning questions');
+
+const age8Beginner = allowedQuestionKinds(8, 'beginner', 'test');
+assert(!age8Beginner.includes('meaning'), 'age 8 beginner stays easy');
+
+const age9Strong = allowedQuestionKinds(9, 'strong', 'test');
+assert(age9Strong.includes('meaning'), 'age 8–10 strong learners get introductory meaning');
+assert(age9Strong.includes('next'), 'age 8–10 still includes easy next-ayah questions');
+
+const struggling = allowedQuestionKinds(12, 'beginner', 'test');
+assert(
+  struggling.every((kind) => ['listen', 'match', 'next', 'surah'].includes(kind)),
+  'struggling learners stay on easy recognition',
+);
+
+const excellentAdult = allowedQuestionKinds(18, 'excellent', 'test');
+assert(excellentAdult.includes('before') && excellentAdult.includes('meaning'), 'strong adults get harder memory/meaning');
+
+assert(capBandByAge('excellent', 7) === 'improving', 'under 8 cannot jump to excellent difficulty');
+assert(didPassLessonTest(3, 5), '60% pass rule remains');
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const mushaf = JSON.parse(
   readFileSync(join(ROOT, 'src/features/reader/content/fullQuran.json'), 'utf8'),

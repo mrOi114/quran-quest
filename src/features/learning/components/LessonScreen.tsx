@@ -20,18 +20,24 @@ import {
   searchLearningSurahs,
 } from '../content';
 import { useLessonSession } from '../hooks/useLessonSession';
-import { resolveAgeGroup } from '../services/ageGroup';
+import { resolveAgeGroup, resolveLearnerAgeYears } from '../services/ageGroup';
 import {
   getRequiredPriorLessons,
   listLessonSummariesForSurah,
 } from '../services/lessonPlanner';
-import { buildMasteryQuestions, buildUnlockQuestions } from '../services/lessonMastery';
+import {
+  buildMasteryQuestions,
+  buildUnlockQuestions,
+  type AdaptiveQuizOptions,
+} from '../services/lessonMastery';
+import type { QuizStyle } from '../services/lessonAbility';
 import { loadLearningSnapshot } from '../services/progressService';
 import type { LessonMasteryResult, LessonSummary, LessonTestQuestion, SurahMeta } from '../types';
 import { LessonBrowserSheet } from './LessonBrowserSheet';
 import { LessonLockedGate } from './LessonLockedGate';
 import { LessonMasteryResultCard } from './LessonMasteryResultCard';
 import { LessonMasteryTest } from './LessonMasteryTest';
+import { LessonPathChooser } from './LessonPathChooser';
 
 type LessonScreenProps = {
   lessonKey?: string;
@@ -41,13 +47,14 @@ type TestKind = 'mastery' | 'unlock';
 
 type TestRun = {
   kind: TestKind;
+  style: QuizStyle;
   questions: LessonTestQuestion[];
   index: number;
   correct: number;
   selectedId: string | null;
 };
 
-type TestOutcome = LessonMasteryResult & { kind: TestKind };
+type TestOutcome = LessonMasteryResult & { kind: TestKind; style: QuizStyle };
 
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   if (current === '1') return '3';
@@ -128,26 +135,6 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     submittingRef.current = false;
   }, [lessonKey]);
 
-  useEffect(() => {
-    if (!session || session.mode !== 'learn' || !session.canCompleteLesson) {
-      return;
-    }
-    if (testRun || outcome || postponeTest) {
-      return;
-    }
-    const questions = buildMasteryQuestions(session.lesson);
-    if (questions.length === 0) {
-      return;
-    }
-    setTestRun({
-      kind: 'mastery',
-      questions,
-      index: 0,
-      correct: 0,
-      selectedId: null,
-    });
-  }, [outcome, postponeTest, session, testRun]);
-
   const filteredSurahs: SurahMeta[] = useMemo(() => {
     if (searchQuery.trim()) {
       return searchLearningSurahs(searchQuery);
@@ -195,13 +182,22 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     }
     const snapshot = await loadLearningSnapshot(activeLearner);
     const prior = getRequiredPriorLessons(session.lesson, snapshot, ageGroup);
-    const questions = buildUnlockQuestions(prior.length > 0 ? prior : [session.lesson]);
+    const options: AdaptiveQuizOptions = {
+      ageYears: resolveLearnerAgeYears(activeLearner),
+      snapshot,
+      style: 'test',
+    };
+    const questions = buildUnlockQuestions(
+      prior.length > 0 ? prior : [session.lesson],
+      options,
+    );
     if (questions.length === 0) {
       return;
     }
     setOutcome(null);
     setTestRun({
       kind: 'unlock',
+      style: 'test',
       questions,
       index: 0,
       correct: 0,
@@ -209,24 +205,33 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     });
   }, [activeLearner, ageGroup, session]);
 
-  const startMasteryTest = useCallback(() => {
-    if (!session) {
-      return;
-    }
-    const questions = buildMasteryQuestions(session.lesson);
-    if (questions.length === 0) {
-      return;
-    }
-    setPostponeTest(false);
-    setOutcome(null);
-    setTestRun({
-      kind: 'mastery',
-      questions,
-      index: 0,
-      correct: 0,
-      selectedId: null,
-    });
-  }, [session]);
+  const startMasteryQuiz = useCallback(
+    async (style: QuizStyle) => {
+      if (!session || !activeLearner) {
+        return;
+      }
+      const snapshot = await loadLearningSnapshot(activeLearner);
+      const questions = buildMasteryQuestions(session.lesson, {
+        ageYears: resolveLearnerAgeYears(activeLearner),
+        snapshot,
+        style,
+      });
+      if (questions.length === 0) {
+        return;
+      }
+      setPostponeTest(false);
+      setOutcome(null);
+      setTestRun({
+        kind: 'mastery',
+        style,
+        questions,
+        index: 0,
+        correct: 0,
+        selectedId: null,
+      });
+    },
+    [activeLearner, session],
+  );
 
   async function confirmAnswer() {
     if (!testRun || !testRun.selectedId || submittingRef.current) {
@@ -258,7 +263,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       return;
     }
     setTestRun(null);
-    setOutcome({ ...result, kind: testRun.kind });
+    setOutcome({ ...result, kind: testRun.kind, style: testRun.style });
   }
 
   function goToLesson(nextLessonKey: string) {
@@ -459,9 +464,20 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
         {currentQuestion && testRun ? (
           <LessonMasteryTest
-            title={testRun.kind === 'unlock' ? t('test.unlockTitle') : t('test.title')}
+            key={currentQuestion.id}
+            title={
+              testRun.kind === 'unlock'
+                ? t('test.unlockTitle')
+                : testRun.style === 'game'
+                  ? t('test.gameTitle')
+                  : t('test.title')
+            }
             subtitle={
-              testRun.kind === 'unlock' ? t('test.unlockSubtitle') : t('test.subtitle')
+              testRun.kind === 'unlock'
+                ? t('test.unlockSubtitle')
+                : testRun.style === 'game'
+                  ? t('test.gameSubtitle')
+                  : t('test.subtitle')
             }
             question={currentQuestion}
             questionNumber={testRun.index + 1}
@@ -497,7 +513,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                 void startUnlockCheck();
                 return;
               }
-              startMasteryTest();
+              void startMasteryQuiz(outcome.style);
             }}
             onPractice={() => {
               void handleOutcomeContinue();
@@ -572,11 +588,26 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                 />
               ) : null}
 
-              {!isReview && session.canCompleteLesson ? (
+              {!isReview && session.canCompleteLesson && !postponeTest ? (
+                <LessonPathChooser
+                  onGame={() => {
+                    void startMasteryQuiz('game');
+                  }}
+                  onPractice={() => setPostponeTest(true)}
+                  onTest={() => {
+                    void startMasteryQuiz('test');
+                  }}
+                  onContinue={() => {
+                    void startMasteryQuiz('test');
+                  }}
+                />
+              ) : null}
+
+              {!isReview && session.canCompleteLesson && postponeTest ? (
                 <PrimaryButton
-                  label={t('lesson.takeTest')}
+                  label={t('lesson.chooseHow')}
                   loading={isLoading}
-                  onPress={startMasteryTest}
+                  onPress={() => setPostponeTest(false)}
                 />
               ) : null}
 

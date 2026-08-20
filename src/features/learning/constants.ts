@@ -22,11 +22,13 @@ export const VERSES_PER_LESSON: Record<AgeGroupId, number> = {
 export const LESSON_PASS_PERCENT = 60;
 
 export const MASTERY_ENCOURAGEMENT = {
-  pass: '🌟 Amazing! You know this. Let’s keep going.',
-  fail: '🌱 Almost there! Let’s practice once more.',
-  keepGoing: '💚 Keep going — you’re getting stronger.',
+  pass: '🌟 Amazing! You remembered it!',
+  fail: '🌱 Not yet — let’s practice together.',
+  keepGoing: '💚 Keep practicing — you’re getting stronger!',
+  nextPart: '💚 Beautiful work! Let’s learn the next part.',
+  mastered: '🏆 You mastered this lesson!',
   unlockPass: '✅ You know this!',
-  unlockFail: '🌱 Keep practicing!',
+  unlockFail: '🌱 Keep practicing — you’re getting stronger!',
   quranComplete: '🏆 Qur’an completed — you kept going all the way.',
 } as const;
 

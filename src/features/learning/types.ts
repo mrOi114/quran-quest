@@ -120,6 +120,16 @@ export type LessonSessionVerse = VerseContent & {
   progress: VerseProgressRecord;
 };
 
+export type LessonTestKind =
+  | 'listen'
+  | 'match'
+  | 'next'
+  | 'surah'
+  | 'missing'
+  | 'before'
+  | 'meaning'
+  | 'identify';
+
 export type LessonTestChoice = {
   id: string;
   label: string;
@@ -128,8 +138,10 @@ export type LessonTestChoice = {
 
 export type LessonTestQuestion = {
   id: string;
+  kind: LessonTestKind;
   prompt: string;
   promptArabic?: string;
+  audioUrl?: string;
   choices: LessonTestChoice[];
   correctChoiceId: string;
 };
