@@ -7,6 +7,7 @@ import type { AudioRepeatCount } from '@/types';
 import {
   getVerseAudioUrl,
   isVerseAudioPlaying,
+  maintainBackgroundPlayback,
   pauseVerseAudio,
   playVerseAudio,
   resumeVerseAudio,
@@ -61,6 +62,7 @@ export function useVerseAudio({
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const remainingRef = useRef(0);
+  const ownedUrlRef = useRef<string | null>(null);
   const audioUrlRef = useRef(audioUrl);
   const repeatCountRef = useRef(repeatCount);
   const metadataRef = useRef(metadata);
@@ -143,9 +145,15 @@ export function useVerseAudio({
 
   // Do NOT stop on unmount — background playback and ayah auto-advance
   // remounts must keep the native player / foreground media service alive.
+  // Only stop the shared player when THIS hook owned the current URL and it
+  // was explicitly cleared (audio off / no source), not when another screen
+  // mounts with a null URL.
   useEffect(() => {
+    const previousOwned = ownedUrlRef.current;
+    ownedUrlRef.current = audioUrl;
+
     if (!audioUrl) {
-      if (getVerseAudioUrl()) {
+      if (previousOwned && getVerseAudioUrl() === previousOwned) {
         void stopVerseAudio();
       }
       setIsPlaying(false);
@@ -159,6 +167,10 @@ export function useVerseAudio({
 
   useEffect(() => {
     const onAppState = (next: AppStateStatus) => {
+      if (next === 'background' || next === 'inactive') {
+        maintainBackgroundPlayback();
+        return;
+      }
       if (next === 'active') {
         setIsPlaying(isVerseAudioPlaying());
       }
