@@ -174,6 +174,7 @@ export function useVerseAudio({
                 continuous: true,
                 cursor: cursorRef.current,
                 repeatCount: repeatCountRef.current,
+                resetRemaining: resetRemaining,
               }
             : undefined,
         );
@@ -211,6 +212,40 @@ export function useVerseAudio({
       getVerseAudioUrl() === audioUrl &&
       (isVerseAudioPlaying() || verseAudioWantsPlayback())
     ) {
+      void playVerseAudio(
+        audioUrl,
+        {
+          onEnded: () => {
+            remainingRef.current -= 1;
+            if (remainingRef.current > 0) {
+              void startPlaybackRef.current(false);
+              return;
+            }
+            setIsPlaying(false);
+            onPlaybackCompleteRef.current?.();
+          },
+          onError: () => {
+            setIsPlaying(false);
+            setError(audioErrorRef.current);
+          },
+          onPlayingChange: (playing) => {
+            setIsPlaying(playing);
+          },
+          onStatus: (next) => {
+            setStatus(next);
+            setIsPlaying(next.playing);
+          },
+        },
+        metadataRef.current,
+        continuousRef.current && cursorRef.current
+          ? {
+              continuous: true,
+              cursor: cursorRef.current,
+              repeatCount: repeatCountRef.current,
+              resetRemaining: false,
+            }
+          : undefined,
+      );
       setIsPlaying(true);
       return;
     }

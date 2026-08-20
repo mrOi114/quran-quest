@@ -19,8 +19,9 @@ import {
   saveReaderBrowseState,
   saveReaderPreferences,
 } from '../services/readerPreferencesStore';
-import { setContinuousListenRepeat } from '../services/audioPlayerService';
+import { setContinuousListenRepeat, stopVerseAudio } from '../services/audioPlayerService';
 import {
+  disableQuranListen,
   nextQuranListenCursor,
   subscribeQuranListen,
 } from '../services/quranListenQueue';
@@ -184,9 +185,17 @@ export function useFullQuranReader({
           return;
         }
         setPreferences(prefs);
-        setListenModeState(prefs.futureSettings.autoPlayNextVerse ? 'listen' : 'read');
+        setListenModeState(
+          listenParam || prefs.futureSettings.autoPlayNextVerse ? 'listen' : 'read',
+        );
         setJuzNumber(start.juzNumber);
-        await openSurah(activeLearner, prefs, start.surahNumber, start.ayahNumber);
+        await openSurah(
+          activeLearner,
+          prefs,
+          start.surahNumber,
+          start.ayahNumber,
+          listenParam ? { autoPlay: true } : undefined,
+        );
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : t('reader.openQuranError'));
@@ -202,7 +211,53 @@ export function useFullQuranReader({
     return () => {
       cancelled = true;
     };
-  }, [activeLearner, ayahParam, openSurah, surahParam]);
+  }, [activeLearner, ayahParam, listenParam, openSurah, surahParam]);
+
+  const followRef = useRef({
+    surah,
+    activeLearner,
+    preferences,
+    persistPosition,
+    openSurah,
+  });
+  followRef.current = {
+    surah,
+    activeLearner,
+    preferences,
+    persistPosition,
+    openSurah,
+  };
+
+  useEffect(() => {
+    return subscribeQuranListen((snap) => {
+      if (snap.completed) {
+        setQuranCompleted(true);
+        setAutoPlayPending(false);
+        return;
+      }
+      setQuranCompleted(false);
+      const current = followRef.current;
+      if (!current.activeLearner || !current.preferences) {
+        return;
+      }
+      if (current.surah?.number === snap.surahNumber) {
+        setActiveAyahNumberState(snap.ayahNumber);
+        const juz = getJuzForVerse(snap.surahNumber, snap.ayahNumber);
+        if (juz) {
+          setJuzNumber(juz.number);
+        }
+        void current.persistPosition(snap.surahNumber, snap.ayahNumber);
+        return;
+      }
+      void current.openSurah(
+        current.activeLearner,
+        current.preferences,
+        snap.surahNumber,
+        snap.ayahNumber,
+        { autoPlay: true },
+      );
+    });
+  }, []);
 
   const setActiveAyahNumber = useCallback(
     (ayah: number, options?: { autoPlay?: boolean }) => {
@@ -346,6 +401,7 @@ export function useFullQuranReader({
         setQuranCompleted(false);
         setAutoPlayPending(true);
       } else {
+        disableQuranListen();
         setAutoPlayPending(false);
       }
       await persistPrefs({
@@ -406,7 +462,9 @@ export function useFullQuranReader({
     setAudioEnabled: (value: boolean) => {
       setAudioEnabled(value);
       if (!value) {
+        disableQuranListen();
         setAutoPlayPending(false);
+        void stopVerseAudio();
       }
     },
     setShowTranslation,

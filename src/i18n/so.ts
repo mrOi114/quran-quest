@@ -409,6 +409,9 @@ export const so = {
   'reader.chooseSurahJuz': 'Dooro Suurad / Juz’',
   'reader.fullNote':
     'Akhris iyo dhagaysi Quraan oo buuxa — ka duwan xifziga Casharka.',
+  'reader.quranAudioComplete': 'Quraanka waa la dhammeeyay',
+  'reader.quranAudioCompleteBody':
+    'Waxaad gaartay aayadda ugu dambaysa ee Suuradda 114. Codka waa istaagay. Dooro suurad, ka dib taabo Dhagayso — keligiis kama soo noqonayo.',
   'reader.read': 'Akhri',
   'reader.listen': 'Dhagayso',
   'reader.readOnly': 'Habka akhriska keliya',

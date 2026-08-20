@@ -31,6 +31,7 @@ export type PlayVerseAudioOptions = PlayBackgroundAudioOptions & {
   continuous?: boolean;
   cursor?: QuranListenCursor;
   repeatCount?: AudioRepeatCount;
+  resetRemaining?: boolean;
 };
 
 const quranSession = createBackgroundAudioSession({
@@ -109,7 +110,9 @@ export async function playVerseAudio(
 ): Promise<void> {
   await exclusiveAcquire('quran');
   if (options?.continuous && options.cursor) {
-    enableQuranListen(options.cursor, options.repeatCount ?? '1');
+    enableQuranListen(options.cursor, options.repeatCount ?? '1', {
+      resetRemaining: options.resetRemaining,
+    });
   } else {
     disableQuranListen();
   }

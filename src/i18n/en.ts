@@ -402,6 +402,9 @@ export const en = {
   'reader.surahJuzAyah': 'Surah {surah} · Juz {juz} · Ayah {ayah}',
   'reader.chooseSurahJuz': 'Choose Surah / Juz',
   'reader.fullNote': 'Full Qur’an reading & listening — separate from Lesson memorisation.',
+  'reader.quranAudioComplete': 'Qur’an completed',
+  'reader.quranAudioCompleteBody':
+    'You reached the last ayah of Surah 114. Playback stopped. Choose a surah and press Listen to continue — it will not loop by itself.',
   'reader.read': 'Read',
   'reader.listen': 'Listen',
   'reader.readOnly': 'Read only mode',

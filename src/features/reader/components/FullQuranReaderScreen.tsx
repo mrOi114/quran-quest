@@ -54,6 +54,7 @@ export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuran
     setShowTranslation,
     setRepeatCount,
     handleVersePlaybackComplete,
+    quranCompleted,
     ageGroup,
   } = useFullQuranReader({ surahParam: surah, ayahParam: ayah, listenParam: listen });
 
@@ -186,6 +187,17 @@ export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuran
             <Text className="mb-3 text-center text-sm text-red-100">{error}</Text>
           ) : null}
 
+          {quranCompleted ? (
+            <View className="mb-4 rounded-2xl bg-white px-4 py-4">
+              <Text className="text-center text-lg font-bold text-brand-800">
+                {t('reader.quranAudioComplete')}
+              </Text>
+              <Text className="mt-2 text-center text-sm text-brand-600">
+                {t('reader.quranAudioCompleteBody')}
+              </Text>
+            </View>
+          ) : null}
+
           <ReaderVerseFocus
             key={activeVerse.id}
             verse={activeVerse}
@@ -208,7 +220,9 @@ export function FullQuranReaderScreen({ surah, ayah, listen = false }: FullQuran
               })
             }
             canGoPrevious={!(currentSurah.number === 1 && activeAyahNumber === 1)}
-            canGoNext={activeAyahNumber < currentSurah.ayahCount}
+            canGoNext={
+              !(currentSurah.number === 114 && activeAyahNumber >= currentSurah.ayahCount)
+            }
             onPlaybackComplete={handleVersePlaybackComplete}
             onToggleTranslation={() => {
               void setShowTranslation(!preferences.showTranslation);
