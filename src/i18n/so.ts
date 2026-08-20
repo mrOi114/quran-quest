@@ -103,14 +103,14 @@ export const so = {
   'learn.modesHelp': 'Dooro sida aad maanta u baranayso. Casharrada xifziga way sii ahaanayaan.',
   'learn.readQuran': '📖 Akhri Quraanka',
   'learn.quranAudio': '🎧 Codka Quraanka',
-  'learn.somaliTafsir': '💡 Tafsiiir Soomaali',
+  'learn.somaliTafsir': '💡 Tafsiiir Soomaali · Sh. Umal',
 
   'tafsir.title': 'Tafsiiir Soomaali',
   'tafsir.quranArabic': 'القرآن',
-  'tafsir.quranEnglish': '🎧 Quraanka',
-  'tafsir.meaningHeading': 'المعنى · 🇸🇴 Macnaha Soomaaliga',
+  'tafsir.quranEnglish': 'Quraanka',
+  'tafsir.meaningHeading': 'Macnaha — Macnaha Soomaaliga',
   'tafsir.arabicLabel': 'التفسير',
-  'tafsir.englishLabel': '💡 Tafsiiir Soomaali',
+  'tafsir.englishLabel': 'Tafsiir — Sh. Umal',
   'tafsir.notQuran': 'Kani waa tafsiiir faham. Maaha qiraat Quraan.',
   'tafsir.toggleLabel': 'Habka tafsiiirka',
   'tafsir.toggleHelp':
@@ -118,9 +118,11 @@ export const so = {
   'tafsir.hifzNote': 'Tafsiiirku ma beddelo qaybaha xifziga, ku celcelinta, ama xeerarka la-qabsiga.',
   'tafsir.on': 'FURAN',
   'tafsir.off': 'XIDHAN',
-  'tafsir.listen': 'Dhageyso tafsiiirka',
+  'tafsir.listen': '▶ Dhageyso tafsiiirka',
   'tafsir.audioUnavailable':
     'Codka tafsiiirka lama heli karo. Waad sii wadi kartaa akhriska iyo barashada.',
+  'tafsir.awaitingPermission':
+    'Tafsiiirka Sh. Maxamed Cabdi Umal waxaa lagu dari doonaa kaliya ka dib oggolaansho qoraal ah oo ka yimaada milkiilaha xuquuqda.',
   'tafsir.whatDidWeLearn': 'Maxaan bartay?',
   'tafsir.questionFromMeaning':
     'Su’aashan waxay ka timid macnaha la ansixiyay oo keliya. Tafsiiir cusub kuma jiro.',

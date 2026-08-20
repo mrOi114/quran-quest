@@ -8,6 +8,8 @@ export const tafsirSourceMetaSchema = z.object({
   license: z.string(),
   permissionVerified: z.boolean(),
   sourceUrl: z.string(),
+  catalogUrl: z.string(),
+  distributionMode: z.enum(['none', 'stream-only', 'bundle-allowed']),
   surahStart: z.number().int().min(1).max(114),
   surahEnd: z.number().int().min(1).max(114),
   ayahRangeLabel: z.string(),

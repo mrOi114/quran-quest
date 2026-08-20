@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { isTafsirSourceLicensed } from '../content/catalog';
+import { allowsTafsirAudioCache, isTafsirSourceLicensed } from '../content/catalog';
 import type { TafsirSourceMeta } from '../schemas';
 
 const CACHE_INDEX_KEY = 'qq.tafsir.audioCache.v1';
@@ -31,6 +31,9 @@ export async function resolveCachedTafsirAudioUrl(
   if (!audioUrl || !isTafsirSourceLicensed(source)) {
     return null;
   }
+  if (source.distributionMode === 'stream-only') {
+    return audioUrl;
+  }
   const index = await readIndex();
   return index[audioUrl] ?? audioUrl;
 }
@@ -40,7 +43,7 @@ export async function cacheLicensedTafsirAudio(
   audioUrl: string,
   source: TafsirSourceMeta,
 ): Promise<void> {
-  if (!isTafsirSourceLicensed(source) || !audioUrl) {
+  if (!allowsTafsirAudioCache(source) || !audioUrl) {
     return;
   }
 }

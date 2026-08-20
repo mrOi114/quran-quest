@@ -153,7 +153,15 @@ export function TafsirLessonPanel({
       <Text className="mt-1 text-center text-sm font-semibold text-teal-700">
         {t('tafsir.englishLabel')}
       </Text>
+      <Text className="mt-2 text-center text-xs font-semibold text-teal-800">
+        {source.scholar}
+      </Text>
       <Text className="mt-2 text-center text-xs text-teal-700">{t('tafsir.notQuran')}</Text>
+      {!source.permissionVerified ? (
+        <Text className="mt-2 text-center text-xs leading-5 text-teal-800">
+          {t('tafsir.awaitingPermission')}
+        </Text>
+      ) : null}
 
       {playableUrl ? (
         <TafsirAudioControls
