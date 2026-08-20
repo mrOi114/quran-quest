@@ -265,6 +265,7 @@ export const en = {
   'call.turnedOff': 'Calls are turned off for this child. Ask a parent to enable them.',
   'call.micUnavailable': 'Microphone is not available on this device.',
   'call.webOnly': 'Voice calls are available in the web app on this device.',
+  'call.permissionDenied': 'Allow microphone access to make a family call.',
   'call.isCalling': '{name} is calling',
   'call.callA11y': 'Call {name}',
 

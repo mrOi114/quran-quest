@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { useI18n } from '@/i18n';
 
 import { FAMILY_CALL_RING_TIMEOUT_MS } from '../constants';
 import {
@@ -14,14 +16,37 @@ import {
 } from '../services';
 import type { FamilyCall, FamilyCallSignalPayload, FamilyCircleState } from '../types';
 
+type CallStatusKind = 'idle' | 'calling' | 'callingName' | 'connected' | 'declined' | 'ended';
+
 export function useFamilyCall(circle: FamilyCircleState | null) {
+  const { t } = useI18n();
   const [activeCall, setActiveCall] = useState<FamilyCall | null>(null);
-  const [statusLabel, setStatusLabel] = useState('Idle');
+  const [statusKind, setStatusKind] = useState<CallStatusKind>('idle');
+  const [callingPeerName, setCallingPeerName] = useState<string | null>(null);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const peerRef = useRef<FamilyCallPeer | null>(null);
   const unsubscribeSignals = useRef<(() => void) | null>(null);
+
+  const statusLabel = useMemo(() => {
+    switch (statusKind) {
+      case 'calling':
+        return t('call.calling');
+      case 'callingName':
+        return t('call.callingName', {
+          name: callingPeerName ?? t('call.familyMember'),
+        });
+      case 'connected':
+        return t('call.connected');
+      case 'declined':
+        return t('call.declined');
+      case 'ended':
+        return t('call.ended');
+      default:
+        return t('call.idle');
+    }
+  }, [callingPeerName, statusKind, t]);
 
   const cleanupPeer = useCallback(() => {
     unsubscribeSignals.current?.();
@@ -75,7 +100,8 @@ export function useFamilyCall(circle: FamilyCircleState | null) {
           calleeId,
         });
         setActiveCall(call);
-        setStatusLabel('Calling…');
+        setCallingPeerName(null);
+        setStatusKind('calling');
 
         const peer = new FamilyCallPeer();
         peerRef.current = peer;
@@ -93,15 +119,19 @@ export function useFamilyCall(circle: FamilyCircleState | null) {
         attachSignals(call, peer);
 
         const callee = circle.members.find((member) => member.id === calleeId);
+        const callerName =
+          circle.members.find((member) => member.id === circle.actorId)?.display_name ??
+          t('chat.family');
         void notifyFamilyEvent({
           kind: 'call',
           familyId: circle.familyId,
           recipientIds: [calleeId],
-          title: 'Incoming Family Call',
-          body: `${circle.members.find((member) => member.id === circle.actorId)?.display_name ?? 'Family'} is calling`,
+          title: t('call.incoming'),
+          body: t('call.isCalling', { name: callerName }),
           callId: call.id,
         });
-        setStatusLabel(`Calling ${callee?.display_name ?? 'family member'}…`);
+        setCallingPeerName(callee?.display_name ?? t('call.familyMember'));
+        setStatusKind('callingName');
 
         globalThis.setTimeout(() => {
           void (async () => {
@@ -114,14 +144,15 @@ export function useFamilyCall(circle: FamilyCircleState | null) {
       } catch (err) {
         cleanupPeer();
         setActiveCall(null);
-        setStatusLabel('Idle');
+        setCallingPeerName(null);
+        setStatusKind('idle');
         setError(err instanceof Error ? err.message : 'Access denied');
         throw err;
       } finally {
         setBusy(false);
       }
     },
-    [attachSignals, circle, cleanupPeer],
+    [attachSignals, circle, cleanupPeer, t],
   );
 
   const acceptCall = useCallback(
@@ -134,7 +165,7 @@ export function useFamilyCall(circle: FamilyCircleState | null) {
       try {
         const accepted = await updateFamilyCallStatus(call.id, 'accepted');
         setActiveCall(accepted);
-        setStatusLabel('Connected');
+        setStatusKind('connected');
         const peer = peerRef.current ?? new FamilyCallPeer();
         peerRef.current = peer;
         if (isFamilyCallAudioSupported()) {
@@ -163,7 +194,7 @@ export function useFamilyCall(circle: FamilyCircleState | null) {
     await updateFamilyCallStatus(call.id, 'declined');
     cleanupPeer();
     setActiveCall(null);
-    setStatusLabel('Declined');
+    setStatusKind('declined');
   }, [cleanupPeer]);
 
   const endCall = useCallback(async () => {
@@ -175,7 +206,7 @@ export function useFamilyCall(circle: FamilyCircleState | null) {
     }
     cleanupPeer();
     setActiveCall(null);
-    setStatusLabel('Ended');
+    setStatusKind('ended');
   }, [activeCall, cleanupPeer]);
 
   const toggleMute = useCallback(async () => {
@@ -196,11 +227,11 @@ export function useFamilyCall(circle: FamilyCircleState | null) {
       setActiveCall((current) => {
         if (current?.id === call.id) {
           if (call.status === 'accepted') {
-            setStatusLabel('Connected');
+            setStatusKind('connected');
           }
           if (call.status === 'ended' || call.status === 'declined' || call.status === 'missed') {
             cleanupPeer();
-            setStatusLabel(call.status === 'declined' ? 'Declined' : 'Ended');
+            setStatusKind(call.status === 'declined' ? 'declined' : 'ended');
             return null;
           }
           return call;

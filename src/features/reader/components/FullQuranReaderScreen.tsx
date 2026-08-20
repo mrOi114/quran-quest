@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/features/auth';
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import { ARABIC_FONT_FAMILY, ARABIC_FONT_SIZE } from '../constants';
@@ -25,6 +26,7 @@ function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
 
 export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const [pickerOpen, setPickerOpen] = useState(false);
   const {
     filteredSurahs,
@@ -61,7 +63,7 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
-        <Text className="mt-3 text-base text-brand-50">Opening the Qur’an…</Text>
+        <Text className="mt-3 text-base text-brand-50">{t('reader.quranLoading')}</Text>
       </SafeAreaView>
     );
   }
@@ -69,9 +71,9 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
   if (error && !currentSurah) {
     return (
       <SafeAreaView className="flex-1 justify-center bg-brand-50 px-6">
-        <Text className="mb-2 text-2xl font-semibold text-brand-800">Qur’an Reader</Text>
+        <Text className="mb-2 text-2xl font-semibold text-brand-800">{t('reader.quranTitle')}</Text>
         <Text className="mb-6 text-base text-brand-600">{error}</Text>
-        <PrimaryButton label="Back to Home" onPress={() => router.replace('/(app)/home')} />
+        <PrimaryButton label={t('common.backToHome')} onPress={() => router.replace('/(app)/home')} />
       </SafeAreaView>
     );
   }
@@ -80,9 +82,9 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
     return (
       <SafeAreaView className="flex-1 justify-center bg-brand-50 px-6">
         <Text className="mb-6 text-base text-brand-600">
-          Sign in or continue as guest to open the full Qur’an reader.
+          {t('reader.signInToOpen')}
         </Text>
-        <PrimaryButton label="Back to Home" onPress={() => router.replace('/(app)/home')} />
+        <PrimaryButton label={t('common.backToHome')} onPress={() => router.replace('/(app)/home')} />
       </SafeAreaView>
     );
   }
@@ -103,19 +105,23 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
         <ReaderChrome
           titleArabic={currentSurah.nameArabic}
           titleLatin={currentSurah.nameLatin}
-          subtitle={`Surah ${currentSurah.number} · Juz ${juzNumber} · Ayah ${activeVerse.ayahNumber}`}
+          subtitle={t('reader.surahJuzAyah', {
+            surah: currentSurah.number,
+            juz: juzNumber,
+            ayah: activeVerse.ayahNumber,
+          })}
           onBack={() => router.replace('/(app)/home')}
           onOpenSurahPicker={() => setPickerOpen((value) => !value)}
           footer={
             <Text className="mt-4 text-center text-xs text-brand-100">
-              Full Qur’an reading & listening — separate from Lesson memorisation.
+              {t('reader.fullNote')}
             </Text>
           }
         >
           <View className="mb-4 flex-row flex-wrap justify-center gap-2">
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Read only mode"
+              accessibilityLabel={t('reader.readOnly')}
               onPress={() => {
                 void setListenMode('read');
               }}
@@ -128,12 +134,12 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
                   listenMode === 'read' ? 'text-brand-700' : 'text-white'
                 }`}
               >
-                Read
+                {t('reader.read')}
               </Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Listen mode with auto advance"
+              accessibilityLabel={t('reader.listenAuto')}
               onPress={() => {
                 void setListenMode('listen');
               }}
@@ -146,7 +152,7 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
                   listenMode === 'listen' ? 'text-brand-700' : 'text-white'
                 }`}
               >
-                Listen
+                {t('reader.listen')}
               </Text>
             </Pressable>
           </View>
@@ -171,7 +177,7 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
 
           {!pickerOpen ? (
             <Text className="mb-3 text-center text-xs text-brand-100">
-              Tap “Choose Surah / Juz” to browse all 114 Surahs and 30 Juz.
+              {t('reader.browseHint')}
             </Text>
           ) : null}
 
@@ -213,7 +219,7 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
 
           <View className="mt-5 rounded-2xl bg-white/10 px-3 py-4">
             <Text className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-brand-100">
-              Full surah · tap a verse to start
+              {t('reader.fullSurahTap')}
             </Text>
             {verses.map((verse) => {
               const selected = verse.ayahNumber === activeAyahNumber;
@@ -221,7 +227,7 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
                 <Pressable
                   key={verse.id}
                   accessibilityRole="button"
-                  accessibilityLabel={`Ayah ${verse.ayahNumber}`}
+                  accessibilityLabel={`${t('common.ayah')} ${verse.ayahNumber}`}
                   onPress={() =>
                     setActiveAyahNumber(verse.ayahNumber, {
                       autoPlay: listenMode === 'listen' && audioEnabled,
@@ -237,7 +243,7 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
                     }`}
                   >
                     {verse.ayahNumber}
-                    {verse.isLearned ? ' · Learned' : ''}
+                    {verse.isLearned ? ` · ${t('common.learned')}` : ''}
                   </Text>
                   <Text
                     className={selected ? 'text-brand-800' : 'text-white'}
@@ -267,10 +273,10 @@ export function FullQuranReaderScreen({ surah, ayah }: FullQuranReaderScreenProp
 
           <View className="mt-6 rounded-2xl bg-brand-50 px-4 py-4">
             <Text className="mb-3 text-center text-sm text-brand-600">
-              Want guided memorisation with a 5-verse lesson and test?
+              {t('reader.wantLesson')}
             </Text>
             <PrimaryButton
-              label="Open Lesson"
+              label={t('reader.openLesson')}
               onPress={() => router.push('/(app)/lesson')}
             />
           </View>

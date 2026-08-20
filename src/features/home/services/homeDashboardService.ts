@@ -15,7 +15,8 @@ import { computeEffortBreakdown } from '@/features/leaderboard/services/effortPo
 import { resolveVerseMeaning } from '@/features/reader';
 import type { Profile } from '@/types';
 
-import { ABU_HAFIDUL_QURAN_ENCOURAGEMENT, GUEST_REMINDER_MIN_SURAHS } from '../constants';
+import { GUEST_REMINDER_MIN_SURAHS } from '../constants';
+import { t } from '@/i18n';
 import type {
   HomeAchievements,
   HomeCirclePreview,
@@ -24,8 +25,8 @@ import type {
   HomeLessonSummary,
 } from '../types';
 
-function buildGreeting(nickname: string): string {
-  return `Assalamu Alaikum, ${nickname}.`;
+function buildGreeting(nickname: string, language: string): string {
+  return t('home.greeting', language, { name: nickname });
 }
 
 function toHomeLesson(
@@ -37,6 +38,7 @@ function toHomeLesson(
     surahName: summary.surahName,
     surahArabic: summary.surahArabic,
     lessonLabel: summary.lessonLabel,
+    lessonIndex: summary.lessonIndex,
     progressPercent: summary.progressPercent,
     hasStarted: summary.hasStarted,
   };
@@ -45,19 +47,21 @@ function toHomeLesson(
 function buildCirclePreview(
   featuredVerse: HomeFeaturedVerse,
   currentLesson: HomeLessonSummary,
+  language: string,
 ): HomeCirclePreview {
   const reciter = getDefaultReciter();
+  const rooms =
+    currentLesson.progressPercent >= 100
+      ? t('circle.roomsUnlocked', language, { count: 3 })
+      : currentLesson.hasStarted
+        ? t('circle.roomsUnlocked', language, { count: 2 })
+        : t('circle.roomReady', language);
 
   return {
-    title: `${currentLesson.surahName} Circle`,
-    subtitle: `Listen together to ayah ${featuredVerse.ayahNumber} from today's focus.`,
+    title: t('circle.titleWithSurah', language, { surah: currentLesson.surahName }),
+    subtitle: t('circle.listenTogether', language, { ayah: featuredVerse.ayahNumber }),
     trackLabel: `${reciter.name} · ${featuredVerse.surahName} ${featuredVerse.ayahNumber}`,
-    roomCountLabel:
-      currentLesson.progressPercent >= 100
-        ? '3 rooms unlocked'
-        : currentLesson.hasStarted
-          ? '2 rooms unlocked'
-          : '1 room ready',
+    roomCountLabel: rooms,
   };
 }
 
@@ -68,7 +72,8 @@ export async function buildHomeDashboard(options: {
   guestProgress: GuestProgress | null;
 }): Promise<HomeDashboardModel> {
   const { activeLearner, profile, isGuest, guestProgress } = options;
-  const nickname = activeLearner.display_name.trim() || 'Friend';
+  const language = activeLearner.preferred_language;
+  const nickname = activeLearner.display_name.trim() || t('common.friend', language);
 
   const snapshot = await loadLearningSnapshot(activeLearner);
   const gameProgress = await loadGameProgress(activeLearner);
@@ -117,8 +122,8 @@ export async function buildHomeDashboard(options: {
     ayahNumber: featuredVerseContent.ayahNumber,
     textUthmani: featuredVerseContent.textUthmani,
     translationText:
-      featuredMeaning?.text ?? 'Open the reader to view the approved translation.',
-    translationSourceLabel: featuredMeaning?.sourceLabel ?? 'Approved translation',
+      featuredMeaning?.text ?? t('home.featuredFallback', language),
+    translationSourceLabel: featuredMeaning?.sourceLabel ?? t('home.approvedTranslation', language),
     isTranslationFallback: featuredMeaning?.isFallback ?? false,
   };
   // Same effort formula as Leaderboard — one source of truth, no double system.
@@ -127,14 +132,14 @@ export async function buildHomeDashboard(options: {
 
   return {
     nickname,
-    greetingLine: buildGreeting(nickname),
-    encouragement: ABU_HAFIDUL_QURAN_ENCOURAGEMENT,
+    greetingLine: buildGreeting(nickname, language),
+    encouragement: t('home.encouragement', language),
     todaysLesson,
     revisionVerseCount: surahsCompleted > 0 ? Math.min(surahsCompleted * 2, 12) : 0,
     achievements,
     xpPoints,
     nextMilestoneXp,
-    circlePreview: buildCirclePreview(featuredVerse, todaysLesson),
+    circlePreview: buildCirclePreview(featuredVerse, todaysLesson, language),
     featuredVerse,
     isGuest,
     showGuestReminder: isGuest && surahsCompleted >= GUEST_REMINDER_MIN_SURAHS,

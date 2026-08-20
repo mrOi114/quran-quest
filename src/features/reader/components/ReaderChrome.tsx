@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 type ReaderChromeProps = {
   titleArabic: string;
   titleLatin: string;
@@ -20,15 +22,16 @@ export function ReaderChrome({
   children,
   footer,
 }: ReaderChromeProps) {
+  const { t } = useI18n();
   return (
     <View className="flex-1">
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Back to Home"
+        accessibilityLabel={t('common.backToHome')}
         onPress={onBack}
         className="mb-4 min-h-11 justify-center self-start"
       >
-        <Text className="text-base text-brand-100">← Home</Text>
+        <Text className="text-base text-brand-100">← {t('nav.home')}</Text>
       </Pressable>
 
       <Text
@@ -45,12 +48,12 @@ export function ReaderChrome({
       {onOpenSurahPicker ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Choose Surah or Juz"
+          accessibilityLabel={t('reader.chooseSurahJuz')}
           onPress={onOpenSurahPicker}
           className="mt-4 min-h-12 items-center justify-center self-center rounded-2xl bg-white px-5 py-3"
         >
           <Text className="text-base font-semibold text-brand-700">
-            Choose Surah / Juz
+            {t('reader.chooseSurahJuz')}
           </Text>
         </Pressable>
       ) : null}

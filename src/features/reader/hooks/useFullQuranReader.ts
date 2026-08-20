@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/features/auth';
 import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import { getJuzForVerse, getMushafSurah, listSurahsInJuz } from '../content';
@@ -62,6 +63,7 @@ export function useFullQuranReader({
   ayahParam,
 }: UseFullQuranReaderArgs): UseFullQuranReaderResult {
   const { activeLearner } = useAuth();
+  const { t } = useI18n();
   const [surahs] = useState<BrowsableSurah[]>(() => listAllMushafSurahs());
   const [searchQuery, setSearchQuery] = useState('');
   const [juzNumber, setJuzNumber] = useState(1);
@@ -118,7 +120,7 @@ export function useFullQuranReader({
     ) => {
       const loaded = await loadMushafSurahVerses(learner, surahNumber, prefs);
       if (!loaded) {
-        setError('Could not open this surah.');
+        setError(t('reader.openSurahError'));
         setSurah(null);
         setVerses([]);
         return;
@@ -133,7 +135,7 @@ export function useFullQuranReader({
       setError(null);
       await persistPosition(loaded.surah.number, ayah);
     },
-    [persistPosition],
+    [persistPosition, t],
   );
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export function useFullQuranReader({
         await openSurah(activeLearner, prefs, start.surahNumber, start.ayahNumber);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not open the Qur’an reader.');
+          setError(err instanceof Error ? err.message : t('reader.openQuranError'));
         }
       } finally {
         if (!cancelled) {

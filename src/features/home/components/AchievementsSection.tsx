@@ -1,5 +1,7 @@
 import { Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 import type { HomeAchievements } from '../types';
 
 type AchievementsSectionProps = {
@@ -26,26 +28,27 @@ function AchievementCard({ label, value, accessibilityLabel }: AchievementCardPr
 }
 
 export function AchievementsSection({ achievements }: AchievementsSectionProps) {
+  const { t } = useI18n();
   return (
     <View className="mb-4">
       <Text className="mb-3 text-sm font-semibold uppercase tracking-wide text-brand-200">
-        Achievements
+        {t('home.achievements')}
       </Text>
       <View className="flex-row gap-3">
         <AchievementCard
-          label="Day streak"
+          label={t('home.dayStreak')}
           value={String(achievements.streakDays)}
-          accessibilityLabel={`Current streak: ${achievements.streakDays} days`}
+          accessibilityLabel={t('home.streakA11y', { count: achievements.streakDays })}
         />
         <AchievementCard
-          label="Lessons"
+          label={t('home.lessons')}
           value={String(achievements.lessonsCompleted)}
-          accessibilityLabel={`Lessons completed: ${achievements.lessonsCompleted}`}
+          accessibilityLabel={t('home.lessonsA11y', { count: achievements.lessonsCompleted })}
         />
         <AchievementCard
-          label="Surahs"
+          label={t('home.surahs')}
           value={String(achievements.surahsCompleted)}
-          accessibilityLabel={`Surahs completed: ${achievements.surahsCompleted}`}
+          accessibilityLabel={t('home.surahsA11y', { count: achievements.surahsCompleted })}
         />
       </View>
     </View>

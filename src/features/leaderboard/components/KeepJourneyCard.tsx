@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 type KeepJourneyCardProps = {
   points: number;
@@ -15,6 +16,7 @@ export function KeepJourneyCard({
   onMaybeLater,
 }: KeepJourneyCardProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const containerClass =
     variant === 'banner'
       ? 'mb-4 rounded-2xl bg-white px-4 py-4'
@@ -23,25 +25,22 @@ export function KeepJourneyCard({
   return (
     <View className={containerClass}>
       <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-        ⭐ Keep your Qur&apos;an journey
+        {t('guest.keepJourney')}
       </Text>
-      <Text className="mt-2 text-xl font-bold text-brand-800">
-        You&apos;ve already made progress!
-      </Text>
+      <Text className="mt-2 text-xl font-bold text-brand-800">{t('guest.alreadyProgress')}</Text>
       <Text className="mt-2 text-base leading-6 text-brand-600">
-        Your effort has value — {points.toLocaleString()} points so far. Create your free
-        account to keep it.
+        {t('guest.effortValue', { points: points.toLocaleString() })}
       </Text>
 
       <View className="mt-4 gap-2">
         {[
-          'Save your learning progress',
-          'Keep your streak',
-          'Keep your achievements',
-          'Join the Leaderboard',
-          'Join a learning Circle',
-          'Continue from any device',
-          'Build your Qur\'an journey',
+          t('guest.saveProgress'),
+          t('guest.keepStreak'),
+          t('guest.keepAchievements'),
+          t('guest.joinLeaderboard'),
+          t('guest.joinCircle'),
+          t('guest.continueAnyDevice'),
+          t('guest.buildJourney'),
         ].map((item) => (
           <Text key={item} className="text-sm text-brand-700">
             ✓ {item}
@@ -51,19 +50,25 @@ export function KeepJourneyCard({
 
       <View className="mt-5">
         <PrimaryButton
-          label="Create Free Account"
+          label={t('common.createFreeAccount')}
           onPress={() => router.push('/(auth)/register')}
         />
         {onMaybeLater ? (
-          <PrimaryButton label="Maybe Later" onPress={onMaybeLater} variant="secondary" />
+          <PrimaryButton
+            label={t('common.maybeLater')}
+            onPress={onMaybeLater}
+            variant="secondary"
+          />
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Continue learning as guest"
+            accessibilityLabel={t('guest.continueLearningGuest')}
             onPress={() => router.push('/(app)/lesson')}
             className="mt-2 min-h-11 items-center justify-center"
           >
-            <Text className="text-sm font-semibold text-brand-600">Continue as Guest</Text>
+            <Text className="text-sm font-semibold text-brand-600">
+              {t('guest.continueAsGuest')}
+            </Text>
           </Pressable>
         )}
       </View>

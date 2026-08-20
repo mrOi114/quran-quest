@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
-import { PrimaryButton, useAuth } from '@/features/auth';
+import { LanguagePicker, PrimaryButton, useAuth } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 export default function ProfileRoute() {
   const router = useRouter();
@@ -15,11 +16,15 @@ export default function ProfileRoute() {
     endGuestSession,
     endChildFamilySession,
     clearActiveLearner,
+    setPreferredLanguage,
   } = useAuth();
+  const { t } = useI18n();
 
   const isChildSession = activeLearner?.role === 'child';
-  const name = activeLearner?.display_name ?? profile?.display_name ?? 'QuranFamily learner';
+  const name =
+    activeLearner?.display_name ?? profile?.display_name ?? t('nav.guestLearner');
   const role = activeLearner?.role ?? profile?.role ?? (isGuest ? 'guest' : 'unknown');
+  const languageValue = activeLearner?.preferred_language ?? 'en';
 
   return (
     <ScrollView
@@ -28,39 +33,50 @@ export default function ProfileRoute() {
     >
       <View className="rounded-3xl bg-white px-5 py-6">
         <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-          Profile
+          {t('profile.title')}
         </Text>
         <Text className="mt-2 text-3xl font-bold text-brand-800">{name}</Text>
         <Text className="mt-2 text-base text-brand-600">
-          {isChildSession ? 'Learner' : `Current role: ${role}`}
+          {isChildSession ? t('profile.learner') : t('profile.role', { role })}
         </Text>
         <Text className="mt-1 text-base text-brand-600">
           {isGuest
-            ? 'You are using a local guest session.'
+            ? t('profile.guestSession')
             : isChildFamilySession
-              ? 'You unlocked with your family code and PIN. No email needed.'
+              ? t('profile.familyUnlock')
               : isChildSession
-                ? 'Keep learning. Ask a parent if you need to switch.'
-                : 'Your account is connected.'}
+                ? t('profile.keepLearning')
+                : t('profile.connected')}
         </Text>
+
+        <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-4">
+          <Text className="mb-2 text-sm font-semibold uppercase tracking-wide text-brand-500">
+            {t('settings.language')}
+          </Text>
+          <Text className="mb-3 text-sm text-brand-600">{t('profile.languageHelp')}</Text>
+          <LanguagePicker
+            value={languageValue}
+            onChange={(code) => {
+              void setPreferredLanguage(code);
+            }}
+          />
+        </View>
 
         <View className="mt-6">
           {canManageFamily ? (
             <PrimaryButton
-              label="My Family"
+              label={t('nav.myFamily')}
               onPress={() => router.push('/(app)/parent/dashboard')}
             />
           ) : null}
-          {!isChildSession ? (
-            <PrimaryButton
-              label="Settings"
-              onPress={() => router.push('/(app)/settings' as never)}
-              variant="secondary"
-            />
-          ) : null}
+          <PrimaryButton
+            label={t('nav.settings')}
+            onPress={() => router.push('/(app)/settings' as never)}
+            variant="secondary"
+          />
           {isGuest ? (
             <PrimaryButton
-              label="End guest trial"
+              label={t('common.endGuestTrial')}
               onPress={() =>
                 void endGuestSession().then(() => router.replace('/(auth)/welcome'))
               }
@@ -68,7 +84,7 @@ export default function ProfileRoute() {
             />
           ) : isChildFamilySession ? (
             <PrimaryButton
-              label="Switch learner"
+              label={t('common.switchLearner')}
               onPress={() =>
                 void endChildFamilySession().then(() =>
                   router.replace('/(auth)/child-entry'),
@@ -78,7 +94,7 @@ export default function ProfileRoute() {
             />
           ) : isChildSession ? (
             <PrimaryButton
-              label="Switch learner"
+              label={t('common.switchLearner')}
               onPress={() =>
                 void clearActiveLearner().then(() =>
                   router.replace('/(app)/family/learners'),
@@ -88,7 +104,7 @@ export default function ProfileRoute() {
             />
           ) : (
             <PrimaryButton
-              label="Log out"
+              label={t('common.logOut')}
               onPress={() =>
                 void signOut().then(() => router.replace('/(auth)/welcome'))
               }

@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 
 import type { AgeGroupId } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 import {
   ARABIC_FONT_FAMILY,
@@ -26,6 +27,7 @@ export function ArabicVerseText({
   isLearned = false,
   fontScale = null,
 }: ArabicVerseTextProps) {
+  const { t } = useI18n();
   const baseSize = ARABIC_FONT_SIZE[ageGroup];
   const multiplier = fontScale ? FONT_SCALE_MULTIPLIER[fontScale] : 1;
   const fontSize = Math.round(baseSize * multiplier);
@@ -33,8 +35,8 @@ export function ArabicVerseText({
   return (
     <View accessible accessibilityRole="text">
       <Text className="mb-3 text-center text-sm font-medium text-brand-500">
-        Ayah {ayahNumber}
-        {isLearned ? ' · Learned' : ''}
+        {t('common.ayah')} {ayahNumber}
+        {isLearned ? ` · ${t('common.learned')}` : ''}
         {' · '}
         {toEasternNumerals(ayahNumber)}
       </Text>

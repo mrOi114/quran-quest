@@ -277,3 +277,17 @@ export async function applyGuestIdentityToProfile(
 
   return data ? normalizeProfile(data as unknown as ProfileRow) : current;
 }
+
+export async function updateProfilePreferredLanguage(
+  profileId: string,
+  language: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ preferred_language: language.trim().toLowerCase() })
+    .eq('id', profileId);
+
+  if (error) {
+    throw new Error(error.message || 'Could not save language preference');
+  }
+}

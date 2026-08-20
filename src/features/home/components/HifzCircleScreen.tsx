@@ -6,18 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton, useAuth } from '@/features/auth';
 import { getDefaultReciter } from '@/features/learning';
 import { ReaderVerseFocus, useBrowseReader } from '@/features/reader';
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 type CircleTab = 'suba' | 'translation' | 'leaderboard';
 type CircleHubMode = 'my' | 'find' | 'join' | 'create';
 
 const REPEAT_OPTIONS: AudioRepeatCount[] = ['1', '3', 'loop'];
-const HUB_OPTIONS: Array<{ key: CircleHubMode; label: string }> = [
-  { key: 'my', label: 'My Circle' },
-  { key: 'find', label: 'Find a Circle' },
-  { key: 'join', label: 'Join Circle' },
-  { key: 'create', label: 'Create Circle' },
-];
 
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   if (current === '1') return '3';
@@ -27,6 +22,7 @@ function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
 
 export default function HifzCircleScreen() {
   const router = useRouter();
+  const { t } = useI18n();
   const { activeLearner, profile, isGuest } = useAuth();
   const [activeTab, setActiveTab] = useState<CircleTab>('suba');
   const [hubMode, setHubMode] = useState<CircleHubMode>('my');
@@ -77,9 +73,15 @@ export default function HifzCircleScreen() {
 
   const discoverRooms = useMemo(() => surahs.slice(0, 8), [surahs]);
   const canCreateCircle = profile?.role === 'parent' || profile?.role === 'adult';
+  const hubOptions: Array<{ key: CircleHubMode; label: string }> = [
+    { key: 'my', label: t('circle.myCircle') },
+    { key: 'find', label: t('circle.findCircle') },
+    { key: 'join', label: t('circle.joinCircle') },
+    { key: 'create', label: t('circle.createCircle') },
+  ];
 
   const leaderboard = useMemo(() => {
-    const learnerName = activeLearner?.display_name?.trim() || 'You';
+    const learnerName = activeLearner?.display_name?.trim() || t('common.you');
     const repeatBonus =
       preferences?.repeatCount === 'loop'
         ? 240
@@ -111,13 +113,13 @@ export default function HifzCircleScreen() {
         isCurrentUser: true,
       },
     ];
-  }, [activeAyahNumber, activeLearner?.display_name, preferences?.repeatCount, verses]);
+  }, [activeAyahNumber, activeLearner?.display_name, preferences?.repeatCount, t, verses]);
 
   if (isLoading && !surah) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
-        <Text className="mt-3 text-base text-brand-50">Opening your circle…</Text>
+        <Text className="mt-3 text-base text-brand-50">{t('circle.loading')}</Text>
       </SafeAreaView>
     );
   }
@@ -127,14 +129,14 @@ export default function HifzCircleScreen() {
       <SafeAreaView className="flex-1 justify-center bg-brand-600 px-6">
         <View className="rounded-3xl bg-white px-5 py-6">
           <Text className="text-2xl font-semibold text-brand-800">
-            Circle is getting ready
+            {t('circle.gettingReady')}
           </Text>
           <Text className="mt-3 text-base text-brand-600">
-            Open the reader first so QuranFamily can prepare your next listening room.
+            {t('circle.openReaderFirst')}
           </Text>
           <View className="mt-6">
             <PrimaryButton
-              label="Open Reader"
+              label={t('circle.openReader')}
               onPress={() => router.replace('/(app)/reader')}
             />
           </View>
@@ -156,14 +158,13 @@ export default function HifzCircleScreen() {
       >
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            QuranFamily Circle
+            {t('circle.section')}
           </Text>
           <Text className="mt-2 text-2xl font-bold text-brand-800">
-            {surah.nameLatin} live listening room
+            {t('circle.liveRoom', { surah: surah.nameLatin })}
           </Text>
           <Text className="mt-2 text-sm leading-5 text-brand-600">
-            Focus on ayah {activeVerse.ayahNumber} with guided repetition, translation,
-            and a clean memorisation layout.
+            {t('circle.focusAyah', { ayah: activeVerse.ayahNumber })}
           </Text>
 
           <View className="mt-4 flex-row flex-wrap gap-2">
@@ -172,12 +173,12 @@ export default function HifzCircleScreen() {
             </View>
             <View className="rounded-full bg-brand-50 px-3 py-2">
               <Text className="text-xs font-semibold text-brand-700">
-                Repeat {preferences.repeatCount}
+                {t('circle.repeat', { count: preferences.repeatCount })}
               </Text>
             </View>
             <View className="rounded-full bg-brand-50 px-3 py-2">
               <Text className="text-xs font-semibold text-brand-700">
-                {preferences.showTranslation ? 'Meaning visible' : 'Meaning hidden'}
+                {preferences.showTranslation ? t('circle.meaningVisible') : t('circle.meaningHidden')}
               </Text>
             </View>
           </View>
@@ -185,7 +186,7 @@ export default function HifzCircleScreen() {
 
         <View className="mb-4 rounded-2xl bg-white px-2 py-2">
           <View className="flex-row flex-wrap gap-2">
-            {HUB_OPTIONS.map((option) => {
+            {hubOptions.map((option) => {
               const selected = hubMode === option.key;
               return (
                 <Pressable
@@ -214,17 +215,17 @@ export default function HifzCircleScreen() {
         {hubMode === 'find' ? (
           <View className="mb-4 rounded-3xl bg-white px-4 py-4">
             <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-              Find a Circle
+              {t('circle.findCircle')}
             </Text>
             <Text className="mt-2 text-base text-brand-600">
-              Discover the next listening room for your Hifz journey.
+              {t('circle.discoverHelp')}
             </Text>
             <View className="mt-4 gap-2">
               {discoverRooms.map((room) => (
                 <Pressable
                   key={`find-${room.number}`}
                   accessibilityRole="button"
-                  accessibilityLabel={`Find ${room.nameLatin} circle`}
+                  accessibilityLabel={`${t('circle.findCircle')} ${room.nameLatin}`}
                   onPress={() => {
                     void selectSurah(room.number);
                     setHubMode('my');
@@ -235,7 +236,7 @@ export default function HifzCircleScreen() {
                     {room.nameLatin}
                   </Text>
                   <Text className="mt-1 text-sm text-brand-600">
-                    {room.nameArabic} · {room.maxBrowsableAyah} ayahs ready
+                    {t('circle.ayahsReady', { arabic: room.nameArabic, count: room.maxBrowsableAyah })}
                   </Text>
                 </Pressable>
               ))}
@@ -246,10 +247,10 @@ export default function HifzCircleScreen() {
         {hubMode === 'join' ? (
           <View className="mb-4 rounded-3xl bg-white px-4 py-4">
             <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-              Join Circle
+              {t('circle.joinCircle')}
             </Text>
             <Text className="mt-2 text-base text-brand-600">
-              Choose a room, then join to open your next AI Hifz Circle session.
+              {t('circle.joinHelp')}
             </Text>
             <View className="mt-4 gap-2">
               {discoverRooms.map((room) => {
@@ -277,7 +278,7 @@ export default function HifzCircleScreen() {
             </View>
             <View className="mt-4">
               <PrimaryButton
-                label="Join selected Circle"
+                label={t('circle.joinSelected')}
                 onPress={() => {
                   if (joinTargetSurah == null) {
                     return;
@@ -293,16 +294,16 @@ export default function HifzCircleScreen() {
         {hubMode === 'create' ? (
           <View className="mb-4 rounded-3xl bg-white px-4 py-4">
             <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-              Create Circle
+              {t('circle.createCircle')}
             </Text>
             {isGuest ? (
               <>
                 <Text className="mt-2 text-base text-brand-600">
-                  Create a free account to host Circles and keep your Qur&apos;an journey.
+                  {t('circle.createNeedsAccount')}
                 </Text>
                 <View className="mt-4">
                   <PrimaryButton
-                    label="Create Free Account"
+                    label={t('common.createFreeAccount')}
                     onPress={() => router.push('/(auth)/register')}
                   />
                 </View>
@@ -310,16 +311,15 @@ export default function HifzCircleScreen() {
             ) : canCreateCircle ? (
               <>
                 <Text className="mt-2 text-base text-brand-600">
-                  Circle hosting follows QuranFamily family and safety rules. Open Family
-                  tools to manage learners, then return here to join an active room.
+                  {t('circle.hostingRules')}
                 </Text>
                 <View className="mt-4">
                   <PrimaryButton
-                    label="Open Family"
+                    label={t('circle.openFamily')}
                     onPress={() => router.push('/(app)/family')}
                   />
                   <PrimaryButton
-                    label="Back to My Circle"
+                    label={t('circle.backToMy')}
                     onPress={() => setHubMode('my')}
                     variant="secondary"
                   />
@@ -328,11 +328,10 @@ export default function HifzCircleScreen() {
             ) : (
               <>
                 <Text className="mt-2 text-base text-brand-600">
-                  Creating Circles is available for adult and parent accounts. You can still
-                  join an existing room anytime.
+                  {t('circle.createAdultOnly')}
                 </Text>
                 <View className="mt-4">
-                  <PrimaryButton label="Find a Circle" onPress={() => setHubMode('find')} />
+                  <PrimaryButton label={t('circle.findCircle')} onPress={() => setHubMode('find')} />
                 </View>
               </>
             )}
@@ -343,7 +342,7 @@ export default function HifzCircleScreen() {
           <>
         <View className="mb-4 rounded-2xl bg-white/10 px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-200">
-            Circle rooms
+            {t('circle.rooms')}
           </Text>
           <View className="mt-3 gap-2">
             {roomOptions.map((room) => {
@@ -352,7 +351,7 @@ export default function HifzCircleScreen() {
                 <Pressable
                   key={room.number}
                   accessibilityRole="button"
-                  accessibilityLabel={`Open ${room.nameLatin} circle`}
+                  accessibilityLabel={`${t('circle.myCircle')} ${room.nameLatin}`}
                   onPress={() => {
                     void selectSurah(room.number);
                   }}
@@ -372,7 +371,7 @@ export default function HifzCircleScreen() {
                       selected ? 'text-brand-600' : 'text-brand-100'
                     }`}
                   >
-                    {room.nameArabic} · {room.maxBrowsableAyah} ayahs ready
+                    {t('circle.ayahsReady', { arabic: room.nameArabic, count: room.maxBrowsableAyah })}
                   </Text>
                 </Pressable>
               );
@@ -389,9 +388,9 @@ export default function HifzCircleScreen() {
         <View className="mb-4 rounded-2xl bg-white px-2 py-2">
           <View className="flex-row justify-between gap-2">
             {[
-              { key: 'suba', label: 'Suba Loop' },
-              { key: 'translation', label: 'Translation' },
-              { key: 'leaderboard', label: 'Rankings' },
+              { key: 'suba', label: t('circle.subaLoop') },
+              { key: 'translation', label: t('circle.translation') },
+              { key: 'leaderboard', label: t('circle.rankings') },
             ].map((tab) => {
               const selected = activeTab === tab.key;
               return (
@@ -421,22 +420,28 @@ export default function HifzCircleScreen() {
           <>
             <View className="mb-4 rounded-2xl bg-white/10 px-4 py-4">
               <Text className="text-sm font-semibold uppercase tracking-wide text-brand-200">
-                Loop settings
+                {t('circle.loopSettings')}
               </Text>
               <Text className="mt-2 text-base text-white">
-                Ayah {activeVerse.ayahNumber} focused with {preferences.repeatCount}{' '}
-                repeat mode.
+                {t('circle.ayahFocused', {
+                  ayah: activeVerse.ayahNumber,
+                  repeat: preferences.repeatCount,
+                })}
               </Text>
               <View className="mt-4 flex-row flex-wrap gap-2">
                 {REPEAT_OPTIONS.map((option) => {
                   const selected = preferences.repeatCount === option;
                   const label =
-                    option === '1' ? 'Once' : option === '3' ? '3 Times' : 'Loop';
+                    option === '1'
+                      ? t('circle.once')
+                      : option === '3'
+                        ? t('circle.threeTimes')
+                        : t('circle.loop');
                   return (
                     <Pressable
                       key={option}
                       accessibilityRole="button"
-                      accessibilityLabel={`Set repeat to ${label}`}
+                      accessibilityLabel={label}
                       onPress={() => {
                         void setRepeatCount(option);
                       }}
@@ -481,7 +486,7 @@ export default function HifzCircleScreen() {
                     <Pressable
                       key={verse.id}
                       accessibilityRole="button"
-                      accessibilityLabel={`Focus ayah ${verse.ayahNumber}`}
+                      accessibilityLabel={`${t('common.ayah')} ${verse.ayahNumber}`}
                       onPress={() => setActiveAyahNumber(verse.ayahNumber)}
                       className={`min-h-11 min-w-11 items-center justify-center rounded-xl px-3 ${
                         selected ? 'bg-white' : 'bg-brand-700'
@@ -505,7 +510,7 @@ export default function HifzCircleScreen() {
         {activeTab === 'translation' ? (
           <View className="rounded-2xl bg-white px-4 py-4">
             <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-              Comparative reading
+              {t('circle.comparative')}
             </Text>
             <Text
               className="mt-4 text-right text-3xl font-bold text-brand-800"
@@ -515,23 +520,23 @@ export default function HifzCircleScreen() {
             </Text>
             <Text className="mt-4 text-base leading-7 text-brand-700">
               {activeVerse.meaning?.text ??
-                'Translation is not available for this ayah yet.'}
+                t('circle.translationMissing')}
             </Text>
             <Text className="mt-2 text-xs text-brand-500">
-              {activeVerse.meaning?.sourceLabel ?? 'Approved translation'}
+              {activeVerse.meaning?.sourceLabel ?? t('home.approvedTranslation')}
             </Text>
             <Text className="mt-4 text-sm text-brand-600">
-              Preferred language: {activeLearner.preferred_language.toUpperCase()}
-              {activeVerse.meaning?.isFallback
-                ? ' · English is shown until your preferred translation is ready.'
-                : ''}
+              {t('circle.preferredLanguage', {
+                code: activeLearner.preferred_language.toUpperCase(),
+              })}
+              {activeVerse.meaning?.isFallback ? t('circle.englishUntilReady') : ''}
             </Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
                 preferences.showTranslation
-                  ? 'Hide translation in player'
-                  : 'Show translation in player'
+                  ? t('circle.hideFromPlayer')
+                  : t('circle.showInPlayer')
               }
               onPress={() => {
                 void setShowTranslation(!preferences.showTranslation);
@@ -540,8 +545,8 @@ export default function HifzCircleScreen() {
             >
               <Text className="text-sm font-semibold text-brand-700">
                 {preferences.showTranslation
-                  ? 'Hide from Suba player'
-                  : 'Show in Suba player'}
+                  ? t('circle.hideFromPlayer')
+                  : t('circle.showInPlayer')}
               </Text>
             </Pressable>
           </View>
@@ -550,11 +555,10 @@ export default function HifzCircleScreen() {
         {activeTab === 'leaderboard' ? (
           <View className="rounded-2xl bg-white px-4 py-4">
             <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-              Circle standings
+              {t('circle.standings')}
             </Text>
             <Text className="mt-2 text-sm text-brand-600">
-              Room rankings stay here. Open the Leaderboard tab for age, Juz, and All
-              Students boards.
+              {t('circle.standingsHelp')}
             </Text>
             <View className="mt-4 gap-3">
               {leaderboard.map((entry) => (
@@ -570,7 +574,7 @@ export default function HifzCircleScreen() {
                         #{entry.rank} {entry.name}
                       </Text>
                       <Text className="mt-1 text-sm text-brand-600">
-                        {entry.streak} day streak
+                        {t('circle.dayStreak', { count: entry.streak })}
                       </Text>
                     </View>
                     <Text className="text-base font-bold text-brand-700">
@@ -582,7 +586,7 @@ export default function HifzCircleScreen() {
             </View>
             <View className="mt-4">
               <PrimaryButton
-                label="Open Leaderboard"
+                label={t('circle.openLeaderboard')}
                 onPress={() => router.push('/(app)/leaderboard' as never)}
               />
             </View>
@@ -591,7 +595,7 @@ export default function HifzCircleScreen() {
 
         <View className="mt-6 rounded-2xl bg-white px-4 py-4">
           <PrimaryButton
-            label="Open full reader"
+            label={t('circle.openFullReader')}
             onPress={() =>
               router.push({
                 pathname: '/(app)/reader',
@@ -603,7 +607,7 @@ export default function HifzCircleScreen() {
             }
           />
           <PrimaryButton
-            label="Continue lesson"
+            label={t('circle.continueLesson')}
             onPress={() => router.push('/(app)/lesson')}
             variant="secondary"
           />

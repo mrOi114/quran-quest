@@ -13,6 +13,7 @@ import {
   useAuth,
   type AgeGroupId,
 } from '@/features/auth';
+import { useI18n, type MessageKey } from '@/i18n';
 
 export default function GuestOnboardingScreen() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function GuestOnboardingScreen() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { t } = useI18n(preferredLanguage);
 
   async function onSubmit() {
     setFormError(null);
@@ -52,7 +54,7 @@ export default function GuestOnboardingScreen() {
       router.replace('/(app)/home');
     } catch (error) {
       setFormError(
-        error instanceof Error ? error.message : 'Could not start guest trial',
+        error instanceof Error ? error.message : t('guest.startError'),
       );
     } finally {
       setLoading(false);
@@ -61,17 +63,17 @@ export default function GuestOnboardingScreen() {
 
   return (
     <AuthScreen
-      title="Continue as guest"
-      subtitle="No email or password needed. Your progress stays on this device until you create an account."
+      title={t('guest.onboardingTitle')}
+      subtitle={t('guest.onboardingSubtitle')}
     >
       <TextField
-        label="First name or nickname"
+        label={t('guest.firstName')}
         value={displayName}
         onChangeText={setDisplayName}
         error={fieldErrors.displayName}
       />
 
-      <Text className="mb-2 text-sm font-medium text-brand-700">Age group</Text>
+      <Text className="mb-2 text-sm font-medium text-brand-700">{t('guest.ageGroup')}</Text>
       <View className="mb-4 flex-row flex-wrap gap-2">
         {AGE_GROUPS.map((group) => {
           const selected = ageGroup === group.id;
@@ -88,7 +90,7 @@ export default function GuestOnboardingScreen() {
               <Text
                 className={`text-sm font-medium ${selected ? 'text-brand-700' : 'text-brand-500'}`}
               >
-                {group.label}
+                {t(`age.${group.id}` as MessageKey)}
               </Text>
             </Pressable>
           );
@@ -112,12 +114,12 @@ export default function GuestOnboardingScreen() {
       {formError ? <Text className="mb-3 text-sm text-red-600">{formError}</Text> : null}
 
       <PrimaryButton
-        label="Start learning"
+        label={t('guest.startLearning')}
         onPress={() => void onSubmit()}
         loading={loading}
       />
       <PrimaryButton
-        label="Back"
+        label={t('common.back')}
         onPress={() => router.replace('/(auth)/welcome')}
         variant="secondary"
       />

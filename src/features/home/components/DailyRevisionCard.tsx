@@ -1,30 +1,31 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 type DailyRevisionCardProps = {
   verseCount: number;
   onBegin: () => void;
 };
 
 export function DailyRevisionCard({ verseCount, onBegin }: DailyRevisionCardProps) {
+  const { t } = useI18n();
   const countLabel =
     verseCount === 0
-      ? 'No verses waiting today'
+      ? t('home.noVersesWaiting')
       : verseCount === 1
-        ? '1 verse waiting'
-        : `${verseCount} verses waiting`;
+        ? t('home.oneVerseWaiting')
+        : t('home.versesWaiting', { count: verseCount });
 
   return (
     <View className="mb-4 rounded-2xl bg-white px-4 py-4">
       <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-        Daily Revision
+        {t('home.dailyRevision')}
       </Text>
       <Text className="mt-2 text-lg font-semibold text-brand-800">{countLabel}</Text>
-      <Text className="mt-1 text-sm text-brand-600">
-        A little revision each day keeps your Hifz strong.
-      </Text>
+      <Text className="mt-1 text-sm text-brand-600">{t('home.revisionHelp')}</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Begin revision"
+        accessibilityLabel={t('home.beginRevision')}
         accessibilityState={{ disabled: verseCount === 0 }}
         disabled={verseCount === 0}
         onPress={onBegin}
@@ -37,7 +38,7 @@ export function DailyRevisionCard({ verseCount, onBegin }: DailyRevisionCardProp
             verseCount === 0 ? 'text-brand-400' : 'text-white'
           }`}
         >
-          Begin Revision
+          {t('home.beginRevision')}
         </Text>
       </Pressable>
     </View>

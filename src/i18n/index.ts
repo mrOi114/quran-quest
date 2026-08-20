@@ -12,6 +12,7 @@ export {
 } from './translate';
 export { useI18n } from './useI18n';
 export {
+  localizeAchievement,
   localizeGameDefinition,
   localizeGameQuestion,
   type LocalizedGameQuestion,

@@ -1,7 +1,8 @@
-import type { GameAchievementId, GameDefinition, GameId, GameQuestion } from '@/features/games/types';
+import type { GameAchievementId, GameDefinition, GameQuestion } from '@/features/games/types';
 
-import { t } from './translate';
+import type { MessageKey } from './en';
 import { GAME_QUESTION_SO } from './gameQuestions.so';
+import { t } from './translate';
 
 export type LocalizedGameQuestion = GameQuestion;
 
@@ -11,8 +12,8 @@ export function localizeGameDefinition(
 ): GameDefinition {
   return {
     ...game,
-    title: t(`game.${game.id}.title` as const, language),
-    subtitle: t(`game.${game.id}.subtitle` as const, language),
+    title: t(`game.${game.id}.title` as MessageKey, language),
+    subtitle: t(`game.${game.id}.subtitle` as MessageKey, language),
   };
 }
 
@@ -21,8 +22,8 @@ export function localizeAchievement(
   language: string | null | undefined,
 ): { title: string; description: string } {
   return {
-    title: t(`achieve.${id}.title` as const, language),
-    description: t(`achieve.${id}.description` as const, language),
+    title: t(`achieve.${id}.title` as MessageKey, language),
+    description: t(`achieve.${id}.description` as MessageKey, language),
   };
 }
 
@@ -57,6 +58,3 @@ export function localizeGameQuestion(
   };
 }
 
-export function gameTitleKey(gameId: GameId): `game.${GameId}.title` {
-  return `game.${gameId}.title`;
-}

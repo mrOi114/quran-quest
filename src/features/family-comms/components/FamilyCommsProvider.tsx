@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import { useAuth } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 import { useFamilyCall } from '../hooks/useFamilyCall';
 import { useFamilyCircle } from '../hooks/useFamilyCircle';
@@ -41,6 +42,7 @@ export function useFamilyComms(): FamilyCommsContextValue {
 
 export function FamilyCommsProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const { language, t } = useI18n();
   const { profile, session } = useAuth();
   const { circle, loading, error, canUseFamilyComms, reload } = useFamilyCircle();
   const call = useFamilyCall(circle);
@@ -55,11 +57,11 @@ export function FamilyCommsProvider({ children }: { children: ReactNode }) {
         if (!allowed) {
           return;
         }
-        return registerFamilyCallCategory();
+        return registerFamilyCallCategory(language);
       })
       .then(() => registerFamilyPushToken(profile.id))
       .catch(() => undefined);
-  }, [profile, session]);
+  }, [language, profile, session]);
 
   useEffect(() => {
     if (!circle) {
@@ -82,7 +84,7 @@ export function FamilyCommsProvider({ children }: { children: ReactNode }) {
 
   const callerName = incoming
     ? circle?.members.find((member) => member.id === incoming.created_by)?.display_name ??
-      'Family member'
+      t('call.familyMember')
     : '';
 
   const value = useMemo(

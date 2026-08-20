@@ -1,5 +1,7 @@
 import { Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 type GamesProgressCardProps = {
   xpPoints: number;
   gamesCompleted: number;
@@ -13,16 +15,17 @@ export function GamesProgressCard({
   achievements,
   streakDays,
 }: GamesProgressCardProps) {
+  const { t } = useI18n();
   return (
     <View className="rounded-3xl bg-white px-4 py-4">
       <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-        Your Progress
+        {t('games.yourProgress')}
       </Text>
       <View className="mt-3 flex-row flex-wrap gap-3">
-        <Stat label="XP" value={String(xpPoints)} />
-        <Stat label="Games" value={String(gamesCompleted)} />
-        <Stat label="Achievements" value={String(achievements)} />
-        <Stat label="Streak" value={`${streakDays}d`} />
+        <Stat label={t('common.xp')} value={String(xpPoints)} />
+        <Stat label={t('games.statGames')} value={String(gamesCompleted)} />
+        <Stat label={t('games.statAchievements')} value={String(achievements)} />
+        <Stat label={t('games.statStreak')} value={`${streakDays}d`} />
       </View>
     </View>
   );

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useI18n } from '@/i18n';
+
 import {
   fetchFamilyMessages,
   notifyFamilyEvent,
@@ -10,6 +12,7 @@ import {
 import type { FamilyChatMessage, FamilyCircleState, FamilyMessageKind } from '../types';
 
 export function useFamilyChat(circle: FamilyCircleState | null) {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<FamilyChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -23,10 +26,10 @@ export function useFamilyChat(circle: FamilyCircleState | null) {
   const decorate = useCallback(
     (row: { id: string; family_id: string; sender_id: string; kind: FamilyMessageKind; body: string; created_at: string }): FamilyChatMessage => ({
       ...row,
-      senderName: nameById.get(row.sender_id) ?? 'Family',
+      senderName: nameById.get(row.sender_id) ?? t('chat.family'),
       isMine: row.sender_id === circle?.actorId,
     }),
-    [circle?.actorId, nameById],
+    [circle?.actorId, nameById, t],
   );
 
   useEffect(() => {
@@ -57,8 +60,8 @@ export function useFamilyChat(circle: FamilyCircleState | null) {
         const next = [...current, decorate(row)];
         if (row.sender_id !== circle.actorId) {
           showLocalFamilyNotification(
-            'Family Chat',
-            `${nameById.get(row.sender_id) ?? 'Family'}: ${row.body}`,
+            t('chat.title'),
+            `${nameById.get(row.sender_id) ?? t('chat.family')}: ${row.body}`,
           );
         }
         return next;
@@ -69,7 +72,7 @@ export function useFamilyChat(circle: FamilyCircleState | null) {
       cancelled = true;
       unsubscribe();
     };
-  }, [circle, decorate, nameById]);
+  }, [circle, decorate, nameById, t]);
 
   const send = useCallback(
     async (body: string, kind: FamilyMessageKind = 'text') => {
@@ -100,8 +103,8 @@ export function useFamilyChat(circle: FamilyCircleState | null) {
           kind: 'message',
           familyId: circle.familyId,
           recipientIds: recipients,
-          title: 'Family Chat',
-          body: `${nameById.get(circle.actorId) ?? 'Family'}: ${saved.body}`,
+          title: t('chat.title'),
+          body: `${nameById.get(circle.actorId) ?? t('chat.family')}: ${saved.body}`,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Access denied');
@@ -110,7 +113,7 @@ export function useFamilyChat(circle: FamilyCircleState | null) {
         setSending(false);
       }
     },
-    [circle, decorate, nameById],
+    [circle, decorate, nameById, t],
   );
 
   return { messages, error, sending, send };

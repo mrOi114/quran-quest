@@ -1,5 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 type ContinueLearningButtonProps = {
   hasStarted: boolean;
   onPress: () => void;
@@ -9,15 +11,14 @@ export function ContinueLearningButton({
   hasStarted,
   onPress,
 }: ContinueLearningButtonProps) {
-  const label = hasStarted ? 'Continue Learning' : 'Start Learning';
+  const { t } = useI18n();
+  const label = hasStarted ? t('home.continueLearning') : t('home.startLearning');
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityHint={
-        hasStarted ? "Resumes your last Qur'an lesson" : "Starts your first Qur'an lesson"
-      }
+      accessibilityHint={hasStarted ? t('home.continueHint') : t('home.startHint')}
       onPress={onPress}
       className="mb-5 min-h-16 items-center justify-center rounded-2xl bg-brand-400 px-5 py-4 active:opacity-90"
     >

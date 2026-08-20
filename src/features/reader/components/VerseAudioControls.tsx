@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 type VerseAudioControlsProps = {
@@ -18,12 +19,6 @@ type VerseAudioControlsProps = {
   canGoNext?: boolean;
 };
 
-const REPEAT_LABEL: Record<AudioRepeatCount, string> = {
-  '1': 'Once',
-  '3': '×3',
-  loop: 'Loop',
-};
-
 export function VerseAudioControls({
   isPlaying,
   repeatCount,
@@ -39,27 +34,33 @@ export function VerseAudioControls({
   canGoPrevious = true,
   canGoNext = true,
 }: VerseAudioControlsProps) {
+  const { t } = useI18n();
+  const repeatLabel: Record<AudioRepeatCount, string> = {
+    '1': t('reader.once'),
+    '3': t('reader.times3'),
+    loop: t('reader.loop'),
+  };
   return (
     <View className="mt-4">
-      <Text className="mb-2 text-center text-xs text-brand-400">Beginner Qari</Text>
+      <Text className="mb-2 text-center text-xs text-brand-400">{t('reader.beginnerQari')}</Text>
       <View className="flex-row flex-wrap items-center justify-center gap-2">
         {onPrevious ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Previous verse"
+            accessibilityLabel={t('reader.previousVerse')}
             disabled={!canGoPrevious}
             onPress={onPrevious}
             className={`min-h-12 min-w-[72px] items-center justify-center rounded-xl px-3 ${
               canGoPrevious ? 'bg-brand-100' : 'bg-brand-50 opacity-50'
             }`}
           >
-            <Text className="text-base font-semibold text-brand-700">Prev</Text>
+            <Text className="text-base font-semibold text-brand-700">{t('common.prev')}</Text>
           </Pressable>
         ) : null}
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={isPlaying ? 'Pause audio' : 'Listen'}
+          accessibilityLabel={isPlaying ? t('reader.pause') : t('reader.listenBtn')}
           disabled={!audioEnabled}
           onPress={isPlaying ? onPause : onPlay}
           className={`min-h-12 min-w-[112px] items-center justify-center rounded-xl px-4 ${
@@ -67,56 +68,60 @@ export function VerseAudioControls({
           }`}
         >
           <Text className="text-base font-semibold text-white">
-            {!audioEnabled ? 'Audio off' : isPlaying ? 'Pause' : 'Listen'}
+            {!audioEnabled
+              ? t('reader.audioOff')
+              : isPlaying
+                ? t('reader.pause')
+                : t('reader.listenBtn')}
           </Text>
         </Pressable>
 
         {onNext ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Next verse"
+            accessibilityLabel={t('reader.nextVerse')}
             disabled={!canGoNext}
             onPress={onNext}
             className={`min-h-12 min-w-[72px] items-center justify-center rounded-xl px-3 ${
               canGoNext ? 'bg-brand-100' : 'bg-brand-50 opacity-50'
             }`}
           >
-            <Text className="text-base font-semibold text-brand-700">Next</Text>
+            <Text className="text-base font-semibold text-brand-700">{t('common.next')}</Text>
           </Pressable>
         ) : null}
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Play again"
+          accessibilityLabel={t('reader.playAgain')}
           disabled={!audioEnabled}
           onPress={onReplay}
           className={`min-h-12 min-w-[88px] items-center justify-center rounded-xl px-4 ${
             audioEnabled ? 'bg-brand-100' : 'bg-brand-50 opacity-50'
           }`}
         >
-          <Text className="text-base font-semibold text-brand-700">Again</Text>
+          <Text className="text-base font-semibold text-brand-700">{t('reader.again')}</Text>
         </Pressable>
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Repeat setting ${REPEAT_LABEL[repeatCount]}. Tap to change.`}
+          accessibilityLabel={`${repeatLabel[repeatCount]}`}
           onPress={onCycleRepeat}
           className="min-h-12 min-w-[88px] items-center justify-center rounded-xl border border-brand-200 bg-white px-4"
         >
           <Text className="text-sm font-semibold text-brand-600">
-            {REPEAT_LABEL[repeatCount]}
+            {repeatLabel[repeatCount]}
           </Text>
         </Pressable>
 
         {onToggleAudioEnabled ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={audioEnabled ? 'Turn audio off' : 'Turn audio on'}
+            accessibilityLabel={audioEnabled ? t('reader.turnAudioOff') : t('reader.turnAudioOn')}
             onPress={onToggleAudioEnabled}
             className="min-h-12 min-w-[88px] items-center justify-center rounded-xl border border-brand-200 bg-white px-4"
           >
             <Text className="text-sm font-semibold text-brand-600">
-              {audioEnabled ? 'Sound on' : 'Sound off'}
+            {audioEnabled ? t('reader.soundOn') : t('reader.soundOff')}
             </Text>
           </Pressable>
         ) : null}

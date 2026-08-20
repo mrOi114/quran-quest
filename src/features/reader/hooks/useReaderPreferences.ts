@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/features/auth';
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import {
@@ -21,6 +22,7 @@ type UseReaderPreferencesResult = {
 
 export function useReaderPreferences(): UseReaderPreferencesResult {
   const { activeLearner } = useAuth();
+  const { t } = useI18n();
   const [preferences, setPreferences] = useState<ReaderPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export function useReaderPreferences(): UseReaderPreferencesResult {
         if (!cancelled) {
           setPreferences(buildDefaultPreferences(activeLearner));
           setError(
-            err instanceof Error ? err.message : 'Could not load reader settings.',
+            err instanceof Error ? err.message : t('reader.settingsLoadError'),
           );
         }
       } finally {
@@ -76,10 +78,10 @@ export function useReaderPreferences(): UseReaderPreferencesResult {
       try {
         await saveReaderPreferences(activeLearner, next);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not save reader settings.');
+        setError(err instanceof Error ? err.message : t('reader.settingsSaveError'));
       }
     },
-    [activeLearner],
+    [activeLearner, t],
   );
 
   const setShowTranslation = useCallback(

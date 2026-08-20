@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 import {
   markVerseLearned,
@@ -33,6 +34,7 @@ type UseLessonSessionResult = {
 
 export function useLessonSession(lessonKey: string | undefined): UseLessonSessionResult {
   const { activeLearner, refreshGuestProgress } = useAuth();
+  const { t } = useI18n();
   const [session, setSession] = useState<LessonSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not open this lesson.');
+          setError(err instanceof Error ? err.message : t('lesson.openError'));
           setSession(null);
         }
       } finally {
@@ -83,7 +85,7 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
     return () => {
       cancelled = true;
     };
-  }, [activeLearner, lessonKey, refreshGuestProgress, reloadKey]);
+  }, [activeLearner, lessonKey, refreshGuestProgress, reloadKey, t]);
 
   const reload = useCallback(async () => {
     setReloadKey((value) => value + 1);
@@ -109,11 +111,11 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
       const nextIndex = Math.min(activeVerseIndex + 1, next.verses.length - 1);
       setActiveVerseIndex(nextIndex);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save verse progress.');
+      setError(err instanceof Error ? err.message : t('lesson.saveError'));
     } finally {
       setIsLoading(false);
     }
-  }, [activeLearner, activeVerseIndex, refreshGuestProgress, session]);
+  }, [activeLearner, activeVerseIndex, refreshGuestProgress, session, t]);
 
   const completeCurrentLesson = useCallback(async () => {
     if (!activeLearner || !session) {
@@ -129,12 +131,12 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
       await refreshGuestProgress();
       return nextLessonKey;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not complete the lesson.');
+      setError(err instanceof Error ? err.message : t('lesson.completeError'));
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [activeLearner, refreshGuestProgress, session]);
+  }, [activeLearner, refreshGuestProgress, session, t]);
 
   const submitMasteryTest = useCallback(
     async (correctCount: number, totalCount: number) => {
@@ -152,13 +154,13 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
         await refreshGuestProgress();
         return result;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not save your test.');
+        setError(err instanceof Error ? err.message : t('lesson.testSaveError'));
         return null;
       } finally {
         setIsLoading(false);
       }
     },
-    [activeLearner, refreshGuestProgress, session],
+    [activeLearner, refreshGuestProgress, session, t],
   );
 
   const submitUnlockCheck = useCallback(
@@ -177,13 +179,13 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
         await refreshGuestProgress();
         return result;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Could not check this lesson.');
+        setError(err instanceof Error ? err.message : t('lesson.checkError'));
         return null;
       } finally {
         setIsLoading(false);
       }
     },
-    [activeLearner, refreshGuestProgress, session],
+    [activeLearner, refreshGuestProgress, session, t],
   );
 
   return {

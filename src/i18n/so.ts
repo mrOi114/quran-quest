@@ -267,6 +267,7 @@ export const so = {
   'call.turnedOff': 'Wicitaannada waa la damiyay ilmahan. Weydii waalidka inuu shido.',
   'call.micUnavailable': 'Makarafoonka lagama heli karo qalabkan.',
   'call.webOnly': 'Wicitaannada codka waxaa laga heli karaa abka webka ee qalabkan.',
+  'call.permissionDenied': 'Oggolow makarafoonka si aad u samayso wicitaan qoys.',
   'call.isCalling': '{name} ayaa ku wacaya',
   'call.callA11y': 'Wac {name}',
 

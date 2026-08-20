@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/features/auth';
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import { useBrowseReader } from '../hooks/useBrowseReader';
@@ -24,6 +25,7 @@ function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
 
 export function BrowseReaderScreen({ surah, ayah }: BrowseReaderScreenProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const [pickerOpen, setPickerOpen] = useState(false);
   const {
     surahs,
@@ -47,7 +49,7 @@ export function BrowseReaderScreen({ surah, ayah }: BrowseReaderScreenProps) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
-        <Text className="mt-3 text-base text-brand-50">Opening the reader…</Text>
+        <Text className="mt-3 text-base text-brand-50">{t('reader.loading')}</Text>
       </SafeAreaView>
     );
   }
@@ -55,10 +57,10 @@ export function BrowseReaderScreen({ surah, ayah }: BrowseReaderScreenProps) {
   if (error && !currentSurah) {
     return (
       <SafeAreaView className="flex-1 justify-center bg-brand-50 px-6">
-        <Text className="mb-2 text-2xl font-semibold text-brand-800">Reader</Text>
+        <Text className="mb-2 text-2xl font-semibold text-brand-800">{t('reader.title')}</Text>
         <Text className="mb-6 text-base text-brand-600">{error}</Text>
         <PrimaryButton
-          label="Back to Home"
+          label={t('common.backToHome')}
           onPress={() => router.replace('/(app)/home')}
         />
       </SafeAreaView>
@@ -69,10 +71,10 @@ export function BrowseReaderScreen({ surah, ayah }: BrowseReaderScreenProps) {
     return (
       <SafeAreaView className="flex-1 justify-center bg-brand-50 px-6">
         <Text className="mb-6 text-base text-brand-600">
-          Keep learning to unlock more of Juz 30.
+          {t('reader.unlockMore')}
         </Text>
         <PrimaryButton
-          label="Continue Learning"
+          label={t('home.continueLearning')}
           onPress={() => router.replace('/(app)/lesson')}
         />
       </SafeAreaView>
@@ -93,12 +95,12 @@ export function BrowseReaderScreen({ surah, ayah }: BrowseReaderScreenProps) {
         <ReaderChrome
           titleArabic={currentSurah.nameArabic}
           titleLatin={currentSurah.nameLatin}
-          subtitle={`Ayah ${activeVerse.ayahNumber} · Read Juz 30`}
+          subtitle={t('reader.ayahReadJuz', { ayah: activeVerse.ayahNumber })}
           onBack={() => router.replace('/(app)/home')}
           onOpenSurahPicker={() => setPickerOpen((value) => !value)}
           footer={
             <Text className="mt-4 text-center text-xs text-brand-100">
-              Arabic is for memorization. Translation helps understanding only.
+              {t('lesson.arabicNote')}
             </Text>
           }
         >
@@ -140,7 +142,7 @@ export function BrowseReaderScreen({ surah, ayah }: BrowseReaderScreenProps) {
                   <Pressable
                     key={verse.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`Go to ayah ${verse.ayahNumber}`}
+                    accessibilityLabel={t('lesson.goToAyah', { ayah: verse.ayahNumber })}
                     onPress={() => setActiveAyahNumber(verse.ayahNumber)}
                     className={`min-h-11 min-w-11 items-center justify-center rounded-xl px-3 ${
                       selected
@@ -165,7 +167,7 @@ export function BrowseReaderScreen({ surah, ayah }: BrowseReaderScreenProps) {
 
           <View className="mt-6 rounded-2xl bg-brand-50 px-4 py-4">
             <PrimaryButton
-              label="Practice in lesson"
+              label={t('reader.practiceInLesson')}
               onPress={() => router.push('/(app)/lesson')}
             />
           </View>

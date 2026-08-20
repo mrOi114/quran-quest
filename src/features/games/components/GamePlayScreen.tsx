@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth';
+import { localizeGameDefinition, useI18n } from '@/i18n';
 
 import { isGameId } from '../constants';
 import { useGameSession } from '../hooks/useGameSession';
@@ -18,17 +19,18 @@ type GamePlayScreenProps = {
 
 export function GamePlayScreen({ gameIdParam }: GamePlayScreenProps) {
   const router = useRouter();
+  const { t } = useI18n();
 
   if (!isGameId(gameIdParam)) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600 px-6">
-        <Text className="text-center text-xl font-bold text-white">Game not found</Text>
+        <Text className="text-center text-xl font-bold text-white">{t('games.notFound')}</Text>
         <Pressable
           accessibilityRole="button"
           onPress={() => router.replace('/(app)/games')}
           className="mt-4 min-h-12 items-center justify-center"
         >
-          <Text className="text-base text-brand-100">Back to Games</Text>
+          <Text className="text-base text-brand-100">{t('games.backToGames')}</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -40,6 +42,7 @@ export function GamePlayScreen({ gameIdParam }: GamePlayScreenProps) {
 function GamePlayBody({ gameId }: { gameId: GameId }) {
   const router = useRouter();
   const { activeLearner } = useAuth();
+  const { t, language } = useI18n();
   const session = useGameSession({ gameId, learner: activeLearner });
 
   if (!session.ready || !session.definition) {
@@ -78,14 +81,14 @@ function GamePlayBody({ gameId }: { gameId: GameId }) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600 px-6">
         <Text className="text-center text-base text-white">
-          No questions are available for this age group yet.
+          {t('games.noQuestions')}
         </Text>
         <Pressable
           accessibilityRole="button"
           onPress={() => router.replace('/(app)/games')}
           className="mt-4"
         >
-          <Text className="text-brand-100">Back to Games</Text>
+          <Text className="text-brand-100">{t('games.backToGames')}</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -104,18 +107,19 @@ function GamePlayBody({ gameId }: { gameId: GameId }) {
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Back to games"
+          accessibilityLabel={t('games.backToGames')}
           onPress={() => router.back()}
           className="min-h-11 justify-center"
         >
-          <Text className="text-sm font-semibold text-brand-100">← Games</Text>
+          <Text className="text-sm font-semibold text-brand-100">← {t('games.title')}</Text>
         </Pressable>
 
         <Text className="mt-2 text-sm font-semibold uppercase tracking-wide text-brand-100">
-          {session.definition.icon} {session.definition.title}
+          {session.definition.icon}{' '}
+          {localizeGameDefinition(session.definition, language).title}
         </Text>
         <Text className="mt-1 text-base text-brand-100">
-          Question {session.index + 1} of {session.total}
+          {t('games.questionOf', { n: session.index + 1, total: session.total })}
         </Text>
 
         <View className="mt-4 h-2 overflow-hidden rounded-full bg-brand-500/40">

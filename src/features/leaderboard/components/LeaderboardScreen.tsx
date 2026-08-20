@@ -10,10 +10,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/features/auth';
+import { useI18n, type MessageKey } from '@/i18n';
 
 import { JUZ_CHALLENGES, LEADERBOARD_VIEWS, type LeaderboardViewId } from '../constants';
 import { useLeaderboard } from '../hooks/useLeaderboard';
-import type { LeaderboardBoard, LeaderboardEntry } from '../types';
+import type { LeaderboardBoard, LeaderboardEntry, LeaderboardModel } from '../types';
 import { KeepJourneyCard } from './KeepJourneyCard';
 
 function medalForRank(rank: number): string {
@@ -24,6 +25,7 @@ function medalForRank(rank: number): string {
 }
 
 function RankRow({ entry }: { entry: LeaderboardEntry }) {
+  const { t } = useI18n();
   return (
     <View
       className={`rounded-2xl px-4 py-4 ${
@@ -38,15 +40,15 @@ function RankRow({ entry }: { entry: LeaderboardEntry }) {
           <View className="flex-1">
             <Text className="text-base font-semibold text-brand-800">
               {entry.flag} {entry.displayName}
-              {entry.isCurrentUser ? ' (You)' : ''}
+              {entry.isCurrentUser ? t('leaderboard.youSuffix') : ''}
             </Text>
             <Text className="mt-1 text-xs text-brand-500">
-              Rank {entry.rank} · Country shown only
+              {t('leaderboard.rankCountry', { rank: entry.rank })}
             </Text>
           </View>
         </View>
         <Text className="text-base font-bold text-brand-700">
-          {entry.points.toLocaleString()} pts
+          {t('leaderboard.pts', { points: entry.points.toLocaleString() })}
         </Text>
       </View>
     </View>
@@ -54,37 +56,107 @@ function RankRow({ entry }: { entry: LeaderboardEntry }) {
 }
 
 function YourPositionCard({ board }: { board: LeaderboardBoard }) {
+  const { t } = useI18n();
   const { you } = board;
   return (
     <View className="mb-4 rounded-3xl bg-white px-4 py-4">
       <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-        Your Position
+        {t('leaderboard.yourPosition')}
       </Text>
       <Text className="mt-2 text-3xl font-bold text-brand-800">#{you.rank}</Text>
       <Text className="mt-1 text-base text-brand-600">
-        {you.points.toLocaleString()} points · {you.totalInBoard} students on this board
+        {t('leaderboard.pointsStudents', {
+          points: you.points.toLocaleString(),
+          total: you.totalInBoard,
+        })}
       </Text>
       {you.pointsBehindNext != null && you.pointsBehindNext > 0 ? (
         <Text className="mt-3 text-sm font-semibold text-brand-700">
-          You are only {you.pointsBehindNext} points behind #{you.rank - 1}.
+          {t('leaderboard.behind', {
+            points: you.pointsBehindNext,
+            rank: you.rank - 1,
+          })}
         </Text>
       ) : null}
       {you.placesMoved != null && you.placesMoved > 0 ? (
         <Text className="mt-2 text-sm font-semibold text-emerald-700">
-          ↑ {you.placesMoved} places this week
+          {t('leaderboard.placesUp', { count: you.placesMoved })}
         </Text>
       ) : null}
       {you.placesMoved != null && you.placesMoved < 0 ? (
         <Text className="mt-2 text-sm font-semibold text-brand-600">
-          Keep learning — your next climb starts with one lesson.
+          {t('leaderboard.keepLearning')}
         </Text>
       ) : null}
     </View>
   );
 }
 
+function viewLabel(viewId: LeaderboardViewId, t: (key: MessageKey) => string): string {
+  if (viewId === 'age') return t('leaderboard.viewAge');
+  if (viewId === 'juz') return t('leaderboard.viewJuz');
+  return t('leaderboard.viewAll');
+}
+
+function boardTitle(
+  board: LeaderboardBoard,
+  model: LeaderboardModel,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+): string {
+  if (board.view === 'age') {
+    return t(`age.${model.ageGroup}` as MessageKey);
+  }
+  if (board.view === 'juz') {
+    return t('leaderboard.juzChallenge', { n: board.juzNumber ?? 30 });
+  }
+  return t('leaderboard.viewAll');
+}
+
+function boardSubtitle(
+  board: LeaderboardBoard,
+  t: (key: MessageKey) => string,
+): string {
+  if (board.view === 'age') return t('leaderboard.ageSubtitle');
+  if (board.view === 'juz') {
+    return board.juzStatus === 'active'
+      ? t('leaderboard.juzActiveSubtitle')
+      : t('leaderboard.juzUpcomingSubtitle');
+  }
+  return t('leaderboard.allSubtitle');
+}
+
+function motivationText(
+  id: string,
+  board: LeaderboardBoard,
+  model: LeaderboardModel,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+  fallback: string,
+): string {
+  switch (id) {
+    case 'streak':
+      return t('leaderboard.motivation.streak', { count: model.effort.streakDays });
+    case 'gap':
+      return t('leaderboard.motivation.gap', { points: board.you.pointsBehindNext ?? 0 });
+    case 'top':
+      return t('leaderboard.motivation.top');
+    case 'lessons':
+      return t('leaderboard.motivation.lessons', { count: model.effort.lessonsCompleted });
+    case 'games':
+      return t('leaderboard.motivation.games');
+    case 'rose':
+      return t('leaderboard.motivation.rose', { count: board.you.placesMoved ?? 0 });
+    case 'nudge':
+      return t('leaderboard.motivation.nudge');
+    case 'start':
+      return t('leaderboard.motivation.start');
+    default:
+      return fallback;
+  }
+}
+
 export function LeaderboardScreen() {
   const router = useRouter();
+  const { t } = useI18n();
   const [view, setView] = useState<LeaderboardViewId>('age');
   const [selectedJuz, setSelectedJuz] = useState<(typeof JUZ_CHALLENGES)[number]['juzNumber']>(30);
   const [dismissGuestCard, setDismissGuestCard] = useState(false);
@@ -101,7 +173,7 @@ export function LeaderboardScreen() {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
-        <Text className="mt-3 text-base text-brand-50">Opening the leaderboard…</Text>
+        <Text className="mt-3 text-base text-brand-50">{t('leaderboard.loading')}</Text>
       </SafeAreaView>
     );
   }
@@ -110,14 +182,14 @@ export function LeaderboardScreen() {
     return (
       <SafeAreaView className="flex-1 justify-center bg-brand-600 px-6">
         <View className="rounded-3xl bg-white px-5 py-6">
-          <Text className="text-2xl font-semibold text-brand-800">Leaderboard</Text>
+          <Text className="text-2xl font-semibold text-brand-800">{t('leaderboard.title')}</Text>
           <Text className="mt-3 text-base text-brand-600">
-            {error ?? 'Choose a learner profile to see rankings.'}
+            {error ?? t('leaderboard.chooseLearner')}
           </Text>
           <View className="mt-6">
-            <PrimaryButton label="Try again" onPress={() => void refresh()} />
+            <PrimaryButton label={t('common.tryAgain')} onPress={() => void refresh()} />
             <PrimaryButton
-              label="Back to Home"
+              label={t('common.backToHome')}
               onPress={() => router.replace('/(app)/home')}
               variant="secondary"
             />
@@ -136,17 +208,17 @@ export function LeaderboardScreen() {
       >
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            🏆 Leaderboard
+            {t('leaderboard.headline')}
           </Text>
           <Text className="mt-2 text-3xl font-bold text-brand-800">
             {model.flag} {model.displayName}
           </Text>
-          <Text className="mt-2 text-base text-brand-600">
-            Every genuine learning effort counts — reading, lessons, revision, and
-            consistency.
-          </Text>
+          <Text className="mt-2 text-base text-brand-600">{t('leaderboard.effortCounts')}</Text>
           <Text className="mt-3 text-sm font-semibold text-brand-700">
-            {model.effort.totalPoints.toLocaleString()} pts · {model.ageGroupLabel}
+            {t('leaderboard.ptsAge', {
+              points: model.effort.totalPoints.toLocaleString(),
+              age: t(`age.${model.ageGroup}` as MessageKey),
+            })}
           </Text>
         </View>
 
@@ -154,12 +226,13 @@ export function LeaderboardScreen() {
           <View className="flex-row gap-2">
             {LEADERBOARD_VIEWS.map((item) => {
               const selected = view === item.id;
+              const label = viewLabel(item.id, t);
               return (
                 <Pressable
                   key={item.id}
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
-                  accessibilityLabel={`Open ${item.label} leaderboard`}
+                  accessibilityLabel={label}
                   onPress={() => setView(item.id)}
                   className={`min-h-11 flex-1 items-center justify-center rounded-xl px-2 ${
                     selected ? 'bg-brand-600' : 'bg-brand-50'
@@ -171,7 +244,7 @@ export function LeaderboardScreen() {
                     }`}
                     numberOfLines={2}
                   >
-                    {item.label}
+                    {label}
                   </Text>
                 </Pressable>
               );
@@ -198,8 +271,8 @@ export function LeaderboardScreen() {
                       selected ? 'text-brand-700' : 'text-white'
                     }`}
                   >
-                    Juz {challenge.juzNumber}
-                    {challenge.status === 'upcoming' ? ' · Soon' : ''}
+                    {t('common.juz')} {challenge.juzNumber}
+                    {challenge.status === 'upcoming' ? t('leaderboard.juzSoonTag') : ''}
                   </Text>
                 </Pressable>
               );
@@ -211,11 +284,11 @@ export function LeaderboardScreen() {
 
         <View className="mb-4 rounded-3xl bg-white/10 px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-200">
-            Challenge
+            {t('leaderboard.challenge')}
           </Text>
           {board.motivations.map((message) => (
             <Text key={message.id} className="mt-2 text-base text-white">
-              {message.text}
+              {motivationText(message.id, board, model, t, message.text)}
             </Text>
           ))}
         </View>
@@ -230,22 +303,19 @@ export function LeaderboardScreen() {
 
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            {board.title}
+            {boardTitle(board, model, t)}
           </Text>
-          <Text className="mt-1 text-sm text-brand-600">{board.subtitle}</Text>
+          <Text className="mt-1 text-sm text-brand-600">{boardSubtitle(board, t)}</Text>
           <Text className="mt-3 text-xs font-semibold uppercase tracking-wide text-brand-400">
-            Rank · Student · Country · Points
+            {t('leaderboard.columns')}
           </Text>
 
           {board.juzStatus === 'upcoming' ? (
             <View className="mt-4 rounded-2xl bg-brand-50 px-4 py-4">
               <Text className="text-base font-semibold text-brand-800">
-                Juz {board.juzNumber} Challenge is opening soon
+                {t('leaderboard.juzSoon', { n: board.juzNumber ?? selectedJuz })}
               </Text>
-              <Text className="mt-2 text-sm text-brand-600">
-                Keep learning Juz 30 — your effort already builds the habits for the next
-                challenge.
-              </Text>
+              <Text className="mt-2 text-sm text-brand-600">{t('leaderboard.juzSoonBody')}</Text>
             </View>
           ) : null}
 
@@ -258,11 +328,11 @@ export function LeaderboardScreen() {
 
         <View className="rounded-3xl bg-white px-4 py-4">
           <PrimaryButton
-            label="Continue learning"
+            label={t('leaderboard.continue')}
             onPress={() => router.push('/(app)/lesson')}
           />
           <PrimaryButton
-            label="Open Circle"
+            label={t('leaderboard.openCircle')}
             onPress={() => router.push('/(app)/gates/circle' as never)}
             variant="secondary"
           />

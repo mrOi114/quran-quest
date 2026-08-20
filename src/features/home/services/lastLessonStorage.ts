@@ -18,6 +18,7 @@ export async function resolveContinueLesson(
     surahName: summary.surahName,
     surahArabic: summary.surahArabic,
     lessonLabel: summary.lessonLabel,
+    lessonIndex: summary.lessonIndex,
     progressPercent: summary.progressPercent,
     hasStarted: true,
   };

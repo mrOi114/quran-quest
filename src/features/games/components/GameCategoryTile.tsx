@@ -1,5 +1,7 @@
 import { Pressable, Text } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 import type { GameDefinition } from '../types';
 
 type GameCategoryTileProps = {
@@ -13,10 +15,15 @@ export function GameCategoryTile({
   onPress,
   locked = false,
 }: GameCategoryTileProps) {
+  const { t } = useI18n();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={locked ? `${game.title}, coming soon` : `Open ${game.title}`}
+      accessibilityLabel={
+        locked
+          ? t('games.comingSoonA11y', { title: game.title })
+          : t('games.openTitle', { title: game.title })
+      }
       disabled={locked}
       onPress={onPress}
       className={`min-h-24 rounded-3xl px-4 py-4 active:opacity-90 ${
@@ -30,7 +37,7 @@ export function GameCategoryTile({
         {game.title}
       </Text>
       <Text className={`mt-1 text-sm ${locked ? 'text-brand-400' : 'text-brand-600'}`}>
-        {locked ? 'Coming soon' : game.subtitle}
+        {locked ? t('games.comingSoon') : game.subtitle}
       </Text>
     </Pressable>
   );

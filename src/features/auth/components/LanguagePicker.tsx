@@ -1,5 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 import { LANGUAGE_OPTIONS } from '../constants';
 
 type LanguagePickerProps = {
@@ -9,17 +11,21 @@ type LanguagePickerProps = {
 };
 
 export function LanguagePicker({ value, onChange, error }: LanguagePickerProps) {
+  const { t } = useI18n(value);
+
   return (
     <View className="mb-4">
-      <Text className="mb-2 text-sm font-medium text-brand-700">Preferred language</Text>
+      <Text className="mb-2 text-sm font-medium text-brand-700">{t('language.preferred')}</Text>
       <View className="flex-row flex-wrap gap-2">
         {LANGUAGE_OPTIONS.map((language) => {
           const selected = value === language.code;
+          const label =
+            language.code === 'so' ? t('language.somali') : `${language.flag} ${language.label}`;
           return (
             <Pressable
               key={language.code}
               accessibilityRole="button"
-              accessibilityLabel={language.label}
+              accessibilityLabel={label}
               accessibilityState={{ selected }}
               onPress={() => onChange(language.code)}
               className={`min-h-12 items-center justify-center rounded-2xl border px-3 py-2 ${
@@ -29,7 +35,7 @@ export function LanguagePicker({ value, onChange, error }: LanguagePickerProps) 
               <Text
                 className={`text-sm font-medium ${selected ? 'text-brand-700' : 'text-brand-500'}`}
               >
-                {language.label}
+                {language.code === 'so' ? `🇸🇴 ${t('language.somali')}` : label}
               </Text>
             </Pressable>
           );

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import {
@@ -53,6 +54,9 @@ export function useVerseAudio({
   onPlaybackComplete,
   autoPlay = false,
 }: UseVerseAudioOptions): UseVerseAudioResult {
+  const { t } = useI18n();
+  const audioError = t('audio.error');
+  const audioErrorRef = useRef(audioError);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasPlayedOnce, setHasPlayedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +69,10 @@ export function useVerseAudio({
   const startPlaybackRef = useRef<(resetRemaining: boolean) => Promise<void>>(
     async () => undefined,
   );
+
+  useEffect(() => {
+    audioErrorRef.current = audioError;
+  }, [audioError]);
 
   useEffect(() => {
     audioUrlRef.current = audioUrl;
@@ -90,7 +98,7 @@ export function useVerseAudio({
     startPlaybackRef.current = async (resetRemaining: boolean) => {
       const url = audioUrlRef.current;
       if (!url) {
-        setError('Audio could not play. Try again.');
+        setError(audioErrorRef.current);
         return;
       }
 
@@ -116,9 +124,9 @@ export function useVerseAudio({
               setIsPlaying(false);
               onPlaybackCompleteRef.current?.();
             },
-            onError: (message) => {
+            onError: () => {
               setIsPlaying(false);
-              setError(message);
+              setError(audioErrorRef.current);
             },
             onPlayingChange: (playing) => {
               setIsPlaying(playing);
@@ -128,7 +136,7 @@ export function useVerseAudio({
         );
       } catch {
         setIsPlaying(false);
-        setError('Audio could not play. Try again.');
+        setError(audioErrorRef.current);
       }
     };
   }, []);

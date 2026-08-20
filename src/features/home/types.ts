@@ -7,6 +7,7 @@ export type HomeLessonSummary = {
   /** Authentic Arabic surah name — highest visual priority. */
   surahArabic: string;
   lessonLabel: string;
+  lessonIndex: number;
   /** 0–100 progress through the current lesson. */
   progressPercent: number;
   /** False when the learner has never opened a lesson. */

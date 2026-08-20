@@ -1,5 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 import type { GameChoice } from '../types';
 
 type OrderingChallengeProps = {
@@ -15,11 +17,10 @@ export function OrderingChallenge({
   onMove,
   onSubmit,
 }: OrderingChallengeProps) {
+  const { t } = useI18n();
   return (
     <View className="mt-4">
-      <Text className="text-sm text-brand-600">
-        Tap arrows to arrange the correct order.
-      </Text>
+      <Text className="text-sm text-brand-600">{t('games.arrangeOrder')}</Text>
       <View className="mt-3 gap-2">
         {items.map((item, index) => (
           <View
@@ -33,7 +34,7 @@ export function OrderingChallenge({
             <View className="flex-row gap-2">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Move ${item.label} up`}
+                accessibilityLabel={t('games.moveUp', { label: item.label })}
                 disabled={disabled || index === 0}
                 onPress={() => onMove(index, -1)}
                 className="min-h-11 min-w-11 items-center justify-center rounded-xl bg-white active:opacity-90"
@@ -42,7 +43,7 @@ export function OrderingChallenge({
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`Move ${item.label} down`}
+                accessibilityLabel={t('games.moveDown', { label: item.label })}
                 disabled={disabled || index === items.length - 1}
                 onPress={() => onMove(index, 1)}
                 className="min-h-11 min-w-11 items-center justify-center rounded-xl bg-white active:opacity-90"
@@ -55,12 +56,12 @@ export function OrderingChallenge({
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Check order"
+        accessibilityLabel={t('games.checkOrder')}
         disabled={disabled}
         onPress={onSubmit}
         className="mt-4 min-h-14 items-center justify-center rounded-2xl bg-brand-600 px-4 py-3 active:opacity-90"
       >
-        <Text className="text-base font-semibold text-white">Check Order</Text>
+        <Text className="text-base font-semibold text-white">{t('games.checkOrder')}</Text>
       </Pressable>
     </View>
   );

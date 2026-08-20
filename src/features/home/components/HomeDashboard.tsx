@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MilestonePrompt, useAuth } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 import { useHomeDashboard } from '../hooks/useHomeDashboard';
 import { resolveContinueLesson } from '../services';
@@ -33,6 +34,7 @@ export function HomeDashboard() {
     signOut,
   } = useAuth();
   const { dashboard, isLoading, refresh } = useHomeDashboard();
+  const { t } = useI18n();
 
   async function handleContinueLearning() {
     if (!activeLearner || !dashboard) {
@@ -50,7 +52,7 @@ export function HomeDashboard() {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
-        <Text className="mt-3 text-base text-brand-50">Loading your home…</Text>
+        <Text className="mt-3 text-base text-brand-50">{t('home.loading')}</Text>
       </SafeAreaView>
     );
   }
@@ -79,8 +81,7 @@ export function HomeDashboard() {
             {dashboard.xpPoints} XP
           </Text>
           <Text className="mt-1 text-sm text-brand-600">
-            Keep going to reach {dashboard.nextMilestoneXp} XP and unlock your next
-            milestone.
+            {t('home.xpKeepGoing', { xp: dashboard.nextMilestoneXp })}
           </Text>
           <View className="mt-4 h-3 overflow-hidden rounded-full bg-brand-100">
             <View
@@ -136,7 +137,7 @@ export function HomeDashboard() {
 
         <View className="mb-4 rounded-2xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            Translation Spotlight
+            {t('home.translationSpotlight')}
           </Text>
           <Text
             className="mt-3 text-center text-3xl font-bold text-brand-800"
@@ -145,21 +146,24 @@ export function HomeDashboard() {
             {dashboard.featuredVerse.textUthmani}
           </Text>
           <Text className="mt-2 text-center text-base text-brand-600">
-            {dashboard.featuredVerse.surahArabic} · {dashboard.featuredVerse.surahName} ·
-            Ayah {dashboard.featuredVerse.ayahNumber}
+            {t('home.ayahRef', {
+              arabic: dashboard.featuredVerse.surahArabic,
+              name: dashboard.featuredVerse.surahName,
+              ayah: dashboard.featuredVerse.ayahNumber,
+            })}
           </Text>
           <Text className="mt-4 text-base leading-6 text-brand-700">
             {dashboard.featuredVerse.translationText}
           </Text>
           <Text className="mt-2 text-xs text-brand-500">
-            Source: {dashboard.featuredVerse.translationSourceLabel}
+            {t('home.source', { source: dashboard.featuredVerse.translationSourceLabel })}
             {dashboard.featuredVerse.isTranslationFallback
-              ? ' · Showing English until your language is available.'
+              ? ` · ${t('language.englishUntilAvailable')}`
               : ''}
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open reader for this ayah"
+            accessibilityLabel={t('home.openReaderAyah')}
             onPress={() =>
               router.push({
                 pathname: '/(app)/reader',
@@ -171,7 +175,7 @@ export function HomeDashboard() {
             }
             className="mt-4 min-h-12 items-center justify-center rounded-xl bg-brand-600 px-4 py-3 active:opacity-90"
           >
-            <Text className="text-base font-semibold text-white">Open in Reader</Text>
+            <Text className="text-base font-semibold text-white">{t('home.openInReader')}</Text>
           </Pressable>
         </View>
 
@@ -189,13 +193,13 @@ export function HomeDashboard() {
           {isGuest ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="End guest trial"
+              accessibilityLabel={t('common.endGuestTrial')}
               onPress={() => {
                 void endGuestSession().then(() => router.replace('/(auth)/welcome'));
               }}
               className="min-h-12 items-center justify-center py-2"
             >
-              <Text className="text-sm text-brand-100">End guest trial</Text>
+              <Text className="text-sm text-brand-100">{t('common.endGuestTrial')}</Text>
             </Pressable>
           ) : (
             <>
@@ -203,8 +207,8 @@ export function HomeDashboard() {
                 accessibilityRole="button"
                 accessibilityLabel={
                   dashboard.isChildSession
-                    ? 'Switch learner for parent'
-                    : 'Switch learner'
+                    ? t('common.switchLearnerParent')
+                    : t('common.switchLearner')
                 }
                 onPress={() => {
                   if (isChildFamilySession) {
@@ -221,20 +225,20 @@ export function HomeDashboard() {
               >
                 <Text className="text-sm text-brand-100">
                   {dashboard.isChildSession
-                    ? 'Switch learner (parent)'
-                    : 'Switch learner'}
+                    ? t('common.switchLearnerParent')
+                    : t('common.switchLearner')}
                 </Text>
               </Pressable>
               {!dashboard.isChildSession ? (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Log out"
+                  accessibilityLabel={t('common.logOut')}
                   onPress={() => {
                     void signOut().then(() => router.replace('/(auth)/welcome'));
                   }}
                   className="min-h-12 items-center justify-center py-2"
                 >
-                  <Text className="text-sm text-brand-100">Log out</Text>
+                  <Text className="text-sm text-brand-100">{t('common.logOut')}</Text>
                 </Pressable>
               ) : null}
             </>

@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
-import { ACHIEVEMENT_DEFINITIONS } from '../constants';
+import { localizeAchievement, useI18n } from '@/i18n';
+
 import type { GameSessionResult } from '../types';
 
 type GameCompletionCardProps = {
@@ -20,43 +21,41 @@ export function GameCompletionCard({
   onPlayAgain,
   onBackToGames,
 }: GameCompletionCardProps) {
+  const { t, language } = useI18n();
   return (
     <View className="rounded-3xl bg-white px-5 py-6">
       <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-        Challenge Complete
+        {t('games.challengeComplete')}
       </Text>
-      <Text className="mt-2 text-3xl font-bold text-brand-800">🌟 Well done!</Text>
+      <Text className="mt-2 text-3xl font-bold text-brand-800">{t('games.wellDone')}</Text>
       <Text className="mt-2 text-base leading-6 text-brand-600">
-        You got {correctCount} of {totalCount} right. Keep learning with kindness and
-        curiosity.
+        {t('games.gotRight', { correct: correctCount, total: totalCount })}
       </Text>
 
       {isSaving ? (
-        <Text className="mt-4 text-sm text-brand-500">Saving your progress…</Text>
+        <Text className="mt-4 text-sm text-brand-500">{t('games.saving')}</Text>
       ) : null}
 
       {result && !result.alreadyCompleted && result.pointsAwarded > 0 ? (
         <Text className="mt-4 text-base font-semibold text-brand-700">
-          +{result.pointsAwarded} XP added to your learning journey
+          {t('games.xpAdded', { xp: result.pointsAwarded })}
         </Text>
       ) : null}
 
       {result?.alreadyCompleted ? (
-        <Text className="mt-4 text-sm text-brand-600">
-          You already earned today’s XP for this game. Practice still helps you learn!
-        </Text>
+        <Text className="mt-4 text-sm text-brand-600">{t('games.alreadyXp')}</Text>
       ) : null}
 
       {result && result.newlyUnlockedAchievements.length > 0 ? (
         <View className="mt-4 gap-2">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            New achievements
+            {t('games.newAchievements')}
           </Text>
           {result.newlyUnlockedAchievements.map((id) => {
-            const item = ACHIEVEMENT_DEFINITIONS[id];
+            const item = localizeAchievement(id, language);
             return (
               <Text key={id} className="text-base text-brand-800">
-                {item.icon} {item.title}
+                {item.title}
               </Text>
             );
           })}
@@ -65,19 +64,19 @@ export function GameCompletionCard({
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Play again"
+        accessibilityLabel={t('games.playAgain')}
         onPress={onPlayAgain}
         className="mt-5 min-h-12 items-center justify-center rounded-xl bg-brand-600 px-4 py-3 active:opacity-90"
       >
-        <Text className="text-base font-semibold text-white">Play Again</Text>
+        <Text className="text-base font-semibold text-white">{t('games.playAgain')}</Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Back to games"
+        accessibilityLabel={t('games.backToGames')}
         onPress={onBackToGames}
         className="mt-2 min-h-12 items-center justify-center"
       >
-        <Text className="text-sm font-semibold text-brand-600">Back to Games</Text>
+        <Text className="text-sm font-semibold text-brand-600">{t('games.backToGames')}</Text>
       </Pressable>
     </View>
   );

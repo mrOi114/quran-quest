@@ -35,6 +35,7 @@ import {
   hasReachedGuestMilestone,
   isEmailVerified,
   isMilestoneDismissed,
+  loadChildFamilySession,
   logoutAccount,
   registerCurrentDevice,
   saveChildFamilySession,
@@ -47,6 +48,8 @@ import {
   unlockChildWithFamilyCode,
   updateChildCommsSettings,
   updateChildProfile,
+  updateGuestPreferredLanguage,
+  updateProfilePreferredLanguage,
   verifyChildPin,
   type GuestProfile,
   type GuestProgress,
@@ -109,6 +112,7 @@ type AuthContextValue = {
   dismissGuestMilestone: () => Promise<void>;
   migrateGuestProgressAfterRegister: () => Promise<void>;
   clearPasswordResetFlag: () => void;
+  setPreferredLanguage: (languageCode: string) => Promise<void>;
 };
 
 const missingAuthContextValue: AuthContextValue = {
@@ -150,6 +154,7 @@ const missingAuthContextValue: AuthContextValue = {
   dismissGuestMilestone: async () => undefined,
   migrateGuestProgressAfterRegister: async () => undefined,
   clearPasswordResetFlag: () => undefined,
+  setPreferredLanguage: async () => undefined,
 };
 
 const AuthContext = createContext<AuthContextValue>(missingAuthContextValue);
@@ -678,6 +683,64 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     setNeedsPasswordReset(false);
   }, []);
 
+  const setPreferredLanguage = useCallback(
+    async (languageCode: string) => {
+      const next = languageCode.trim().toLowerCase();
+      if (!next) {
+        return;
+      }
+
+      if (guestProfile) {
+        const updated = await updateGuestPreferredLanguage(next);
+        if (updated) {
+          setGuestProfile(updated);
+          setActiveLearner(guestToLearner(updated));
+        }
+        return;
+      }
+
+      if (isChildFamilyLearner(activeLearner)) {
+        const stored = await loadChildFamilySession();
+        if (stored) {
+          const child = { ...stored.child, preferred_language: next };
+          await saveChildFamilySession({ ...stored, child });
+          setActiveLearner(toChildFamilyLearner(child));
+        } else {
+          setActiveLearner({ ...activeLearner, preferred_language: next });
+        }
+        try {
+          await updateProfilePreferredLanguage(activeLearner.id, next);
+        } catch {
+          // Child RLS may block self-update; the existing family session still keeps the choice.
+        }
+        return;
+      }
+
+      if (
+        profile?.role === 'parent' &&
+        activeLearner?.role === 'child' &&
+        activeLearner.id !== profile.id
+      ) {
+        await updateProfilePreferredLanguage(activeLearner.id, next);
+        setActiveLearner({ ...activeLearner, preferred_language: next });
+        await refreshChildren();
+        return;
+      }
+
+      if (profile && (profile.role === 'adult' || profile.role === 'parent')) {
+        await updateProfilePreferredLanguage(profile.id, next);
+        const refreshed = await fetchProfile(profile.id);
+        if (refreshed) {
+          setProfile(refreshed);
+          if (!activeLearner || activeLearner.id === refreshed.id) {
+            setActiveLearner(toFamilyMember(refreshed));
+          }
+        }
+      }
+    },
+    [activeLearner, guestProfile, profile, refreshChildren],
+  );
+
   const signOut = useCallback(async () => {
     await clearStoredActiveLearnerId();
     await clearChildFamilySession();
@@ -747,6 +810,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       dismissGuestMilestone,
       migrateGuestProgressAfterRegister,
       clearPasswordResetFlag,
+      setPreferredLanguage,
     }),
     [
       activeLearner,
@@ -777,6 +841,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       resetChildPin,
       selectSelfAsLearner,
       session,
+      setPreferredLanguage,
       showMilestonePrompt,
       signOut,
       simulateGuestProgress,

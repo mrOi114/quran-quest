@@ -5,6 +5,7 @@ import { resolveAgeGroup } from '@/features/learning';
 
 import { getGameDefinition } from '../constants';
 import { getQuestionsForGame } from '../content';
+import { localizeGameQuestion } from '@/i18n';
 import {
   pickQuestionsForRound,
   questionsPerRoundForAge,
@@ -54,7 +55,9 @@ export function useGameSession(options: {
       definition?.questionsPerRound ?? 5,
       questionsPerRoundForAge(ageGroup),
     );
-    return pickQuestionsForRound(pool, ageGroup, count);
+    return pickQuestionsForRound(pool, ageGroup, count).map((question) =>
+      localizeGameQuestion(question, learner?.preferred_language),
+    );
   }
 
   function seedOrderDraft(question: GameQuestion | null) {

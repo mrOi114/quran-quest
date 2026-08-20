@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
 import type { AgeGroupId } from '@/features/auth';
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import { useVerseAudio } from '../hooks/useVerseAudio';
@@ -48,11 +49,15 @@ export function ReaderVerseFocus({
   canGoPrevious,
   canGoNext,
 }: ReaderVerseFocusProps) {
+  const { t } = useI18n();
   const audio = useVerseAudio({
     audioUrl: audioEnabled ? verse.audioUrl : null,
     repeatCount,
     metadata: {
-      title: `Surah ${verse.surahNumber} · Ayah ${verse.ayahNumber}`,
+      title: t('reader.nowPlaying', {
+        surah: verse.surahNumber,
+        ayah: verse.ayahNumber,
+      }),
       artist: 'Mahmoud Khalil Al-Husary',
       albumTitle: 'QuranFamily',
     },

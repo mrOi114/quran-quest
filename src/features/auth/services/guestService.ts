@@ -53,6 +53,19 @@ export async function getGuestProfile(): Promise<GuestProfile | null> {
   }
 }
 
+export async function updateGuestPreferredLanguage(
+  language: string,
+): Promise<GuestProfile | null> {
+  const current = await getGuestProfile();
+  if (!current) {
+    return null;
+  }
+  return saveGuestProfile({
+    ...current,
+    preferredLanguage: language.trim().toLowerCase(),
+  });
+}
+
 export async function saveGuestProfile(
   input: Omit<GuestProfile, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
 ): Promise<GuestProfile> {

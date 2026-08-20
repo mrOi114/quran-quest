@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/features/auth';
 import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
+import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
 import {
@@ -42,6 +43,7 @@ export function useBrowseReader({
   ayahParam,
 }: UseBrowseReaderArgs): UseBrowseReaderResult {
   const { activeLearner } = useAuth();
+  const { t } = useI18n();
   const [surahs, setSurahs] = useState<BrowsableSurah[]>([]);
   const [surah, setSurah] = useState<BrowsableSurah | null>(null);
   const [verses, setVerses] = useState<ReaderVerseViewModel[]>([]);
@@ -76,7 +78,7 @@ export function useBrowseReader({
     ) => {
       const loaded = await loadBrowseVerses(learner, surahNumber, prefs);
       if (!loaded) {
-        setError('This surah is not unlocked yet. Keep learning in order.');
+        setError(t('reader.lockedSurah'));
         setSurah(null);
         setVerses([]);
         return;
@@ -88,7 +90,7 @@ export function useBrowseReader({
       setError(null);
       await persistPosition(loaded.surah.number, ayah);
     },
-    [persistPosition],
+    [persistPosition, t],
   );
 
   useEffect(() => {
@@ -122,7 +124,7 @@ export function useBrowseReader({
         await openSurah(activeLearner, prefs, start.surahNumber, start.ayahNumber);
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not open the reader.');
+          setError(err instanceof Error ? err.message : t('reader.openError'));
         }
       } finally {
         if (!cancelled) {

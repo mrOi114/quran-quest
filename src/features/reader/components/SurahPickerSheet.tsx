@@ -1,5 +1,7 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 import type { BrowsableSurah } from '../types';
 
 type SurahPickerSheetProps = {
@@ -17,6 +19,7 @@ export function SurahPickerSheet({
   visible,
   onClose,
 }: SurahPickerSheetProps) {
+  const { t } = useI18n();
   if (!visible) {
     return null;
   }
@@ -24,14 +27,14 @@ export function SurahPickerSheet({
   return (
     <View className="mt-3 max-h-72 rounded-2xl bg-white/95 px-2 py-3">
       <View className="mb-2 flex-row items-center justify-between px-2">
-        <Text className="text-base font-semibold text-brand-800">Choose a surah</Text>
+        <Text className="text-base font-semibold text-brand-800">{t('reader.chooseSurah')}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close surah list"
+          accessibilityLabel={t('reader.closeList')}
           onPress={onClose}
           className="min-h-11 justify-center px-2"
         >
-          <Text className="text-sm font-medium text-brand-500">Close</Text>
+          <Text className="text-sm font-medium text-brand-500">{t('common.close')}</Text>
         </Pressable>
       </View>
       <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
@@ -41,7 +44,7 @@ export function SurahPickerSheet({
             <Pressable
               key={item.number}
               accessibilityRole="button"
-              accessibilityLabel={`${item.nameLatin}. Ayahs 1 to ${item.maxBrowsableAyah}.`}
+              accessibilityLabel={`${item.nameLatin}. ${t('common.ayah')} 1 ${item.maxBrowsableAyah}.`}
               onPress={() => {
                 onSelect(item.number);
                 onClose();

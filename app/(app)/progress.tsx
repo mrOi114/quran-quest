@@ -8,11 +8,13 @@ import {
   buildParentChildrenOverview,
   type ChildProgressOverview,
 } from '@/features/home/services/parentDashboardService';
+import { useI18n } from '@/i18n';
 
 export default function ProgressRoute() {
   const router = useRouter();
   const { activeLearner, canManageFamily, children, isChildFamilySession } = useAuth();
   const { dashboard, isLoading } = useHomeDashboard();
+  const { t, lessonLabel } = useI18n();
   const [childRows, setChildRows] = useState<ChildProgressOverview[]>([]);
   const [childLoading, setChildLoading] = useState(false);
 
@@ -55,7 +57,7 @@ export default function ProgressRoute() {
     return (
       <View className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
-        <Text className="mt-3 text-base text-brand-50">Loading progress…</Text>
+        <Text className="mt-3 text-base text-brand-50">{t('progress.loading')}</Text>
       </View>
     );
   }
@@ -69,36 +71,39 @@ export default function ProgressRoute() {
     >
       <View className="rounded-3xl bg-white px-5 py-6">
         <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-          Progress
+          {t('progress.title')}
         </Text>
         <Text className="mt-2 text-3xl font-bold text-brand-800">{name}</Text>
         <Text className="mt-4 text-2xl font-bold text-brand-700">
-          {dashboard.xpPoints} XP
+          {dashboard.xpPoints} {t('common.xp')}
         </Text>
         <Text className="mt-2 text-base text-brand-600">
-          {dashboard.achievements.lessonsCompleted} lessons ·{' '}
-          {dashboard.achievements.surahsCompleted} surahs ·{' '}
-          {dashboard.achievements.streakDays}-day streak
+          {t('progress.summary', {
+            lessons: dashboard.achievements.lessonsCompleted,
+            surahs: dashboard.achievements.surahsCompleted,
+            streak: dashboard.achievements.streakDays,
+          })}
         </Text>
         <Text className="mt-3 text-sm text-brand-600">
-          Now: {dashboard.todaysLesson.lessonLabel} ({dashboard.todaysLesson.progressPercent}
-          %)
+          {t('progress.now', {
+            lesson: lessonLabel(dashboard.todaysLesson.lessonIndex),
+            percent: dashboard.todaysLesson.progressPercent,
+          })}
         </Text>
 
         {isChildFamilySession ? (
           <Text className="mt-4 text-sm leading-5 text-brand-600">
-            Progress on this device is saved for {name}. A parent can follow along from My
-            Family after they sign in.
+            {t('family.childProgressNote', { name })}
           </Text>
         ) : null}
 
         <View className="mt-6">
           <PrimaryButton
-            label="Continue learning"
+            label={t('progress.continue')}
             onPress={() => router.push('/(app)/lesson')}
           />
           <PrimaryButton
-            label="Achievements"
+            label={t('progress.achievements')}
             onPress={() => router.push('/(app)/leaderboard')}
             variant="secondary"
           />
@@ -108,14 +113,12 @@ export default function ProgressRoute() {
       {canManageFamily ? (
         <View className="mt-4 rounded-3xl bg-white px-5 py-6">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            My Children
+            {t('progress.myChildren')}
           </Text>
           {childLoading ? (
-            <Text className="mt-3 text-sm text-brand-600">Loading children…</Text>
+            <Text className="mt-3 text-sm text-brand-600">{t('progress.loadingChildren')}</Text>
           ) : childRows.length === 0 ? (
-            <Text className="mt-3 text-sm text-brand-600">
-              No children yet. Add a child from My Family.
-            </Text>
+            <Text className="mt-3 text-sm text-brand-600">{t('progress.noChildren')}</Text>
           ) : (
             childRows.map((row) => (
               <View key={row.childId} className="mt-4 border-t border-brand-100 pt-4">
@@ -123,8 +126,11 @@ export default function ProgressRoute() {
                   {row.displayName}
                 </Text>
                 <Text className="mt-1 text-sm text-brand-600">
-                  {row.xpPoints} XP · {row.lessonsCompleted} lessons · {row.surahsCompleted}{' '}
-                  surahs
+                  {t('progress.childRow', {
+                    xp: row.xpPoints,
+                    lessons: row.lessonsCompleted,
+                    surahs: row.surahsCompleted,
+                  })}
                 </Text>
               </View>
             ))
@@ -133,7 +139,7 @@ export default function ProgressRoute() {
             onPress={() => router.push('/(app)/parent/dashboard')}
             className="mt-4 py-2"
           >
-            <Text className="text-sm font-medium text-brand-600">Open My Family</Text>
+            <Text className="text-sm font-medium text-brand-600">{t('progress.openFamily')}</Text>
           </Pressable>
         </View>
       ) : null}

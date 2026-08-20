@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 
+import { t } from '@/i18n';
 import { env } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 
@@ -45,7 +46,9 @@ export async function requestFamilyNotificationPermission(): Promise<boolean> {
   return false;
 }
 
-export async function registerFamilyCallCategory(): Promise<void> {
+export async function registerFamilyCallCategory(
+  language?: string | null,
+): Promise<void> {
   const Notifications = await loadNotifications();
   if (!Notifications?.setNotificationCategoryAsync) {
     return;
@@ -53,12 +56,12 @@ export async function registerFamilyCallCategory(): Promise<void> {
   await Notifications.setNotificationCategoryAsync('family_call', [
     {
       identifier: 'accept',
-      buttonTitle: 'Accept',
+      buttonTitle: t('call.accept', language),
       options: { opensAppToForeground: true },
     },
     {
       identifier: 'decline',
-      buttonTitle: 'Decline',
+      buttonTitle: t('call.decline', language),
       options: { isDestructive: true, opensAppToForeground: false },
     },
   ]);

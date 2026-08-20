@@ -56,14 +56,14 @@ export const COUNTRY_OPTIONS = [
 ] as const;
 
 export const LANGUAGE_OPTIONS = [
-  { code: 'en', label: 'English' },
-  { code: 'ar', label: 'Arabic' },
-  { code: 'so', label: 'Somali' },
-  { code: 'fr', label: 'French' },
-  { code: 'ur', label: 'Urdu' },
-  { code: 'tr', label: 'Turkish' },
-  { code: 'id', label: 'Indonesian' },
-  { code: 'ms', label: 'Malay' },
+  { code: 'en', flag: '🇬🇧', label: 'English' },
+  { code: 'ar', flag: '🇸🇦', label: 'Arabic' },
+  { code: 'so', flag: '🇸🇴', label: 'Somali / Af-Soomaali' },
+  { code: 'fr', flag: '🇫🇷', label: 'French' },
+  { code: 'ur', flag: '🇵🇰', label: 'Urdu' },
+  { code: 'tr', flag: '🇹🇷', label: 'Turkish' },
+  { code: 'id', flag: '🇮🇩', label: 'Indonesian' },
+  { code: 'ms', flag: '🇲🇾', label: 'Malay' },
 ] as const;
 
 export const ACCOUNT_REQUIRED_FEATURES = [

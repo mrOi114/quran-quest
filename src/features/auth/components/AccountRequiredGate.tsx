@@ -6,6 +6,7 @@ import type { AccountRequiredFeature } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { canAccessAccountFeature } from '../utils/access';
 import { PrimaryButton } from './PrimaryButton';
+import { useI18n } from '@/i18n';
 
 type AccountRequiredGateProps = {
   feature: AccountRequiredFeature;
@@ -61,6 +62,7 @@ export function AccountRequiredGate({
   children,
 }: AccountRequiredGateProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const { session, isGuest } = useAuth();
   const hasAccount = Boolean(session) && !isGuest;
 
@@ -68,7 +70,12 @@ export function AccountRequiredGate({
     return <>{children}</>;
   }
 
-  const copy = defaultCopy[feature];
+  const copy =
+    feature === 'ai_hifz_circle'
+      ? { title: t('circle.gateTitle'), description: t('circle.gateBody') }
+      : feature === 'online_leaderboards'
+        ? { title: t('guest.keepJourney'), description: t('guest.progressValue') }
+        : defaultCopy[feature];
 
   return (
     <View className="flex-1 items-center justify-center bg-brand-600 px-6">
@@ -81,16 +88,16 @@ export function AccountRequiredGate({
         </Text>
         <View className="mt-6">
           <PrimaryButton
-            label="Create Free Account"
+            label={t('common.createFreeAccount')}
             onPress={() => router.push('/(auth)/register')}
           />
           <PrimaryButton
-            label="Log in"
+            label={t('common.logIn')}
             onPress={() => router.push('/(auth)/login')}
             variant="secondary"
           />
           <PrimaryButton
-            label="Maybe Later"
+            label={t('common.maybeLater')}
             onPress={() => router.replace('/(app)/home')}
             variant="secondary"
           />

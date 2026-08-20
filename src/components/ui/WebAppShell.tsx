@@ -4,9 +4,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePathname, useRouter } from 'expo-router';
 
 import { useAuth } from '@/features/auth';
+import { useI18n, type MessageKey } from '@/i18n';
+
+type NavId =
+  | 'home'
+  | 'learn'
+  | 'lesson'
+  | 'revision'
+  | 'games'
+  | 'companion'
+  | 'leaderboard'
+  | 'circle'
+  | 'chat'
+  | 'family'
+  | 'profile'
+  | 'settings'
+  | 'myFamily'
+  | 'learning'
+  | 'achievements'
+  | 'progress';
 
 type NavItem = {
-  label: string;
+  id: NavId;
   icon: string;
   href: string;
   matches: (pathname: string) => boolean;
@@ -16,39 +35,58 @@ type WebAppShellProps = {
   children: ReactNode;
 };
 
+const NAV_LABEL_KEY: Record<NavId, MessageKey> = {
+  home: 'nav.home',
+  learn: 'nav.learn',
+  lesson: 'nav.lesson',
+  revision: 'nav.revision',
+  games: 'nav.games',
+  companion: 'nav.companion',
+  leaderboard: 'nav.leaderboard',
+  circle: 'nav.circle',
+  chat: 'nav.chat',
+  family: 'nav.family',
+  profile: 'nav.profile',
+  settings: 'nav.settings',
+  myFamily: 'nav.myFamily',
+  learning: 'nav.learning',
+  achievements: 'nav.achievements',
+  progress: 'nav.progress',
+};
+
 const learnerNavItems: NavItem[] = [
-  { label: 'Home', icon: '🏠', href: '/(app)/home', matches: (pathname) => pathname === '/home' || pathname === '/' },
+  { id: 'home', icon: '🏠', href: '/(app)/home', matches: (pathname) => pathname === '/home' || pathname === '/' },
   {
-    label: 'Learn / Quran',
+    id: 'learn',
     icon: '📖',
     href: '/(app)/reader',
     matches: (pathname) => pathname.startsWith('/reader'),
   },
   {
-    label: 'Lesson',
+    id: 'lesson',
     icon: '🧠',
     href: '/(app)/lesson',
     matches: (pathname) => pathname.startsWith('/lesson'),
   },
-  { label: 'Revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
-  { label: 'Games', icon: '🎮', href: '/(app)/games', matches: (pathname) => pathname.startsWith('/games') || pathname.startsWith('/companion') },
-  { label: 'Companion', icon: '🤖', href: '/(app)/companion', matches: (pathname) => pathname.startsWith('/companion') },
+  { id: 'revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
+  { id: 'games', icon: '🎮', href: '/(app)/games', matches: (pathname) => pathname.startsWith('/games') || pathname.startsWith('/companion') },
+  { id: 'companion', icon: '🤖', href: '/(app)/companion', matches: (pathname) => pathname.startsWith('/companion') },
   {
-    label: 'Leaderboard',
+    id: 'leaderboard',
     icon: '🏆',
     href: '/(app)/leaderboard',
     matches: (pathname) =>
       pathname.startsWith('/leaderboard') || pathname.startsWith('/progress'),
   },
-  { label: 'Circle', icon: '👥', href: '/(app)/gates/circle', matches: (pathname) => pathname.startsWith('/gates/circle') },
+  { id: 'circle', icon: '👥', href: '/(app)/gates/circle', matches: (pathname) => pathname.startsWith('/gates/circle') },
   {
-    label: 'Chat',
+    id: 'chat',
     icon: '💬',
     href: '/(app)/family/chat',
     matches: (pathname) => pathname.startsWith('/family/chat') || pathname.startsWith('/family/call'),
   },
   {
-    label: 'Family',
+    id: 'family',
     icon: '👪',
     href: '/(app)/family',
     matches: (pathname) =>
@@ -58,14 +96,14 @@ const learnerNavItems: NavItem[] = [
       pathname.startsWith('/parent/') ||
       pathname.startsWith('/child-pin'),
   },
-  { label: 'Profile', icon: '👤', href: '/(app)/profile', matches: (pathname) => pathname.startsWith('/profile') },
-  { label: 'Settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
+  { id: 'profile', icon: '👤', href: '/(app)/profile', matches: (pathname) => pathname.startsWith('/profile') },
+  { id: 'settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
 ];
 
 const parentNavItems: NavItem[] = [
-  { label: 'Home', icon: '🏠', href: '/(app)/home', matches: (pathname) => pathname === '/home' || pathname === '/' },
+  { id: 'home', icon: '🏠', href: '/(app)/home', matches: (pathname) => pathname === '/home' || pathname === '/' },
   {
-    label: 'My Family',
+    id: 'myFamily',
     icon: '👨‍👩‍👧',
     href: '/(app)/parent/dashboard',
     matches: (pathname) =>
@@ -76,31 +114,31 @@ const parentNavItems: NavItem[] = [
       pathname.startsWith('/child-pin'),
   },
   {
-    label: 'Chat',
+    id: 'chat',
     icon: '💬',
     href: '/(app)/family/chat',
     matches: (pathname) => pathname.startsWith('/family/chat') || pathname.startsWith('/family/call'),
   },
   {
-    label: 'Learning',
+    id: 'learning',
     icon: '📖',
     href: '/(app)/reader',
     matches: (pathname) => pathname.startsWith('/reader') || pathname.startsWith('/lesson'),
   },
-  { label: 'Revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
+  { id: 'revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
   {
-    label: 'Achievements',
+    id: 'achievements',
     icon: '🏆',
     href: '/(app)/leaderboard',
     matches: (pathname) => pathname.startsWith('/leaderboard'),
   },
-  { label: 'Progress', icon: '📊', href: '/(app)/progress', matches: (pathname) => pathname.startsWith('/progress') },
-  { label: 'Settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
+  { id: 'progress', icon: '📊', href: '/(app)/progress', matches: (pathname) => pathname.startsWith('/progress') },
+  { id: 'settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
 ];
 
-const learnerQuickLabels = ['Home', 'Learn / Quran', 'Lesson', 'Leaderboard', 'Circle'] as const;
-const parentQuickLabels = ['Home', 'My Family', 'Chat', 'Progress', 'Settings'] as const;
-const childFamilyQuickLabels = ['Home', 'Learn / Quran', 'Chat', 'Leaderboard', 'Games'] as const;
+const learnerQuickIds: NavId[] = ['home', 'learn', 'lesson', 'leaderboard', 'circle'];
+const parentQuickIds: NavId[] = ['home', 'myFamily', 'chat', 'progress', 'settings'];
+const childFamilyQuickIds: NavId[] = ['home', 'learn', 'chat', 'leaderboard', 'games'];
 
 function isActiveNavItem(item: NavItem, pathname: string): boolean {
   return item.matches(pathname);
@@ -108,10 +146,12 @@ function isActiveNavItem(item: NavItem, pathname: string): boolean {
 
 function NavButton({
   item,
+  label,
   active,
   onPress,
 }: {
   item: NavItem;
+  label: string;
   active: boolean;
   onPress: () => void;
 }) {
@@ -128,7 +168,7 @@ function NavButton({
         {item.icon}
       </Text>
       <Text className={`text-base font-semibold ${active ? 'text-brand-800' : 'text-white'}`}>
-        {item.label}
+        {label}
       </Text>
     </Pressable>
   );
@@ -136,10 +176,12 @@ function NavButton({
 
 function QuickNavButton({
   item,
+  label,
   active,
   onPress,
 }: {
   item: NavItem;
+  label: string;
   active: boolean;
   onPress: () => void;
 }) {
@@ -155,7 +197,7 @@ function QuickNavButton({
         className={`mt-1 text-[10px] font-semibold ${active ? 'text-brand-800' : 'text-brand-100'}`}
         numberOfLines={1}
       >
-        {item.label}
+        {label}
       </Text>
     </Pressable>
   );
@@ -175,6 +217,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
     endGuestSession,
     endChildFamilySession,
   } = useAuth();
+  const { t } = useI18n();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isDesktop = width >= 1024;
@@ -188,31 +231,31 @@ export function WebAppShell({ children }: WebAppShellProps) {
       return parentNavItems;
     }
     if (isChildLearning) {
-      return learnerNavItems.filter((item) => item.label !== 'Family');
+      return learnerNavItems.filter((item) => item.id !== 'family');
     }
-    return learnerNavItems.filter((item) => item.label !== 'Chat');
+    return learnerNavItems.filter((item) => item.id !== 'chat');
   }, [isChildLearning, useParentMenu]);
 
   const quickNavItems = useMemo(() => {
-    const labels = useParentMenu
-      ? parentQuickLabels
+    const ids = useParentMenu
+      ? parentQuickIds
       : isChildLearning
-        ? childFamilyQuickLabels
-        : learnerQuickLabels;
-    return labels
-      .map((label) => mainNavItems.find((item) => item.label === label))
+        ? childFamilyQuickIds
+        : learnerQuickIds;
+    return ids
+      .map((id) => mainNavItems.find((item) => item.id === id))
       .filter((item): item is NavItem => Boolean(item));
   }, [isChildLearning, mainNavItems, useParentMenu]);
 
   const learnerLabel =
     activeLearner?.display_name ||
     profile?.display_name ||
-    (isGuest ? 'Guest learner' : 'QuranFamily');
+    (isGuest ? t('nav.guestLearner') : 'QuranFamily');
 
   const currentSectionLabel = useMemo(() => {
     const activeItem = mainNavItems.find((item) => isActiveNavItem(item, pathname));
-    return activeItem?.label ?? 'QuranFamily';
-  }, [mainNavItems, pathname]);
+    return activeItem ? t(NAV_LABEL_KEY[activeItem.id]) : 'QuranFamily';
+  }, [mainNavItems, pathname, t]);
 
   function navigate(href: string) {
     setDrawerOpen(false);
@@ -231,10 +274,10 @@ export function WebAppShell({ children }: WebAppShellProps) {
   }
 
   const signOutLabel = isChildFamilySession
-    ? 'Switch learner'
+    ? t('common.switchLearner')
     : isGuest
-      ? 'End guest trial'
-      : 'Log out';
+      ? t('common.endGuestTrial')
+      : t('common.logOut');
 
   const navigationList = (
     <ScrollView
@@ -243,12 +286,13 @@ export function WebAppShell({ children }: WebAppShellProps) {
       showsVerticalScrollIndicator={false}
     >
       <Text className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-brand-200">
-        Navigation
+        {t('nav.navigation')}
       </Text>
       {mainNavItems.map((item) => (
         <NavButton
           key={item.href}
           item={item}
+          label={t(NAV_LABEL_KEY[item.id])}
           active={isActiveNavItem(item, pathname)}
           onPress={() => navigate(item.href)}
         />
@@ -256,10 +300,12 @@ export function WebAppShell({ children }: WebAppShellProps) {
 
       <View className="mt-4 rounded-2xl bg-white/10 px-4 py-4">
         <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-200">
-          Learner
+          {t('nav.learner')}
         </Text>
         <Text className="mt-2 text-base font-semibold text-white">{learnerLabel}</Text>
-        <Text className="mt-1 text-sm text-brand-100">Current section: {currentSectionLabel}</Text>
+        <Text className="mt-1 text-sm text-brand-100">
+          {t('nav.currentSection', { section: currentSectionLabel })}
+        </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={signOutLabel}
@@ -294,11 +340,11 @@ export function WebAppShell({ children }: WebAppShellProps) {
             <View className="flex-row items-center justify-between gap-3">
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Open navigation menu"
+                accessibilityLabel={t('nav.openMenu')}
                 onPress={() => setDrawerOpen(true)}
                 className="min-h-11 rounded-xl border border-white/10 bg-white/5 px-4 py-2"
               >
-                <Text className="text-base font-semibold text-white">Menu</Text>
+                <Text className="text-base font-semibold text-white">{t('nav.menu')}</Text>
               </Pressable>
               <View className="flex-1 items-center px-2">
                 <Text className="text-lg font-bold text-white">QuranFamily</Text>
@@ -308,11 +354,11 @@ export function WebAppShell({ children }: WebAppShellProps) {
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Go to profile"
+                accessibilityLabel={t('nav.goToProfile')}
                 onPress={() => navigate('/(app)/profile')}
                 className="min-h-11 rounded-xl border border-white/10 bg-white/5 px-4 py-2"
               >
-                <Text className="text-base font-semibold text-white">Profile</Text>
+                <Text className="text-base font-semibold text-white">{t('nav.profile')}</Text>
               </Pressable>
             </View>
           </SafeAreaView>
@@ -327,6 +373,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
                 <QuickNavButton
                   key={item.href}
                   item={item}
+                  label={t(NAV_LABEL_KEY[item.id])}
                   active={isActiveNavItem(item, pathname)}
                   onPress={() => navigate(item.href)}
                 />

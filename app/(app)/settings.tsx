@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
-import { PrimaryButton, useAuth } from '@/features/auth';
+import { LanguagePicker, PrimaryButton, useAuth } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 export default function SettingsRoute() {
   const router = useRouter();
@@ -10,45 +11,60 @@ export default function SettingsRoute() {
     isChildFamilySession,
     canManageFamily,
     familyCode,
+    activeLearner,
     signOut,
     endGuestSession,
     endChildFamilySession,
+    setPreferredLanguage,
   } = useAuth();
+  const { t } = useI18n();
+  const languageValue = activeLearner?.preferred_language ?? 'en';
 
   return (
     <ScrollView className="flex-1 bg-brand-600" contentContainerStyle={{ padding: 20, paddingBottom: 36 }}>
       <View className="rounded-3xl bg-white px-5 py-6">
         <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-          Settings
+          {t('settings.title')}
         </Text>
-        <Text className="mt-2 text-3xl font-bold text-brand-800">App preferences</Text>
-        <Text className="mt-2 text-base text-brand-600">
-          Account, session, and device settings live here.
-        </Text>
+        <Text className="mt-2 text-3xl font-bold text-brand-800">{t('settings.headline')}</Text>
+        <Text className="mt-2 text-base text-brand-600">{t('settings.body')}</Text>
 
         <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            Session
+            {t('settings.language')}
+          </Text>
+          <Text className="mt-2 mb-3 text-sm text-brand-600">{t('profile.languageHelp')}</Text>
+          <LanguagePicker
+            value={languageValue}
+            onChange={(code) => {
+              void setPreferredLanguage(code);
+            }}
+          />
+        </View>
+
+        <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            {t('settings.session')}
           </Text>
           <Text className="mt-2 text-sm text-brand-700">
             {isGuest
-              ? 'Guest trial active on this device.'
+              ? t('settings.guestActive')
               : isChildFamilySession
-                ? 'Child session unlocked with family code and PIN.'
-                : 'Signed in with a full account.'}
+                ? t('settings.childSession')
+                : t('settings.signedIn')}
           </Text>
           {canManageFamily && familyCode ? (
             <Text className="mt-2 text-sm font-semibold text-brand-800">
-              Family code: {familyCode}
+              {t('settings.familyCode', { code: familyCode })}
             </Text>
           ) : null}
         </View>
 
         <View className="mt-6">
-          <PrimaryButton label="Back to home" onPress={() => router.replace('/(app)/home')} />
+          <PrimaryButton label={t('common.backToHome')} onPress={() => router.replace('/(app)/home')} />
           {canManageFamily ? (
             <PrimaryButton
-              label="My Family"
+              label={t('nav.myFamily')}
               onPress={() => router.push('/(app)/parent/dashboard')}
               variant="secondary"
             />
@@ -56,10 +72,10 @@ export default function SettingsRoute() {
           <PrimaryButton
             label={
               isChildFamilySession
-                ? 'Switch learner'
+                ? t('common.switchLearner')
                 : isGuest
-                  ? 'End guest trial'
-                  : 'Log out'
+                  ? t('common.endGuestTrial')
+                  : t('common.logOut')
             }
             onPress={() =>
               void (isChildFamilySession
