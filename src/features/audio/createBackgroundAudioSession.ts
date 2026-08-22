@@ -34,6 +34,15 @@ export type PlayBackgroundAudioOptions = {
   startAt?: number;
 };
 
+/**
+ * Auto Listen remounts the ayah UI and re-calls play() on the track that
+ * playImmediate already started. Clearing the ended-ready flag in that case
+ * makes the next `ended` a no-op, so playback stops after two ayahs.
+ */
+export function shouldResetEndedGuard(alreadyPlayingSameTrack: boolean): boolean {
+  return !alreadyPlayingSameTrack;
+}
+
 export type BackgroundAudioSession = {
   play: (
     url: string,
@@ -515,10 +524,7 @@ export function createBackgroundAudioSession(
     currentCallbacks = callbacks;
     lastMetadata = metadata;
     userWantsPlayback = true;
-    readyForFinish = false;
     const startAt = playOptions?.startAt;
-    const restartFinishedTrack = finishedCurrentTrack && !(typeof startAt === 'number' && startAt > 0);
-    finishedCurrentTrack = false;
 
     try {
       if (isWeb()) {
@@ -528,13 +534,19 @@ export function createBackgroundAudioSession(
         const sameSourcePaused =
           currentUrl === url && Boolean(el.src) && el.paused && !el.ended;
 
-        currentUrl = url;
-        applyWebMediaSession(metadata);
-
         if (alreadyThisTrack) {
+          applyWebMediaSession(metadata);
           emitStatus(true);
           return;
         }
+
+        readyForFinish = false;
+        const restartFinishedTrack =
+          finishedCurrentTrack && !(typeof startAt === 'number' && startAt > 0);
+        finishedCurrentTrack = false;
+        currentUrl = url;
+        applyWebMediaSession(metadata);
+
         if (!sameSourcePaused) {
           el.src = url;
           el.load();
@@ -566,6 +578,11 @@ export function createBackgroundAudioSession(
         emitStatus(true);
         return;
       }
+
+      readyForFinish = false;
+      const restartFinishedTrack =
+        finishedCurrentTrack && !(typeof startAt === 'number' && startAt > 0);
+      finishedCurrentTrack = false;
 
       if (sameSourcePaused) {
         activateLockScreen(activePlayer, metadata);

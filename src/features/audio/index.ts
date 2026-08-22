@@ -1,6 +1,7 @@
 export { AudioProgressBar } from './AudioProgressBar';
 export {
   createBackgroundAudioSession,
+  shouldResetEndedGuard,
   type BackgroundAudioCallbacks,
   type BackgroundAudioMetadata,
   type BackgroundAudioSession,

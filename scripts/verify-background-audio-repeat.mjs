@@ -45,6 +45,44 @@ function resolveEndedAction(remainingAfterDecrement, advance) {
   return 'complete';
 }
 
+function shouldResetEndedGuard(alreadyPlayingSameTrack) {
+  return !alreadyPlayingSameTrack;
+}
+
+/**
+ * Auto Listen remounts the ayah UI and re-calls play() while the next ayah
+ * is already playing. If that remount clears the ended-ready flag, the
+ * second ayah's ended event is ignored and playback stops.
+ */
+function simulateAutoListen(startSurah, startAyah, ayahCountBySurah, endedEvents) {
+  let surah = startSurah;
+  let ayah = startAyah;
+  let readyForFinish = true;
+  let playing = true;
+  const path = [`${surah}:${ayah}`];
+
+  for (let i = 0; i < endedEvents; i += 1) {
+    if (!readyForFinish) {
+      return { path, stoppedAt: `${surah}:${ayah}`, ignoredEnded: true };
+    }
+    readyForFinish = false;
+    const next = nextCursor(surah, ayah, ayahCountBySurah[surah] ?? 1);
+    if (!next) {
+      playing = false;
+      return { path, stoppedAt: `${surah}:${ayah}`, ignoredEnded: false, completed: true };
+    }
+    surah = next.surahNumber;
+    ayah = next.ayahNumber;
+    playing = true;
+    readyForFinish = true;
+    if (shouldResetEndedGuard(playing)) {
+      readyForFinish = false;
+    }
+    path.push(`${surah}:${ayah}`);
+  }
+  return { path, stoppedAt: `${surah}:${ayah}`, ignoredEnded: false };
+}
+
 function runAyahCycle(repeatCount, advance) {
   let remaining = playsFor(repeatCount);
   let plays = 0;
@@ -114,11 +152,44 @@ assert(nextCursor(113, 5, 5).surahNumber === 114, 'end of surah → next surah')
 assert(nextCursor(113, 5, 5).ayahNumber === 1, 'next surah starts at ayah 1');
 assert(nextCursor(114, 6, 6) === null, 'end of 114 completes the listen queue');
 
+assert(
+  shouldResetEndedGuard(true) === false,
+  'already-playing remount must keep the ended-ready flag',
+);
+assert(
+  shouldResetEndedGuard(false) === true,
+  'a new or paused source may reset the ended-ready flag',
+);
+
+const fiveAyahs = simulateAutoListen(1, 1, { 1: 7 }, 5);
+assert(!fiveAyahs.ignoredEnded, 'Auto Listen must consume every ayah ended event');
+assert(
+  fiveAyahs.path.join(',') === '1:1,1:2,1:3,1:4,1:5,1:6',
+  'Auto Listen must advance 5+ consecutive ayahs',
+);
+
+const surahWrap = simulateAutoListen(113, 4, { 113: 5, 114: 6 }, 2);
+assert(!surahWrap.ignoredEnded, 'Surah end ended event must not be ignored');
+assert(
+  surahWrap.path.join(',') === '113:4,113:5,114:1',
+  'end of a surah must continue at ayah 1 of the next surah',
+);
+
 const session = readSrc('src/features/audio/createBackgroundAudioSession.ts');
 assert(session.includes('shouldPlayInBackground: true'), 'Expo audio mode keeps background play');
 assert(session.includes("interruptionMode: 'doNotMix'"), 'lock-screen requires doNotMix');
 assert(session.includes('keepAudioSessionActive: true'), 'player keeps the native session');
 assert(session.includes('finishedCurrentTrack'), 'ended tracks must be marked finished');
+assert(session.includes('shouldResetEndedGuard'), 'already-playing remount must not drop ended');
+const playNowSrc = session.slice(
+  session.indexOf('async function playNow'),
+  session.indexOf('function playImmediateNow'),
+);
+assert(
+  playNowSrc.includes('if (alreadyThisTrack)') &&
+    playNowSrc.indexOf('if (alreadyThisTrack)') < playNowSrc.indexOf('readyForFinish = false'),
+  'already-playing play() must return before clearing the ended-ready flag',
+);
 assert(session.includes('holdLockScreen'), 'lock/background keeps the media session');
 assert(session.includes('resumeNativeIfWanted'), 'Android background can resume if still wanted');
 assert(
