@@ -7,7 +7,7 @@ export const PENDING_CHALLENGE_STORAGE = 'qq.competition.pending_code';
 export const QUESTION_COUNT_BY_TIER = {
   1: 5,
   2: 5,
-  3: 3,
+  3: 5,
 } as const;
 
 export const AI_OPPONENT_LABEL = '🤖 AI Opponent';

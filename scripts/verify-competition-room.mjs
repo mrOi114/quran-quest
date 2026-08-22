@@ -75,7 +75,8 @@ assert(service.includes("action: 'join_code'"), 'Code join exists');
 assert(questions.includes('QUESTION_COUNT_BY_TIER'), 'Tier question counts exist');
 assert(questions.includes('1: 5'), 'Challenge 1 has 5 questions');
 assert(questions.includes('2: 5'), 'Challenge 2 has 5 questions');
-assert(questions.includes('3: 3'), 'Challenge 3 has 3 questions');
+assert(questions.includes('3: 5'), 'Challenge 3 has 5 questions');
+assert(read('src/features/competition/constants.ts').includes('3: 5'), 'Client Challenge 3 is 5');
 assert(questions.includes("ageBands: ['child'"), 'Child-safe questions exist');
 assert(questions.includes("ageBands: ['adult']") || questions.includes("'adult'"), 'Adult questions exist');
 
