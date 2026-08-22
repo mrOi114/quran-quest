@@ -16,11 +16,11 @@ export default function WelcomeScreen() {
   return (
     <AuthScreen showBrand={false} title="Welcome to QuranFamily 🌙">
       <PrimaryButton
-        label="Start with Guest Mode"
+        label="Continue as Guest"
         onPress={() => router.push('/(auth)/guest-onboarding')}
       />
       <Text className="mb-4 text-center text-sm leading-5 text-brand-600">
-        No account needed — explore Qur’an learning, reading and listening instantly.
+        No account needed — open Qur’an Quest and start learning, reading, and listening right away.
       </Text>
       {SHOW_EMAIL_AUTH_ENTRY ? (
         <>

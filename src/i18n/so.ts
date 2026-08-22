@@ -45,12 +45,13 @@ export const so = {
   'groups.madrasah': 'Madrasah / Dugsi',
   'groups.noPublic': 'Weli ma jiraan Public Circles. Ku biir koodh ama mid abuur.',
   'groups.noMadrasah': 'Weli ma jiraan Kooxaha Madrasah / Dugsi.',
-  'groups.guestTitle': 'Marka hore barashada tijaabi',
+  'groups.guestTitle': 'Goobtu waxay ku shaqaysaa Habka Martida',
   'groups.guestHelp':
-    'Habka Martida wuxuu ku hadhaa qalabkan. Gal akoon kaliya markaad diyaar u tahay inaad ku biirto Goob la ilaaliyo.',
+    'Sahamin Goobta iyo tababarka Hifz ee qalabkan. Ku biirista ama abuurista Goob la ilaaliyo kaliya ayaa u baahan akoon markii dambe.',
   'groups.guestJoin':
-    'Ku biirista Goobta waxay u baahan tahay akoon waalid ama qof weyn. Marti ahaan waad sii baran kartaa.',
-  'groups.signInNeeded': 'Gal akoon si aad u abuurto ama ugu biirto Goob.',
+    'Ku biirista Goob la ilaaliyo waxay u baahan tahay akoon waalid ama qof weyn. Marti ahaan waad sii sahamayn kartaa oo baran kartaa.',
+  'groups.signInNeeded': 'Akoon ayaa loo baahan yahay kaliya si aad ugu biirto ama u abuurto Goob la ilaaliyo.',
+  'groups.guestExploreHifz': 'Fur tababarka Goobta Hifz',
   'groups.joinTitle': 'Ku biir Goob',
   'groups.joinHelp':
     'Geli koodhka Public ama Madrasah / Dugsi. Tani ma aha koodhka qoyska.',
@@ -900,4 +901,10 @@ export const so = {
   'competition.groupTeen': 'Dhallinyaro',
   'competition.groupAdult': 'Qof weyn 18+',
   'competition.tierLabel': 'Tartanka {n}',
+  'competition.opponentTypeReal': 'Kan kula tartamaya: Qof dhab ah',
+  'competition.opponentTypeAi': 'Kan kula tartamaya: 🤖 AI Opponent',
+  'competition.aiStarting': 'Weli qof ma jiro. Waxaa bilowaya tartan AI…',
+  'competition.yourScoreHeading': 'Natiijadaada',
+  'competition.opponentScoreHeading': 'Natiijada kan kula tartamaya',
+  'competition.percentLabel': '{percent}%',
 } satisfies Record<MessageKey, string>;

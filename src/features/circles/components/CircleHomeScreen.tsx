@@ -69,6 +69,15 @@ export function CircleHomeScreen() {
               <Text className="mt-2 text-sm leading-5 text-brand-600">
                 {t('groups.guestHelp')}
               </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push('/(app)/gates/circle' as Href)}
+                className="mt-3 min-h-12 items-center justify-center rounded-xl bg-brand-600 px-3 py-3"
+              >
+                <Text className="text-sm font-semibold text-white">
+                  {t('groups.guestExploreHifz')}
+                </Text>
+              </Pressable>
             </View>
           ) : null}
 

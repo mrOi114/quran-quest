@@ -61,7 +61,7 @@ export default function GuestOnboardingScreen() {
         router.replace({
           pathname: '/(app)/competition/[code]',
           params: { code: pendingCode },
-        } as Href);
+        } as unknown as Href);
       } else {
         router.replace('/(app)/home');
       }

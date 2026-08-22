@@ -169,11 +169,9 @@ export function HomeDashboard() {
           <FamilyCommsEntry />
         ) : null}
 
-        {!isGuest ? (
-          <View className="mb-4 rounded-2xl bg-white px-4 py-4">
-            <CircleEntry compact />
-          </View>
-        ) : null}
+        <View className="mb-4 rounded-2xl bg-white px-4 py-4">
+          <CircleEntry compact />
+        </View>
 
         <View className="mb-4 rounded-2xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">

@@ -46,6 +46,12 @@ export function JoinCircleScreen() {
       {!signedIn ? (
         <View className="mb-4 rounded-2xl bg-brand-50 px-4 py-4">
           <Text className="text-sm leading-5 text-brand-700">{t('groups.guestJoin')}</Text>
+          <View className="mt-3">
+            <PrimaryButton
+              label={t('groups.guestExploreHifz')}
+              onPress={() => router.replace('/(app)/gates/circle' as Href)}
+            />
+          </View>
         </View>
       ) : null}
       <TextField
@@ -54,9 +60,12 @@ export function JoinCircleScreen() {
         onChangeText={setJoinCode}
         autoCapitalize="characters"
         autoCorrect={false}
+        editable={signedIn}
       />
       {error ? <Text className="mb-3 text-sm text-red-600">{error}</Text> : null}
-      <PrimaryButton label={t('groups.join')} onPress={() => void onJoin()} loading={loading} />
+      {signedIn ? (
+        <PrimaryButton label={t('groups.join')} onPress={() => void onJoin()} loading={loading} />
+      ) : null}
       <PrimaryButton label={t('common.back')} onPress={() => router.back()} variant="secondary" />
     </AuthScreen>
   );

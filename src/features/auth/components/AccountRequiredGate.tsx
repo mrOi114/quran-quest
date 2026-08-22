@@ -88,17 +88,17 @@ export function AccountRequiredGate({
         </Text>
         <View className="mt-6">
           <PrimaryButton
+            label={t('common.maybeLater')}
+            onPress={() => router.replace('/(app)/home')}
+          />
+          <PrimaryButton
             label={t('common.createFreeAccount')}
             onPress={() => router.push('/(auth)/register')}
+            variant="secondary"
           />
           <PrimaryButton
             label={t('common.logIn')}
             onPress={() => router.push('/(auth)/login')}
-            variant="secondary"
-          />
-          <PrimaryButton
-            label={t('common.maybeLater')}
-            onPress={() => router.replace('/(app)/home')}
             variant="secondary"
           />
         </View>

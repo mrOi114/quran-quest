@@ -42,12 +42,13 @@ export const en = {
   'groups.madrasah': 'Madrasah / Dugsi',
   'groups.noPublic': 'No Public Circles yet. Join with a code or create one.',
   'groups.noMadrasah': 'No Madrasah / Dugsi Circles yet.',
-  'groups.guestTitle': 'Explore learning first',
+  'groups.guestTitle': 'Circle works in Guest Mode',
   'groups.guestHelp':
-    'Guest Mode stays on this device. Sign in only when you are ready to join a protected Circle.',
+    'Explore Circle and Hifz practice on this device. Joining or creating a protected Circle is the only step that needs an account later.',
   'groups.guestJoin':
-    'Joining a Circle needs a signed-in adult or parent account. You can keep learning as a guest.',
-  'groups.signInNeeded': 'Sign in to join or create a Circle.',
+    'Joining a protected Circle needs a signed-in adult or parent account. You can keep exploring and learning as a guest.',
+  'groups.signInNeeded': 'An account is needed only to join or create a protected Circle.',
+  'groups.guestExploreHifz': 'Open Hifz Circle practice',
   'groups.joinTitle': 'Join a Circle',
   'groups.joinHelp': 'Enter the public or Madrasah / Dugsi join code. This is not a Family code.',
   'groups.joinCode': 'Join code',
@@ -879,6 +880,12 @@ export const en = {
   'competition.groupTeen': 'Teen',
   'competition.groupAdult': 'Adult 18+',
   'competition.tierLabel': 'Challenge {n}',
+  'competition.opponentTypeReal': 'Opponent: Real Player',
+  'competition.opponentTypeAi': 'Opponent: 🤖 AI Opponent',
+  'competition.aiStarting': 'No opponent yet. Starting against AI…',
+  'competition.yourScoreHeading': 'Your Score',
+  'competition.opponentScoreHeading': 'Opponent Score',
+  'competition.percentLabel': '{percent}%',
 } as const;
 
 export type MessageKey = keyof typeof en;
