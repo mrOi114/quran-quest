@@ -77,6 +77,10 @@ assert(runAyahCycle('3', false).plays === 3, '3× must play exactly three times'
 assert(runAyahCycle('1', false).action === 'complete', '1× finishes the ayah');
 assert(runAyahCycle('2', false).action === 'complete', '2× finishes the ayah');
 assert(runAyahCycle('3', false).action === 'complete', '3× finishes the ayah');
+assert(runAyahCycle('1', true).plays === 1, '1× listen plays exactly once');
+assert(runAyahCycle('1', true).action === 'advance', '1× listen then next ayah');
+assert(runAyahCycle('2', true).plays === 2, '2× listen plays exactly twice');
+assert(runAyahCycle('2', true).action === 'advance', '2× then next ayah');
 assert(runAyahCycle('3', true).plays === 3, '3× with listen-queue still plays three times');
 assert(runAyahCycle('3', true).action === 'advance', '3× then existing next-ayah');
 assert(runAyahCycle('loop', true).plays === 8, 'loop stays on the ayah');
@@ -138,6 +142,11 @@ const queue = readSrc('src/features/reader/services/quranListenQueue.ts');
 assert(queue.includes('advanceOnComplete'), 'lesson stays on ayah; listen queue can advance');
 assert(queue.includes('shouldPreserveRemainingPlays'), 'background remount preserves remaining');
 assert(queue.includes('getQuranListenRemainingPlays'), 'remaining plays are inspectable');
+assert(queue.includes('if (options?.advance)'), 'listen auto-advance latches until stop');
+assert(
+  queue.includes("let repeatCount: AudioRepeatCount = '1'"),
+  'listen queue default repeat is 1×',
+);
 
 const repeat = readSrc('src/features/reader/services/quranListenRepeat.ts');
 assert(repeat.includes("if (count === '2')"), '2× is a first-class play count');
@@ -145,8 +154,8 @@ assert(repeat.includes('return 3'), '3× is exactly three plays');
 
 const constants = readSrc('src/features/reader/constants.ts');
 assert(
-  constants.includes("DEFAULT_READER_REPEAT: AudioRepeatCount = '3'"),
-  'default learning option is Repeat 3×',
+  constants.includes("DEFAULT_READER_REPEAT: AudioRepeatCount = '1'"),
+  'default audio option is play once (1×)',
 );
 
 const lesson = readSrc('src/features/learning/components/LessonScreen.tsx');
@@ -162,5 +171,18 @@ assert(hook.includes('resetRemaining: false'), 'background remount does not rese
 
 const controls = readSrc('src/features/reader/components/VerseAudioControls.tsx');
 assert(controls.includes("t('reader.times2')"), 'existing repeat control shows 2×');
+
+const focus = readSrc('src/features/reader/components/ReaderVerseFocus.tsx');
+assert(
+  focus.includes('continuous: continuous ?? (autoPlay && audioEnabled)'),
+  'listen can keep the queue advancing without autoPlay',
+);
+
+const fullReader = readSrc('src/features/reader/components/FullQuranReaderScreen.tsx');
+assert(
+  fullReader.includes("continuous={listenMode === 'listen' ? audioEnabled : undefined}"),
+  'listen mode wires continuous independently of UI autoPlay',
+);
+assert(fullReader.includes("if (current === '3') return 'loop'"), 'loop stays an optional listen choice');
 
 console.log('verify-background-audio-repeat: all contracts passed');

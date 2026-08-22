@@ -25,6 +25,8 @@ type ReaderVerseFocusProps = {
   onPlayedOnce?: () => void;
   onPlaybackComplete?: () => void;
   autoPlay?: boolean;
+  /** Keep the listen queue advancing after each ayah (independent of autoPlay). */
+  continuous?: boolean;
   audioEnabled?: boolean;
   onToggleAudioEnabled?: () => void;
   onPrevious?: () => void;
@@ -49,6 +51,7 @@ export function ReaderVerseFocus({
   onPlayedOnce,
   onPlaybackComplete,
   autoPlay = false,
+  continuous,
   audioEnabled = true,
   onToggleAudioEnabled,
   onPrevious,
@@ -84,7 +87,7 @@ export function ReaderVerseFocus({
     onPlayedOnce,
     onPlaybackComplete,
     autoPlay: autoPlay && audioEnabled,
-    continuous: autoPlay && audioEnabled,
+    continuous: continuous ?? (autoPlay && audioEnabled),
     cursor: {
       surahNumber: verse.surahNumber,
       ayahNumber: verse.ayahNumber,

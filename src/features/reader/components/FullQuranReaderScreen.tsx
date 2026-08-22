@@ -23,7 +23,7 @@ type FullQuranReaderScreenProps = {
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   if (current === '1') return '2';
   if (current === '2') return '3';
-  if (current === '3') return '1';
+  if (current === '3') return 'loop';
   return '1';
 }
 
@@ -241,6 +241,7 @@ export function FullQuranReaderScreen({
             autoPlay={
               autoPlayPending && (listenMode === 'listen' || listenMode === 'meaning')
             }
+            continuous={listenMode === 'listen' ? audioEnabled : undefined}
             audioEnabled={audioEnabled}
             audioKind={listenMode === 'meaning' ? 'meaning' : 'quran'}
             onToggleAudioEnabled={() => setAudioEnabled(!audioEnabled)}

@@ -154,7 +154,7 @@ export async function playVerseAudio(
     await meaningSession.stop();
   }
   if (options?.cursor) {
-    enableQuranListen(options.cursor, options.repeatCount ?? '3', {
+    enableQuranListen(options.cursor, options.repeatCount ?? '1', {
       resetRemaining: options.resetRemaining,
       kind,
       advance: Boolean(options.continuous),
