@@ -450,6 +450,7 @@ export const en = {
   'lesson.reviewHelp':
     'You can review these ayahs anytime. Next chunks unlock in order within this Surah.',
   'lesson.continueNext': 'Continue to next lesson',
+  'lesson.nextLesson': 'Next Lesson',
   'lesson.nextAyah': 'Next ayah',
   'lesson.arabicNote': 'Arabic is for memorization. Translation helps understanding only.',
   'lesson.chooseLesson': 'Choose a lesson',

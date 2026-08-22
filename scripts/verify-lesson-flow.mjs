@@ -167,4 +167,40 @@ for (const verse of fatihaLesson1) {
   assert(verse.translationEn.trim().length > 0, `translation missing at ${verse.id}`);
 }
 
+const ayahCountBySurah = {};
+for (const verse of mushaf.verses) {
+  ayahCountBySurah[verse.surahNumber] = (ayahCountBySurah[verse.surahNumber] ?? 0) + 1;
+}
+
+function nextLessonAcrossSurahs(surahNumber, lessonIndex, chunk) {
+  const sameSurah = planLessons(ayahCountBySurah[surahNumber] ?? 0, chunk);
+  const nextInSurah = sameSurah.find((item) => item.index === lessonIndex + 1);
+  if (nextInSurah) {
+    return {
+      surahNumber,
+      start: nextInSurah.start,
+      index: nextInSurah.index,
+    };
+  }
+  if (surahNumber >= 114) {
+    return null;
+  }
+  const first = planLessons(ayahCountBySurah[surahNumber + 1] ?? 0, chunk)[0];
+  if (!first) {
+    return null;
+  }
+  return { surahNumber: surahNumber + 1, start: first.start, index: first.index };
+}
+
+const adultChunk = VERSES_PER_LESSON.adult_18_plus;
+const fatihaAfterLesson1 = nextLessonAcrossSurahs(1, 1, adultChunk);
+assert(fatihaAfterLesson1?.surahNumber === 1 && fatihaAfterLesson1.start === 6, 'after Al-Fatiha ayah 5 the next lesson is ayah 6');
+const fatihaAfterLast = nextLessonAcrossSurahs(1, planLessons(ayahCountBySurah[1], adultChunk).length, adultChunk);
+assert(fatihaAfterLast?.surahNumber === 2 && fatihaAfterLast.start === 1, 'after the last Al-Fatiha lesson the next lesson is Surah 2 ayah 1');
+
+const childChunk = VERSES_PER_LESSON.child_3_6;
+const kawtharLast = nextLessonAcrossSurahs(108, ayahCountBySurah[108], childChunk);
+assert(kawtharLast?.surahNumber === 109 && kawtharLast.start === 1, 'after Al-Kawthar the next lesson is Al-Kafirun ayah 1');
+assert(nextLessonAcrossSurahs(114, planLessons(ayahCountBySurah[114], childChunk).length, childChunk) === null, 'An-Nas is the end of the Qur’an');
+
 console.log('verify-lesson-flow: ok');

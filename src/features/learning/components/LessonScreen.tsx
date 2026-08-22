@@ -38,7 +38,6 @@ import { LessonBrowserSheet } from './LessonBrowserSheet';
 import { LessonLockedGate } from './LessonLockedGate';
 import { LessonMasteryResultCard } from './LessonMasteryResultCard';
 import { LessonMasteryTest } from './LessonMasteryTest';
-import { LessonPathChooser } from './LessonPathChooser';
 
 type LessonScreenProps = {
   lessonKey?: string;
@@ -75,6 +74,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   } = useReaderPreferences();
   const {
     session,
+    openedForLessonKey,
     isLoading,
     error,
     activeVerseIndex,
@@ -94,7 +94,6 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   const [lessonSummaries, setLessonSummaries] = useState<LessonSummary[]>([]);
   const [testRun, setTestRun] = useState<TestRun | null>(null);
   const [outcome, setOutcome] = useState<TestOutcome | null>(null);
-  const [postponeTest, setPostponeTest] = useState(false);
   const [tafsirAutoPlay, setTafsirAutoPlay] = useState(false);
   const submittingRef = useRef(false);
   const tafsir = useTafsirMode();
@@ -115,6 +114,11 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     if (!session || !lessonKey) {
       return;
     }
+    // Only rewrite the URL after the session for *this* lessonId has loaded.
+    // Otherwise a stale session bounces "next lesson" back to the previous one.
+    if (openedForLessonKey !== lessonKey) {
+      return;
+    }
     if (session.mode === 'locked') {
       return;
     }
@@ -124,7 +128,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
         params: { lessonId: session.lesson.lessonKey },
       });
     }
-  }, [lessonKey, router, session]);
+  }, [lessonKey, openedForLessonKey, router, session]);
 
   useEffect(() => {
     if (!session) {
@@ -142,7 +146,6 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   useEffect(() => {
     setTestRun(null);
     setOutcome(null);
-    setPostponeTest(false);
     setTafsirAutoPlay(false);
     submittingRef.current = false;
   }, [lessonKey]);
@@ -232,7 +235,6 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       if (questions.length === 0) {
         return;
       }
-      setPostponeTest(false);
       setOutcome(null);
       setTestRun({
         kind: 'mastery',
@@ -276,6 +278,10 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       return;
     }
     setTestRun(null);
+    if (testRun.kind === 'mastery' && result.passed && result.nextLessonKey) {
+      goToLesson(result.nextLessonKey);
+      return;
+    }
     setOutcome({ ...result, kind: testRun.kind, style: testRun.style });
   }
 
@@ -310,7 +316,6 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
       return;
     }
     setOutcome(null);
-    setPostponeTest(true);
   }
 
   if ((isLoading || prefsLoading) && !session) {
@@ -691,26 +696,13 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                 />
               ) : null}
 
-              {!isReview && session.canCompleteLesson && !postponeTest ? (
-                <LessonPathChooser
-                  onGame={() => {
-                    void startMasteryQuiz('game');
-                  }}
-                  onPractice={() => setPostponeTest(true)}
-                  onTest={() => {
-                    void startMasteryQuiz('test');
-                  }}
-                  onContinue={() => {
-                    void startMasteryQuiz('test');
-                  }}
-                />
-              ) : null}
-
-              {!isReview && session.canCompleteLesson && postponeTest ? (
+              {!isReview && session.canCompleteLesson ? (
                 <PrimaryButton
-                  label={t('lesson.chooseHow')}
+                  label={t('lesson.nextLesson')}
                   loading={isLoading}
-                  onPress={() => setPostponeTest(false)}
+                  onPress={() => {
+                    void startMasteryQuiz('test');
+                  }}
                 />
               ) : null}
 
@@ -721,7 +713,7 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
                   </Text>
                   {session.nextLessonKey ? (
                     <PrimaryButton
-                      label={t('lesson.continueNext')}
+                      label={t('lesson.nextLesson')}
                       onPress={() => {
                         const nextLessonKey = session.nextLessonKey;
                         if (!nextLessonKey) {

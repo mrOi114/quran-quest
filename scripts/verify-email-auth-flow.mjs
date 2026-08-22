@@ -111,6 +111,20 @@ assert(
   'Verification screen must resend with a cooldown',
 );
 assert(
+  read('src/features/auth/hooks/useResendCooldown.ts').includes('RESEND_COOLDOWN_MS = 60_000'),
+  'Resend cooldown must stay 60 seconds',
+);
+const confirmationTemplate = read('supabase/templates/confirmation.html');
+const recoveryTemplate = read('supabase/templates/recovery.html');
+assert(
+  confirmationTemplate.includes('{{ .Token }}') && confirmationTemplate.includes('{{ .ConfirmationURL }}'),
+  'Confirmation template must include both the 6-digit token and the confirmation link',
+);
+assert(
+  recoveryTemplate.includes('{{ .ConfirmationURL }}'),
+  'Recovery template must include the password-reset confirmation link',
+);
+assert(
   verifyEmail.includes('Open Email') && verifyEmail.includes('Change Email'),
   'Verification screen must offer Open Email and Change Email',
 );

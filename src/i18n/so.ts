@@ -463,6 +463,7 @@ export const so = {
   'lesson.reviewHelp':
     'Aayadahan mar kasta waad celcelin kartaa. Qaybaha xiga waxaa loo furaa si nidaamsan gudaha Suuraddan.',
   'lesson.continueNext': 'U gudub casharka xiga',
+  'lesson.nextLesson': 'Casharka xiga',
   'lesson.nextAyah': 'Aayadda xigta',
   'lesson.arabicNote':
     'Carabigu waa xifziga. Tarjumaaddu waxay kaa caawisaa fahamka oo keliya.',

@@ -15,6 +15,8 @@ import type { LessonMasteryResult, LessonSession } from '../types';
 
 type UseLessonSessionResult = {
   session: LessonSession | null;
+  /** Lesson key this `session` was opened for. Used to avoid URL bounce while navigating. */
+  openedForLessonKey: string | undefined;
   isLoading: boolean;
   error: string | null;
   activeVerseIndex: number;
@@ -36,6 +38,7 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
   const { activeLearner, refreshGuestProgress } = useAuth();
   const { t } = useI18n();
   const [session, setSession] = useState<LessonSession | null>(null);
+  const [openedForLessonKey, setOpenedForLessonKey] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeVerseIndex, setActiveVerseIndex] = useState(0);
@@ -45,13 +48,12 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
     let cancelled = false;
 
     async function load() {
-      await Promise.resolve();
-      if (cancelled) {
-        return;
-      }
       if (!activeLearner) {
-        setSession(null);
-        setIsLoading(false);
+        if (!cancelled) {
+          setSession(null);
+          setOpenedForLessonKey(undefined);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -62,6 +64,7 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
         const next = await openLessonSession(activeLearner, resolvedKey);
         if (!cancelled) {
           setSession(next);
+          setOpenedForLessonKey(resolvedKey);
           const firstUnlearned = next.verses.findIndex(
             (verse) =>
               verse.progress.status !== 'learned' && verse.progress.status !== 'mastered',
@@ -73,6 +76,7 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
         if (!cancelled) {
           setError(err instanceof Error ? err.message : t('lesson.openError'));
           setSession(null);
+          setOpenedForLessonKey(undefined);
         }
       } finally {
         if (!cancelled) {
@@ -128,6 +132,7 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
         session.lesson,
       );
       setSession(nextSession);
+      setOpenedForLessonKey(nextLessonKey ?? session.lesson.lessonKey);
       await refreshGuestProgress();
       return nextLessonKey;
     } catch (err) {
@@ -190,6 +195,7 @@ export function useLessonSession(lessonKey: string | undefined): UseLessonSessio
 
   return {
     session,
+    openedForLessonKey,
     isLoading,
     error,
     activeVerseIndex,
