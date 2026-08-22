@@ -587,6 +587,8 @@ export const so = {
   'reader.loop': '🔁 Wareeg',
   'reader.previousVerse': 'Aayadda hore',
   'reader.nextVerse': 'Aayadda xigta',
+  'reader.previousAyah': '← Hore',
+  'reader.nextAyah': 'Xiga →',
   'reader.playAgain': 'Mar kale dhageyso',
   'reader.audioError': 'Codka lama ciyaari karin. Mar kale isku day.',
 

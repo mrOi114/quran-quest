@@ -571,6 +571,8 @@ export const en = {
   'reader.loop': '🔁 Loop',
   'reader.previousVerse': 'Previous verse',
   'reader.nextVerse': 'Next verse',
+  'reader.previousAyah': '← Previous',
+  'reader.nextAyah': 'Next →',
   'reader.playAgain': 'Play again',
   'reader.audioError': 'Audio could not play. Try again.',
 

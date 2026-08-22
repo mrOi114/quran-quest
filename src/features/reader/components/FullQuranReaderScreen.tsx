@@ -56,6 +56,8 @@ export function FullQuranReaderScreen({
     selectJuz,
     goToPreviousAyah,
     goToNextAyah,
+    canGoPrevious,
+    canGoNext,
     setListenMode,
     setAudioEnabled,
     setShowTranslation,
@@ -254,10 +256,8 @@ export function FullQuranReaderScreen({
                   (listenMode === 'listen' || listenMode === 'meaning') && audioEnabled,
               })
             }
-            canGoPrevious={!(currentSurah.number === 1 && activeAyahNumber === 1)}
-            canGoNext={
-              !(currentSurah.number === 114 && activeAyahNumber >= currentSurah.ayahCount)
-            }
+            canGoPrevious={canGoPrevious}
+            canGoNext={canGoNext}
             onPlaybackComplete={handleVersePlaybackComplete}
             onToggleTranslation={() => {
               void setShowTranslation(!preferences.showTranslation);
@@ -334,6 +334,52 @@ export function FullQuranReaderScreen({
           </View>
         </ReaderChrome>
       </ScrollView>
+      <View className="flex-row gap-3 border-t border-brand-700 bg-brand-600 px-4 py-3">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('reader.previousAyah')}
+          disabled={!canGoPrevious}
+          onPress={() =>
+            goToPreviousAyah({
+              autoPlay:
+                (listenMode === 'listen' || listenMode === 'meaning') && audioEnabled,
+            })
+          }
+          className={`min-h-12 flex-1 items-center justify-center rounded-2xl ${
+            canGoPrevious ? 'bg-white' : 'bg-brand-700 opacity-50'
+          }`}
+        >
+          <Text
+            className={`text-base font-semibold ${
+              canGoPrevious ? 'text-brand-700' : 'text-brand-100'
+            }`}
+          >
+            {t('reader.previousAyah')}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('reader.nextAyah')}
+          disabled={!canGoNext}
+          onPress={() =>
+            goToNextAyah({
+              autoPlay:
+                (listenMode === 'listen' || listenMode === 'meaning') && audioEnabled,
+            })
+          }
+          className={`min-h-12 flex-1 items-center justify-center rounded-2xl ${
+            canGoNext ? 'bg-white' : 'bg-brand-700 opacity-50'
+          }`}
+        >
+          <Text
+            className={`text-base font-semibold ${
+              canGoNext ? 'text-brand-700' : 'text-brand-100'
+            }`}
+          >
+            {t('reader.nextAyah')}
+          </Text>
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }

@@ -5,7 +5,7 @@ import { resolveAgeGroup } from '@/features/learning/services/ageGroup';
 import { useI18n } from '@/i18n';
 import type { AudioRepeatCount } from '@/types';
 
-import { getJuzForVerse, getMushafSurah, listSurahsInJuz } from '../content';
+import { getJuzForVerse, listSurahsInJuz } from '../content';
 import {
   listAllMushafSurahs,
   listJuzOptions,
@@ -22,7 +22,9 @@ import {
 import { setContinuousListenRepeat, stopVerseAudio } from '../services/audioPlayerService';
 import {
   disableQuranListen,
+  isQuranListenEnabled,
   nextQuranListenCursor,
+  previousQuranListenCursor,
   subscribeQuranListen,
 } from '../services/quranListenQueue';
 import type { BrowsableSurah, ReaderPreferences, ReaderVerseViewModel } from '../types';
@@ -57,6 +59,8 @@ type UseFullQuranReaderResult = {
   selectJuz: (juzNumber: number) => Promise<void>;
   goToPreviousAyah: (options?: { autoPlay?: boolean }) => void;
   goToNextAyah: (options?: { autoPlay?: boolean }) => void;
+  canGoPrevious: boolean;
+  canGoNext: boolean;
   clearAutoPlayPending: () => void;
   setListenMode: (mode: ReaderListenMode) => Promise<void>;
   setAudioEnabled: (value: boolean) => void;
@@ -247,6 +251,7 @@ export function useFullQuranReader({
         return;
       }
       setQuranCompleted(false);
+      setAutoPlayPending(true);
       const current = followRef.current;
       if (!current.activeLearner || !current.preferences) {
         return;
@@ -320,22 +325,20 @@ export function useFullQuranReader({
       if (!surah || !activeLearner || !preferences) {
         return;
       }
-      if (activeAyahNumber > 1) {
-        setActiveAyahNumber(activeAyahNumber - 1, options);
-        return;
-      }
-      if (surah.number <= 1) {
-        return;
-      }
-      const previous = getMushafSurah(surah.number - 1);
+      const previous = previousQuranListenCursor(surah.number, activeAyahNumber);
       if (!previous) {
+        return;
+      }
+      setQuranCompleted(false);
+      if (previous.surahNumber === surah.number) {
+        setActiveAyahNumber(previous.ayahNumber, options);
         return;
       }
       void openSurah(
         activeLearner,
         preferences,
-        previous.number,
-        previous.ayahCount,
+        previous.surahNumber,
+        previous.ayahNumber,
         options,
       );
     },
@@ -384,6 +387,10 @@ export function useFullQuranReader({
   );
 
   const handleVersePlaybackComplete = useCallback(() => {
+    // Continuous listen owns ayah/surah advance; the reader follows via subscribeQuranListen.
+    if (isQuranListenEnabled()) {
+      return;
+    }
     if ((listenMode !== 'listen' && listenMode !== 'meaning') || !audioEnabled || !surah) {
       setAutoPlayPending(false);
       return;
@@ -471,6 +478,10 @@ export function useFullQuranReader({
     selectJuz,
     goToPreviousAyah,
     goToNextAyah,
+    canGoPrevious: Boolean(
+      surah && previousQuranListenCursor(surah.number, activeAyahNumber),
+    ),
+    canGoNext: Boolean(surah && nextQuranListenCursor(surah.number, activeAyahNumber)),
     clearAutoPlayPending: () => setAutoPlayPending(false),
     setListenMode,
     setAudioEnabled: (value: boolean) => {
