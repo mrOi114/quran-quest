@@ -9,7 +9,7 @@ export const so = {
     'Macnaha Quraanka: Cabdullaahi Xasan Yacquub (QuranEnc.com). Qoraalka Carabiga lama beddelo.',
 
   'nav.home': 'Hoyga',
-  'nav.learn': 'Baro / Quraanka',
+  'nav.learn': 'Akhri Quraanka',
   'nav.lesson': 'Casharka',
   'nav.revision': 'Celcelinta',
   'nav.games': 'Ciyaaraha',

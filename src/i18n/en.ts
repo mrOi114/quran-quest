@@ -7,7 +7,7 @@ export const en = {
     'Qur’an meaning: Sahih International (English). Arabic text is unchanged.',
 
   'nav.home': 'Home',
-  'nav.learn': 'Learn / Quran',
+  'nav.learn': 'Read Quran',
   'nav.lesson': 'Lesson',
   'nav.revision': 'Revision',
   'nav.games': 'Games',
