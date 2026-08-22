@@ -1,5 +1,6 @@
 /**
  * Email signup / verification / login flow contracts.
+ * Local source checks only — do not call Supabase signup, resend, or reset APIs.
  * Run: node ./scripts/verify-email-auth-flow.mjs
  */
 import { readFileSync } from 'node:fs';
