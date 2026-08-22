@@ -16,8 +16,7 @@ import type { AudioRepeatCount } from '@/types';
 import {
   getJuz,
   getJuzForVerse,
-  listJuz,
-  listSurahsInJuz,
+  getSurah,
   searchLearningSurahs,
 } from '../content';
 import { useLessonSession } from '../hooks/useLessonSession';
@@ -87,10 +86,10 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
   const [playedVerseIds, setPlayedVerseIds] = useState<Record<string, true>>({});
   const [listenHint, setListenHint] = useState<string | null>(null);
-  const [browserOpen, setBrowserOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [juzNumber, setJuzNumber] = useState(30);
   const [browseSurahNumber, setBrowseSurahNumber] = useState<number | null>(null);
+  const [surahMenuOpen, setSurahMenuOpen] = useState(false);
   const [lessonSummaries, setLessonSummaries] = useState<LessonSummary[]>([]);
   const [testRun, setTestRun] = useState<TestRun | null>(null);
   const [outcome, setOutcome] = useState<TestOutcome | null>(null);
@@ -108,7 +107,6 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
 
   const ageGroup = activeLearner ? resolveAgeGroup(activeLearner) : 'adult_18_plus';
   const encourageListenFirst = ageGroup === 'child_3_6';
-  const juzOptions = useMemo(() => listJuz(), []);
 
   useEffect(() => {
     if (!session || !lessonKey) {
@@ -147,15 +145,19 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
     setTestRun(null);
     setOutcome(null);
     setTafsirAutoPlay(false);
+    setSurahMenuOpen(false);
     submittingRef.current = false;
   }, [lessonKey]);
 
-  const filteredSurahs: SurahMeta[] = useMemo(() => {
-    if (searchQuery.trim()) {
-      return searchLearningSurahs(searchQuery);
-    }
-    return listSurahsInJuz(juzNumber);
-  }, [juzNumber, searchQuery]);
+  const pickerSurahs: SurahMeta[] = useMemo(
+    () => searchLearningSurahs(searchQuery),
+    [searchQuery],
+  );
+
+  const selectedSurahName =
+    (browseSurahNumber != null ? getSurah(browseSurahNumber)?.nameLatin : null) ??
+    session?.summary.surahName ??
+    '';
 
   const refreshLessonSummaries = useCallback(
     async (surahNumber: number) => {
@@ -170,11 +172,11 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
   );
 
   useEffect(() => {
-    if (!browseSurahNumber || !browserOpen) {
+    if (!browseSurahNumber) {
       return;
     }
     void refreshLessonSummaries(browseSurahNumber);
-  }, [browseSurahNumber, browserOpen, refreshLessonSummaries]);
+  }, [browseSurahNumber, refreshLessonSummaries, session?.mode, session?.lesson.lessonKey]);
 
   const handlePlayedOnce = useCallback((verseId: string) => {
     setPlayedVerseIds((current) =>
@@ -401,8 +403,29 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
           <Text className="text-base text-brand-100">← {t('nav.home')}</Text>
         </Pressable>
 
+        <LessonBrowserSheet
+          visible={!showingTest}
+          surahs={pickerSurahs}
+          selectedSurahNumber={browseSurahNumber}
+          selectedSurahName={selectedSurahName}
+          lessons={lessonSummaries}
+          searchQuery={searchQuery}
+          surahMenuOpen={surahMenuOpen}
+          onChangeSearch={setSearchQuery}
+          onToggleSurahMenu={() => setSurahMenuOpen((value) => !value)}
+          onSelectSurah={(surahNumber) => {
+            setBrowseSurahNumber(surahNumber);
+            setSearchQuery('');
+            setSurahMenuOpen(false);
+          }}
+          onSelectLesson={(nextLessonKey) => {
+            setSurahMenuOpen(false);
+            goToLesson(nextLessonKey);
+          }}
+        />
+
         <Text
-          className="text-center text-3xl text-white"
+          className="mt-4 text-center text-3xl text-white"
           style={{ writingDirection: 'rtl' }}
         >
           {session.summary.surahArabic}
@@ -424,20 +447,6 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
           })}
           {' · '}
           {t('lesson.juz', { n: juzNumber })}
-        </Text>
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('lesson.chooseA11y')}
-          onPress={() => setBrowserOpen((value) => !value)}
-          className="mt-4 min-h-12 items-center justify-center self-center rounded-2xl bg-white px-5 py-3"
-        >
-          <Text className="text-base font-semibold text-brand-700">
-            {browserOpen ? t('lesson.hidePicker') : t('lesson.choosePicker')}
-          </Text>
-        </Pressable>
-        <Text className="mt-2 text-center text-xs text-brand-100">
-          {t('lesson.chunksHint', { count: session.verses.length })}
         </Text>
 
         <View className="mt-4 flex-row items-center justify-between rounded-2xl bg-white/10 px-4 py-3">
@@ -469,30 +478,6 @@ export function LessonScreen({ lessonKey }: LessonScreenProps) {
             </Text>
           </Pressable>
         </View>
-
-        <LessonBrowserSheet
-          visible={browserOpen}
-          juzNumber={juzNumber}
-          juzOptions={juzOptions}
-          surahs={filteredSurahs}
-          selectedSurahNumber={browseSurahNumber}
-          lessons={lessonSummaries}
-          searchQuery={searchQuery}
-          onChangeSearch={setSearchQuery}
-          onSelectJuz={(nextJuz) => {
-            setSearchQuery('');
-            setJuzNumber(nextJuz);
-            const first = listSurahsInJuz(nextJuz)[0];
-            setBrowseSurahNumber(first?.number ?? null);
-          }}
-          onSelectSurah={(surahNumber) => {
-            setBrowseSurahNumber(surahNumber);
-          }}
-          onSelectLesson={(nextLessonKey) => {
-            goToLesson(nextLessonKey);
-          }}
-          onClose={() => setBrowserOpen(false)}
-        />
 
         {isLocked && !showingTest ? (
           <LessonLockedGate

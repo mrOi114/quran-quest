@@ -67,6 +67,22 @@ completions.push({ lessonKey: 's1-l1' });
 assert(isLessonCompleted('s1-l1', completions), 'passing the test records lesson completion');
 assert(!isLessonCompleted('s1-l2', completions), 'failing/skipping must not complete the next lesson');
 
+function isLessonUnlocked(lessonIndex, completedIndexes) {
+  if (lessonIndex <= 1) {
+    return true;
+  }
+  for (let prior = 1; prior < lessonIndex; prior += 1) {
+    if (!completedIndexes.includes(prior)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+assert(isLessonUnlocked(1, []), 'a Surah’s first lesson stays available to open');
+assert(!isLessonUnlocked(3, [1]), 'a later lesson stays locked until earlier lessons are complete');
+assert(isLessonUnlocked(3, [1, 2]), 'passing existing tests unlocks the next lesson');
+
 const failedAttemptCompletions = [...completions];
 assert(
   failedAttemptCompletions.length === 1,
