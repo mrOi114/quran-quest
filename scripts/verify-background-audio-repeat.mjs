@@ -142,10 +142,9 @@ const queue = readSrc('src/features/reader/services/quranListenQueue.ts');
 assert(queue.includes('advanceOnComplete'), 'lesson stays on ayah; listen queue can advance');
 assert(queue.includes('shouldPreserveRemainingPlays'), 'background remount preserves remaining');
 assert(queue.includes('getQuranListenRemainingPlays'), 'remaining plays are inspectable');
-assert(queue.includes('if (options?.advance)'), 'listen auto-advance latches until stop');
 assert(
-  queue.includes("let repeatCount: AudioRepeatCount = '1'"),
-  'listen queue default repeat is 1×',
+  queue.includes('if (options?.advance !== undefined)'),
+  'lessons can keep advance off; listen mode can turn it on',
 );
 
 const repeat = readSrc('src/features/reader/services/quranListenRepeat.ts');
@@ -154,8 +153,12 @@ assert(repeat.includes('return 3'), '3× is exactly three plays');
 
 const constants = readSrc('src/features/reader/constants.ts');
 assert(
-  constants.includes("DEFAULT_READER_REPEAT: AudioRepeatCount = '1'"),
-  'default audio option is play once (1×)',
+  constants.includes("DEFAULT_READER_REPEAT: AudioRepeatCount = '3'"),
+  'default learning option is Repeat 3×',
+);
+assert(
+  constants.includes("ageGroup === 'child_3_6' || ageGroup === 'child_7_10'"),
+  'lesson/Hifz default repeat is still age-based 3×',
 );
 
 const lesson = readSrc('src/features/learning/components/LessonScreen.tsx');
@@ -183,6 +186,24 @@ assert(
   fullReader.includes("continuous={listenMode === 'listen' ? audioEnabled : undefined}"),
   'listen mode wires continuous independently of UI autoPlay',
 );
-assert(fullReader.includes("if (current === '3') return 'loop'"), 'loop stays an optional listen choice');
+assert(
+  fullReader.includes("listenMode === 'listen' ? listenRepeatCount : preferences.repeatCount"),
+  'listen mode uses its own 1× default, not lesson prefs',
+);
+assert(fullReader.includes('function nextListenRepeat'), 'listen 2×/3×/loop cycle stays local');
+assert(
+  !fullReader.includes("void setRepeatCount(nextListenRepeat"),
+  'listen repeat must not persist into lesson preferences',
+);
+
+const fullReaderHook = readSrc('src/features/reader/hooks/useFullQuranReader.ts');
+assert(
+  fullReaderHook.includes("useState<AudioRepeatCount>('1')"),
+  'Read Qur’an by listening defaults to 1×',
+);
+assert(
+  fullReaderHook.includes('setListenRepeatCountState(value)'),
+  'listen 2×/3× stays on the reader session',
+);
 
 console.log('verify-background-audio-repeat: all contracts passed');

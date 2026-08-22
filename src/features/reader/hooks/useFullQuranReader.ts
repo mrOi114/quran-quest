@@ -66,6 +66,8 @@ type UseFullQuranReaderResult = {
   setAudioEnabled: (value: boolean) => void;
   setShowTranslation: (value: boolean) => Promise<void>;
   setRepeatCount: (value: AudioRepeatCount) => Promise<void>;
+  listenRepeatCount: AudioRepeatCount;
+  setListenRepeatCount: (value: AudioRepeatCount) => void;
   handleVersePlaybackComplete: () => void;
   quranCompleted: boolean;
   ageGroup: ReturnType<typeof resolveAgeGroup> | null;
@@ -89,6 +91,7 @@ export function useFullQuranReader({
   const [listenMode, setListenModeState] = useState<ReaderListenMode>(
     meaningParam ? 'meaning' : listenParam ? 'listen' : 'read',
   );
+  const [listenRepeatCount, setListenRepeatCountState] = useState<AudioRepeatCount>('1');
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [autoPlayPending, setAutoPlayPending] = useState(listenParam || meaningParam);
   const [quranCompleted, setQuranCompleted] = useState(false);
@@ -457,6 +460,11 @@ export function useFullQuranReader({
     [persistPrefs, preferences],
   );
 
+  const setListenRepeatCount = useCallback((value: AudioRepeatCount) => {
+    setListenRepeatCountState(value);
+    setContinuousListenRepeat(value);
+  }, []);
+
   return {
     surahs,
     filteredSurahs,
@@ -494,6 +502,8 @@ export function useFullQuranReader({
     },
     setShowTranslation,
     setRepeatCount,
+    listenRepeatCount,
+    setListenRepeatCount,
     handleVersePlaybackComplete,
     quranCompleted,
     ageGroup: activeLearner ? resolveAgeGroup(activeLearner) : null,

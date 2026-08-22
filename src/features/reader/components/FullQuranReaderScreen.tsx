@@ -23,6 +23,13 @@ type FullQuranReaderScreenProps = {
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
   if (current === '1') return '2';
   if (current === '2') return '3';
+  if (current === '3') return '1';
+  return '1';
+}
+
+function nextListenRepeat(current: AudioRepeatCount): AudioRepeatCount {
+  if (current === '1') return '2';
+  if (current === '2') return '3';
   if (current === '3') return 'loop';
   return '1';
 }
@@ -62,6 +69,8 @@ export function FullQuranReaderScreen({
     setAudioEnabled,
     setShowTranslation,
     setRepeatCount,
+    listenRepeatCount,
+    setListenRepeatCount,
     handleVersePlaybackComplete,
     quranCompleted,
     ageGroup,
@@ -236,7 +245,9 @@ export function FullQuranReaderScreen({
             ageGroup={ageGroup}
             mode="browse"
             showTranslation={preferences.showTranslation}
-            repeatCount={preferences.repeatCount}
+            repeatCount={
+              listenMode === 'listen' ? listenRepeatCount : preferences.repeatCount
+            }
             fontScale={preferences.fontScale}
             autoPlay={
               autoPlayPending && (listenMode === 'listen' || listenMode === 'meaning')
@@ -264,6 +275,10 @@ export function FullQuranReaderScreen({
               void setShowTranslation(!preferences.showTranslation);
             }}
             onCycleRepeat={() => {
+              if (listenMode === 'listen') {
+                setListenRepeatCount(nextListenRepeat(listenRepeatCount));
+                return;
+              }
               void setRepeatCount(nextRepeat(preferences.repeatCount));
             }}
           />

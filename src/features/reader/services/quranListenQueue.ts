@@ -40,7 +40,7 @@ let pausedByUser = false;
 let listenKind: QuranListenKind = 'quran';
 let cursor: QuranListenCursor = { surahNumber: 1, ayahNumber: 1 };
 let remainingPlays = 1;
-let repeatCount: AudioRepeatCount = '1';
+let repeatCount: AudioRepeatCount = '3';
 let advanceOnComplete = false;
 let completed = false;
 const listeners = new Set<(snapshot: QuranListenSnapshot) => void>();
@@ -176,10 +176,8 @@ export function enableQuranListen(
   if (options?.kind) {
     listenKind = options.kind;
   }
-  // Latch on: UI remounts / background must not drop listen-mode auto-advance.
-  // Manual pause keeps this flagged; stop / leaving listen clears it.
-  if (options?.advance) {
-    advanceOnComplete = true;
+  if (options?.advance !== undefined) {
+    advanceOnComplete = options.advance;
   }
   const sameCursor =
     cursor.surahNumber === position.surahNumber &&
