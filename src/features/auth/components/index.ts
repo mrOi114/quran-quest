@@ -6,6 +6,7 @@ export { CountryPicker } from './CountryPicker';
 export { GenderPicker } from './GenderPicker';
 export { LanguagePicker } from './LanguagePicker';
 export { MilestonePrompt } from './MilestonePrompt';
+export { OtpCodeInput } from './OtpCodeInput';
 export { PinInput } from './PinInput';
 export { PrimaryButton } from './PrimaryButton';
 export { RolePicker } from './RolePicker';

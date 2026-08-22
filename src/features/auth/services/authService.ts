@@ -7,30 +7,23 @@ import type { Profile } from '@/types';
 
 import type { AdultOrParentRole } from '../types';
 import type { LoginInput, RegisterInput } from '../schemas';
+import {
+  ALREADY_REGISTERED_MESSAGE,
+  EMAIL_NOT_CONFIRMED_MESSAGE,
+  EmailAuthError,
+  RESEND_FAILURE_MESSAGE,
+  logAuthError,
+  toFriendlyAuthError,
+} from '../utils/authErrors';
 
 export type AuthResult = {
   user: User | null;
   session: Session | null;
 };
 
-export const EMAIL_NOT_CONFIRMED_MESSAGE = 'Please verify your email before signing in.';
-export const RESEND_SUCCESS_MESSAGE =
-  'Verification email sent. Check your inbox and spam folder.';
-export const RESEND_FAILURE_MESSAGE =
-  "We couldn't resend the verification email. Please try again.";
-
-export class EmailAuthError extends Error {
-  readonly code?: string;
-
-  constructor(message: string, code?: string) {
-    super(message);
-    this.name = 'EmailAuthError';
-    this.code = code;
-  }
-}
-
-function throwAuthError(error: { message: string; code?: string }): never {
-  throw new EmailAuthError(error.message, error.code);
+function throwAuthError(error: unknown): never {
+  logAuthError(error);
+  throw toFriendlyAuthError(error);
 }
 
 function getAuthRedirectTo(): string {
@@ -47,77 +40,96 @@ function getAuthRedirectTo(): string {
   return 'quranfamily://auth/callback';
 }
 
-export function isEmailNotConfirmedError(error: unknown): boolean {
-  if (error instanceof EmailAuthError && error.code === 'email_not_confirmed') {
-    return true;
-  }
-  const message = error instanceof Error ? error.message : String(error ?? '');
-  const code =
-    typeof error === 'object' && error !== null && 'code' in error
-      ? String((error as { code?: unknown }).code ?? '')
-      : '';
-  return (
-    code === 'email_not_confirmed' || /email not confirmed/i.test(message)
-  );
-}
-
 export async function registerAccount(input: RegisterInput): Promise<AuthResult> {
-  const { data, error } = await supabase.auth.signUp({
-    email: input.email.trim().toLowerCase(),
-    password: input.password,
-    options: {
-      emailRedirectTo: getAuthRedirectTo(),
-      data: {
-        role: input.role as AdultOrParentRole,
-        display_name: input.displayName.trim(),
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: input.email.trim().toLowerCase(),
+      password: input.password,
+      options: {
+        emailRedirectTo: getAuthRedirectTo(),
+        data: {
+          role: input.role as AdultOrParentRole,
+          display_name: input.displayName.trim(),
+        },
       },
-    },
-  });
+    });
 
-  if (error) {
-    throwAuthError(error);
-  }
+    if (error) {
+      throwAuthError(error);
+    }
 
-  // Supabase returns a user with empty identities when the email is already registered.
-  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-    throw new EmailAuthError('An account with this email already exists. Please sign in.');
-  }
+    // Supabase returns a user with empty identities when the email is already registered.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      throw new EmailAuthError(
+        ALREADY_REGISTERED_MESSAGE,
+        'user_already_exists',
+        'already_registered',
+      );
+    }
 
-  return { user: data.user, session: data.session };
-}
-
-export async function loginAccount(input: LoginInput): Promise<AuthResult> {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: input.email.trim().toLowerCase(),
-    password: input.password,
-  });
-
-  if (error) {
-    if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
-      throw new EmailAuthError(EMAIL_NOT_CONFIRMED_MESSAGE, 'email_not_confirmed');
+    return { user: data.user, session: data.session };
+  } catch (error) {
+    if (error instanceof EmailAuthError) {
+      throw error;
     }
     throwAuthError(error);
   }
+}
 
-  return { user: data.user, session: data.session };
+export async function loginAccount(input: LoginInput): Promise<AuthResult> {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: input.email.trim().toLowerCase(),
+      password: input.password,
+    });
+
+    if (error) {
+      if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message)) {
+        throw new EmailAuthError(
+          EMAIL_NOT_CONFIRMED_MESSAGE,
+          'email_not_confirmed',
+          'email_not_confirmed',
+        );
+      }
+      throwAuthError(error);
+    }
+
+    return { user: data.user, session: data.session };
+  } catch (error) {
+    if (error instanceof EmailAuthError) {
+      throw error;
+    }
+    throwAuthError(error);
+  }
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
-  const { error } = await supabase.auth.resetPasswordForEmail(
-    email.trim().toLowerCase(),
-    {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo: getAuthRedirectTo(),
-    },
-  );
+    });
 
-  if (error) {
+    if (error) {
+      throwAuthError(error);
+    }
+  } catch (error) {
+    if (error instanceof EmailAuthError) {
+      throw error;
+    }
     throwAuthError(error);
   }
 }
 
 export async function updatePassword(password: string): Promise<void> {
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) {
+  try {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      throwAuthError(error);
+    }
+  } catch (error) {
+    if (error instanceof EmailAuthError) {
+      throw error;
+    }
     throwAuthError(error);
   }
 }
@@ -125,24 +137,52 @@ export async function updatePassword(password: string): Promise<void> {
 export async function resendVerificationEmail(email: string): Promise<void> {
   const trimmed = email.trim().toLowerCase();
   if (!trimmed) {
-    throw new EmailAuthError(RESEND_FAILURE_MESSAGE);
+    throw new EmailAuthError(RESEND_FAILURE_MESSAGE, undefined, 'generic');
   }
 
-  const { error } = await supabase.auth.resend({
-    type: 'signup',
-    email: trimmed,
-    options: { emailRedirectTo: getAuthRedirectTo() },
-  });
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: trimmed,
+      options: { emailRedirectTo: getAuthRedirectTo() },
+    });
 
-  if (error) {
-    throw new EmailAuthError(error.message || RESEND_FAILURE_MESSAGE, error.code);
+    if (error) {
+      throwAuthError(error);
+    }
+  } catch (error) {
+    if (error instanceof EmailAuthError) {
+      throw error;
+    }
+    throwAuthError(error);
+  }
+}
+
+export async function verifySignupOtp(email: string, token: string): Promise<AuthResult> {
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: 'signup',
+    });
+
+    if (error) {
+      throwAuthError(error);
+    }
+
+    return { user: data.user, session: data.session };
+  } catch (error) {
+    if (error instanceof EmailAuthError) {
+      throw error;
+    }
+    throwAuthError(error);
   }
 }
 
 export async function logoutAccount(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) {
-    throw new Error(error.message);
+    throwAuthError(error);
   }
 }
 

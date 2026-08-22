@@ -4,83 +4,245 @@ import { Pressable, Text } from 'react-native';
 
 import {
   AuthScreen,
+  EmailAuthError,
+  GENERIC_AUTH_MESSAGE,
+  OtpCodeInput,
+  OTP_EXPIRED_MESSAGE,
   PrimaryButton,
   RESEND_FAILURE_MESSAGE,
-  RESEND_SUCCESS_MESSAGE,
+  TextField,
+  logAuthError,
+  openEmailApp,
   resendVerificationEmail,
+  toFriendlyAuthError,
   useAuth,
+  useResendCooldown,
+  verifySignupOtp,
 } from '@/features/auth';
-
-const RESEND_COOLDOWN_MS = 20_000;
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string }>();
-  const { user } = useAuth();
-  const email = (typeof params.email === 'string' ? params.email : '') || user?.email || '';
+  const params = useLocalSearchParams<{
+    email?: string;
+    reason?: string;
+    status?: string;
+  }>();
+  const { user, session, isEmailVerified } = useAuth();
+  const [email, setEmail] = useState(
+    (typeof params.email === 'string' ? params.email : '') || user?.email || '',
+  );
+  const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [cooldownUntil, setCooldownUntil] = useState(0);
-  const [now, setNow] = useState(Date.now());
-  const cooldownRemaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [showCode, setShowCode] = useState(params.reason !== 'unverified');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [status, setStatus] = useState<'code' | 'all-set' | 'verified'>(
+    params.status === 'all-set'
+      ? 'all-set'
+      : params.status === 'verified'
+        ? 'verified'
+        : 'code',
+  );
+  const cooldown = useResendCooldown();
+  const unverifiedLogin = params.reason === 'unverified';
 
   useEffect(() => {
-    if (cooldownUntil <= Date.now()) {
+    if (unverifiedLogin) {
       return;
     }
-    const timer = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(timer);
-  }, [cooldownUntil]);
+    cooldown.start();
+    // Signup already sent the first email; block an immediate second send.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'code') {
+      return;
+    }
+    if (session && isEmailVerified) {
+      setStatus(unverifiedLogin ? 'verified' : 'all-set');
+    }
+  }, [isEmailVerified, session, status, unverifiedLogin]);
+
+  async function onVerify() {
+    if (verifyLoading || resendLoading) {
+      return;
+    }
+    const token = code.replace(/\D/g, '');
+    if (token.length !== 6) {
+      setCodeError('Enter the 6-digit code from your email.');
+      return;
+    }
+    if (!email.trim()) {
+      setFormError('Enter your email to verify the code.');
+      setEditingEmail(true);
+      return;
+    }
+
+    setVerifyLoading(true);
+    setCodeError(null);
+    setFormError(null);
+    setMessage(null);
+    try {
+      await verifySignupOtp(email, token);
+      setStatus('all-set');
+    } catch (error) {
+      logAuthError(error);
+      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error);
+      if (mapped.kind === 'otp_expired') {
+        setCodeError(OTP_EXPIRED_MESSAGE);
+        return;
+      }
+      if (mapped.kind === 'otp_invalid') {
+        setCodeError(mapped.message);
+        return;
+      }
+      setFormError(mapped.message);
+    } finally {
+      setVerifyLoading(false);
+    }
+  }
 
   async function onResend() {
-    if (!email) {
-      setError('Enter your email address to resend the verification link.');
+    if (verifyLoading || resendLoading || cooldown.isCoolingDown) {
       return;
     }
-    if (Date.now() < cooldownUntil) {
+    if (!email.trim()) {
+      setFormError('Enter your email to resend the code.');
+      setEditingEmail(true);
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setResendLoading(true);
+    setFormError(null);
+    setCodeError(null);
     setMessage(null);
     try {
       await resendVerificationEmail(email);
-      setMessage(RESEND_SUCCESS_MESSAGE);
-      setCooldownUntil(Date.now() + RESEND_COOLDOWN_MS);
-      setNow(Date.now());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : RESEND_FAILURE_MESSAGE);
+      setMessage('We sent a new code. Check your inbox and spam folder.');
+      cooldown.start();
+    } catch (error) {
+      logAuthError(error);
+      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error);
+      setFormError(mapped.message || RESEND_FAILURE_MESSAGE);
     } finally {
-      setLoading(false);
+      setResendLoading(false);
     }
+  }
+
+  async function onOpenEmail() {
+    try {
+      await openEmailApp();
+    } catch (error) {
+      logAuthError(error);
+      setFormError(GENERIC_AUTH_MESSAGE);
+    }
+  }
+
+  function onContinue() {
+    router.replace('/');
+  }
+
+  if (status === 'all-set') {
+    return (
+      <AuthScreen title="You're all set! 🎉">
+        <Text className="mb-4 text-base text-brand-700">
+          Your email is verified. Continue to start using QuranFamily.
+        </Text>
+        <PrimaryButton label="Continue to QuranFamily" onPress={onContinue} />
+      </AuthScreen>
+    );
+  }
+
+  if (status === 'verified') {
+    return (
+      <AuthScreen title="Email verified! ✅">
+        <Text className="mb-4 text-base text-brand-700">
+          You can continue into QuranFamily now.
+        </Text>
+        <PrimaryButton label="Continue" onPress={onContinue} />
+      </AuthScreen>
+    );
   }
 
   return (
     <AuthScreen
-      title="Check your email"
-      subtitle="We've sent a verification link to your email address. Verify your email, then return here to continue."
+      title={unverifiedLogin ? 'One quick step left 📧' : 'Check your email 📧'}
+      subtitle={
+        unverifiedLogin
+          ? 'Please verify your email before continuing.'
+          : 'We sent a verification code to your email.'
+      }
     >
       <Text className="mb-4 text-base text-brand-700">
-        We sent a verification link to{' '}
+        We sent a verification code to{' '}
         <Text className="font-semibold text-brand-800">{email || 'your email'}</Text>.
       </Text>
+
+      {editingEmail ? (
+        <TextField
+          label="Email"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+          value={email}
+          onChangeText={setEmail}
+        />
+      ) : null}
+
+      {showCode ? (
+        <OtpCodeInput
+          value={code}
+          onChange={(next) => {
+            setCode(next);
+            setCodeError(null);
+          }}
+          error={codeError ?? undefined}
+          editable={!verifyLoading}
+        />
+      ) : null}
+
       {message ? <Text className="mb-3 text-sm text-brand-600">{message}</Text> : null}
-      {error ? <Text className="mb-3 text-sm text-red-600">{error}</Text> : null}
+      {formError ? <Text className="mb-3 text-sm text-red-600">{formError}</Text> : null}
+
+      {showCode ? (
+        <PrimaryButton
+          label={verifyLoading ? 'Verifying…' : 'Verify'}
+          onPress={() => void onVerify()}
+          loading={verifyLoading}
+          disabled={resendLoading}
+        />
+      ) : (
+        <PrimaryButton label="Enter Verification Code" onPress={() => setShowCode(true)} />
+      )}
       <PrimaryButton
         label={
-          cooldownRemaining > 0
-            ? `Resend verification (${cooldownRemaining}s)`
-            : 'Resend verification'
+          cooldown.isCoolingDown
+            ? `Resend code in ${cooldown.remaining}s`
+            : resendLoading
+              ? 'Sending code…'
+              : unverifiedLogin
+                ? 'Resend Email'
+                : 'Resend Code'
         }
         onPress={() => void onResend()}
-        loading={loading}
-        disabled={cooldownRemaining > 0}
+        loading={resendLoading}
+        disabled={cooldown.isCoolingDown || verifyLoading}
+        variant="secondary"
       />
+      <PrimaryButton label="Open Email" onPress={() => void onOpenEmail()} variant="secondary" />
       <PrimaryButton
-        label="Sign in"
-        onPress={() => router.replace('/(auth)/login')}
+        label="Change Email"
+        onPress={() => {
+          if (unverifiedLogin) {
+            setEditingEmail(true);
+            return;
+          }
+          router.replace('/(auth)/register');
+        }}
         variant="secondary"
       />
       <Pressable onPress={() => router.replace('/(auth)/welcome')} className="py-2">

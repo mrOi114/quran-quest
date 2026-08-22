@@ -9,9 +9,11 @@ import {
   isAuthCallbackLocation,
   parseAuthUrl,
 } from '../services';
+import { logAuthError, toFriendlyAuthError } from '../utils/authErrors';
 
 const CALLBACK_WAIT_MS = 8000;
 const CALLBACK_POLL_MS = 200;
+const CALLBACK_ERROR_MESSAGE = 'Verification could not be completed. Please try again.';
 
 function hasAuthSecret(url: string | null): boolean {
   if (!url) {
@@ -77,6 +79,7 @@ export function AuthCallbackScreen() {
   const { needsPasswordReset, isEmailVerified, session, isAccountHydrating } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [verified, setVerified] = useState(false);
   const navigatedRef = useRef(false);
 
   useEffect(() => {
@@ -94,12 +97,9 @@ export function AuthCallbackScreen() {
           await handleAuthRedirectUrl(url);
         }
       } catch (err) {
+        logAuthError(err);
         if (mounted) {
-          setError(
-            err instanceof Error && err.message.trim()
-              ? err.message
-              : 'Verification could not be completed. Please try again.',
-          );
+          setError(toFriendlyAuthError(err).message || CALLBACK_ERROR_MESSAGE);
         }
       } finally {
         if (mounted) {
@@ -132,19 +132,12 @@ export function AuthCallbackScreen() {
     }
 
     if (session && isEmailVerified) {
-      navigatedRef.current = true;
-      router.replace('/');
-      return;
-    }
-
-    if (session && !isEmailVerified) {
-      navigatedRef.current = true;
-      router.replace('/(auth)/verify-email');
+      setVerified(true);
     }
   }, [error, isAccountHydrating, isEmailVerified, needsPasswordReset, ready, router, session]);
 
   useEffect(() => {
-    if (!ready || error || session || navigatedRef.current) {
+    if (!ready || error || session || navigatedRef.current || verified) {
       return;
     }
 
@@ -152,7 +145,7 @@ export function AuthCallbackScreen() {
       if (navigatedRef.current || session) {
         return;
       }
-      setError('Verification could not be completed. Please try again.');
+      setError(CALLBACK_ERROR_MESSAGE);
     }, CALLBACK_WAIT_MS);
 
     const poll = setInterval(() => {
@@ -166,17 +159,42 @@ export function AuthCallbackScreen() {
       clearTimeout(timeout);
       clearInterval(poll);
     };
-  }, [error, ready, session]);
+  }, [error, ready, session, verified]);
 
   if (error) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-50 px-6">
         <Text className="mb-2 text-center text-lg font-semibold text-brand-800">
-          Verification could not be completed. Please try again.
+          {error}
         </Text>
-        <Text className="mb-4 text-center text-sm text-red-600">{error}</Text>
-        <Pressable onPress={() => router.replace('/(auth)/login')} className="py-2">
-          <Text className="text-base font-medium text-brand-700">Back to login</Text>
+        <Pressable
+          onPress={() => router.replace('/(auth)/verify-email')}
+          className="py-2"
+        >
+          <Text className="text-base font-medium text-brand-700">Enter verification code</Text>
+        </Pressable>
+        <Pressable onPress={() => router.replace('/(auth)/welcome')} className="py-2">
+          <Text className="text-base font-medium text-brand-700">Back</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (verified) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-50 px-6">
+        <Text className="mb-2 text-center text-2xl font-semibold text-brand-800">
+          Email verified! ✅
+        </Text>
+        <Text className="mb-6 text-center text-base text-brand-700">
+          You can continue into QuranFamily now.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.replace('/')}
+          className="min-h-12 items-center rounded-xl bg-brand-600 px-6 py-3"
+        >
+          <Text className="text-base font-semibold text-white">Continue</Text>
         </Pressable>
       </View>
     );

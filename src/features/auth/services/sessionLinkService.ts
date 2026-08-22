@@ -3,6 +3,7 @@ import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { logAuthError, toFriendlyAuthError } from '../utils/authErrors';
 
 export type AuthLinkKind =
   | 'recovery'
@@ -138,7 +139,10 @@ async function exchangeParsed(parsed: ReturnType<typeof parseAuthUrl>): Promise<
     const description = parsed.errorDescription
       ? decodeURIComponent(parsed.errorDescription.replace(/\+/g, ' '))
       : parsed.error;
-    throw new Error(description || 'Verification could not be completed. Please try again.');
+    logAuthError(description || parsed.error);
+    throw toFriendlyAuthError(
+      description || parsed.error || 'Verification could not be completed. Please try again.',
+    );
   }
 
   if (parsed.tokenHash) {
@@ -148,7 +152,8 @@ async function exchangeParsed(parsed: ReturnType<typeof parseAuthUrl>): Promise<
       token_hash: parsed.tokenHash,
     });
     if (error) {
-      throw new Error(error.message);
+      logAuthError(error);
+      throw toFriendlyAuthError(error);
     }
     return { kind: resolveKind(parsed.type), handled: true };
   }
@@ -162,7 +167,8 @@ async function exchangeParsed(parsed: ReturnType<typeof parseAuthUrl>): Promise<
           return { kind: resolveKind(parsed.type), handled: true };
         }
       }
-      throw new Error(error.message);
+      logAuthError(error);
+      throw toFriendlyAuthError(error);
     }
     return { kind: resolveKind(parsed.type), handled: true };
   }
@@ -173,7 +179,8 @@ async function exchangeParsed(parsed: ReturnType<typeof parseAuthUrl>): Promise<
       refresh_token: parsed.refreshToken,
     });
     if (error) {
-      throw new Error(error.message);
+      logAuthError(error);
+      throw toFriendlyAuthError(error);
     }
     return { kind: resolveKind(parsed.type), handled: true };
   }

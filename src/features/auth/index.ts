@@ -1,8 +1,11 @@
 export { AuthProvider, useAuth } from './context/AuthContext';
+export { useResendCooldown, RESEND_COOLDOWN_MS } from './hooks/useResendCooldown';
 export * from './components';
 export * from './constants';
 export * from './schemas';
 export * from './services';
 export * from './types';
 export * from './utils/access';
+export * from './utils/authErrors';
 export * from './utils/childGender';
+export { openEmailApp } from './utils/openEmailApp';

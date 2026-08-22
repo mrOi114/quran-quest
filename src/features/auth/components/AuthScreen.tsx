@@ -6,9 +6,10 @@ type AuthScreenProps = {
   title: string;
   subtitle?: string;
   children: ReactNode;
+  showBrand?: boolean;
 };
 
-export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
+export function AuthScreen({ title, subtitle, children, showBrand = true }: AuthScreenProps) {
   return (
     <SafeAreaView className="flex-1 bg-brand-600">
       <ScrollView
@@ -21,8 +22,14 @@ export function AuthScreen({ title, subtitle, children }: AuthScreenProps) {
         keyboardShouldPersistTaps="handled"
       >
         <View className="mb-8">
-          <Text className="text-3xl font-bold text-white">Qur&apos;an Quest</Text>
-          <Text className="mt-4 text-2xl font-semibold text-brand-50">{title}</Text>
+          {showBrand ? (
+            <Text className="text-3xl font-bold text-white">QuranFamily</Text>
+          ) : null}
+          <Text
+            className={`font-semibold text-brand-50 ${showBrand ? 'mt-4 text-2xl' : 'text-3xl'}`}
+          >
+            {title}
+          </Text>
           {subtitle ? (
             <Text className="mt-2 text-base text-brand-100">{subtitle}</Text>
           ) : null}

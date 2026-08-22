@@ -19,12 +19,16 @@ function assert(condition, message) {
 }
 
 const authService = read('src/features/auth/services/authService.ts');
+const authErrors = read('src/features/auth/utils/authErrors.ts');
 const sessionLink = read('src/features/auth/services/sessionLinkService.ts');
 const supabaseClient = read('src/lib/supabase/client.ts');
 const authContext = read('src/features/auth/context/AuthContext.tsx');
 const login = read('app/(auth)/login.tsx');
 const register = read('app/(auth)/register.tsx');
+const welcome = read('app/(auth)/welcome.tsx');
 const verifyEmail = read('app/(auth)/verify-email.tsx');
+const forgotPassword = read('app/(auth)/forgot-password.tsx');
+const resetPassword = read('app/(auth)/reset-password.tsx');
 const callbackScreen = read('src/features/auth/components/AuthCallbackScreen.tsx');
 const webCallback = read('app/(auth)/callback.tsx');
 const nativeCallback = read('app/auth/callback.tsx');
@@ -51,40 +55,71 @@ assert(
   'Resend must call supabase.auth.resend with type signup',
 );
 assert(
-  authService.includes('EMAIL_NOT_CONFIRMED_MESSAGE'),
+  authService.includes('verifyOtp') && authService.includes("type: 'signup'"),
+  'OTP verify must call supabase.auth.verifyOtp with type signup',
+);
+assert(
+  authErrors.includes('EMAIL_NOT_CONFIRMED_MESSAGE'),
   'Unverified login must have a dedicated message',
 );
 assert(
-  authService.includes('RESEND_SUCCESS_MESSAGE'),
+  authErrors.includes('RESEND_SUCCESS_MESSAGE'),
   'Resend success copy must be centralized',
 );
 assert(
-  login.includes('isEmailNotConfirmedError') && login.includes('Resend verification email'),
-  'Login must stop unverified users and offer resend',
+  authErrors.includes("We couldn't connect right now. Please check your internet connection and try again."),
+  'Network failures must use the parent-friendly connection message',
 );
 assert(
-  login.includes('EMAIL_NOT_CONFIRMED_MESSAGE'),
-  'Login must show Please verify your email before signing in',
+  login.includes('isEmailNotConfirmedError') && login.includes("reason: 'unverified'"),
+  'Login must send unverified users to the verification screen, not keep them on login',
+);
+assert(
+  !login.includes('Resend verification email'),
+  'Login must not keep unverified users on a login resend loop',
+);
+assert(
+  login.includes('Welcome back'),
+  'Login success must greet the parent before entering the app',
 );
 assert(
   !login.includes('registerCurrentDevice'),
   'Login must not block navigation on device registration',
 );
 assert(
+  welcome.includes('Continue as Guest') &&
+    welcome.includes('Create Account') &&
+    welcome.includes('Log In') &&
+    welcome.includes('child-entry'),
+  'Welcome must lead with Guest, Create Account, and Log In, with child family-code still reachable',
+);
+assert(
   register.includes("'/(auth)/verify-email'"),
   'Signup with email confirmation must open the verification screen',
 );
 assert(
-  verifyEmail.includes('Check your email'),
-  'Verification screen must tell the user to check email',
+  register.includes('ALREADY_REGISTERED_MESSAGE') && register.includes('already_registered'),
+  'Existing email signup must show a friendly already-has-an-account path',
 );
 assert(
-  verifyEmail.includes('RESEND_COOLDOWN_MS') && verifyEmail.includes('resendVerificationEmail'),
+  verifyEmail.includes('Check your email') && verifyEmail.includes('verifySignupOtp'),
+  'Verification screen must accept the 6-digit email code',
+);
+assert(
+  verifyEmail.includes('useResendCooldown') && verifyEmail.includes('resendVerificationEmail'),
   'Verification screen must resend with a cooldown',
 );
 assert(
-  verifyEmail.includes('Sign in') && verifyEmail.includes('Back'),
-  'Verification screen must provide Sign in and Back',
+  verifyEmail.includes('Open Email') && verifyEmail.includes('Change Email'),
+  'Verification screen must offer Open Email and Change Email',
+);
+assert(
+  !verifyEmail.includes("router.replace('/(auth)/login')"),
+  'Verification screen must not bounce the parent back to login',
+);
+assert(
+  forgotPassword.includes('Reset your password') && resetPassword.includes('Password updated'),
+  'Password reset must finish with an updated-password confirmation, not email verification',
 );
 assert(
   sessionLink.includes('token_hash') &&
@@ -98,8 +133,9 @@ assert(
 );
 assert(
   callbackScreen.includes('handleAuthRedirectUrl') &&
-    callbackScreen.includes('Verification could not be completed. Please try again.'),
-  'Callback UI must exchange the session and show a recoverable error',
+    callbackScreen.includes('Verification could not be completed. Please try again.') &&
+    callbackScreen.includes('Email verified!'),
+  'Callback UI must exchange the session, show a recoverable error, and confirm verification',
 );
 assert(
   webCallback.includes('AuthCallbackScreen') && nativeCallback.includes('AuthCallbackScreen'),

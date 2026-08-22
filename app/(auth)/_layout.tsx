@@ -16,7 +16,13 @@ export default function AuthLayout() {
     needsPasswordReset,
   } = useAuth();
 
-  if (isBootstrapping || (isAccountHydrating && !isGuest)) {
+  const onAuthCompletion =
+    pathname.includes('reset-password') ||
+    pathname.includes('callback') ||
+    pathname.includes('verify-email') ||
+    pathname.includes('login');
+
+  if (isBootstrapping || (isAccountHydrating && !isGuest && !onAuthCompletion)) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
@@ -24,14 +30,11 @@ export default function AuthLayout() {
     );
   }
 
-  const onResetPassword =
-    pathname.includes('reset-password') || pathname.includes('callback');
-
-  if (needsPasswordReset && session && !onResetPassword) {
+  if (needsPasswordReset && session && !onAuthCompletion) {
     return <Redirect href="/(auth)/reset-password" />;
   }
 
-  if (needsPasswordReset && onResetPassword) {
+  if (needsPasswordReset && pathname.includes('reset-password')) {
     return <Stack screenOptions={{ headerShown: false }} />;
   }
 
@@ -51,7 +54,7 @@ export default function AuthLayout() {
     return <Stack screenOptions={{ headerShown: false }} />;
   }
 
-  if (isChildFamilySession && activeLearner && !onResetPassword) {
+  if (isChildFamilySession && activeLearner && !pathname.includes('reset-password')) {
     const onChildEntry =
       pathname.includes('child-entry') || pathname.includes('child-unlock');
     if (!onChildEntry) {
@@ -59,11 +62,11 @@ export default function AuthLayout() {
     }
   }
 
-  if (session && isEmailVerified && activeLearner && !onResetPassword) {
+  if (session && isEmailVerified && activeLearner && !onAuthCompletion) {
     return <Redirect href="/(app)/home" />;
   }
 
-  if (session && isEmailVerified && !activeLearner && !onResetPassword) {
+  if (session && isEmailVerified && !activeLearner && !onAuthCompletion) {
     return <Redirect href="/(app)/family/learners" />;
   }
 

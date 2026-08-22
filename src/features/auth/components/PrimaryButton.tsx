@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, Text } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 type PrimaryButtonProps = {
   label: string;
@@ -16,14 +16,16 @@ export function PrimaryButton({
   variant = 'primary',
 }: PrimaryButtonProps) {
   const isPrimary = variant === 'primary';
+  const isDisabled = Boolean(disabled || loading);
 
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={disabled || loading}
+      accessibilityState={{ disabled: isDisabled, busy: Boolean(loading) }}
+      disabled={isDisabled}
       onPress={onPress}
       className={`mb-3 items-center rounded-xl px-4 py-3.5 ${
-        disabled || loading
+        isDisabled
           ? 'bg-brand-200'
           : isPrimary
             ? 'bg-brand-600'
@@ -31,7 +33,14 @@ export function PrimaryButton({
       }`}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#FFFFFF' : '#0F3D2E'} />
+        <View className="flex-row items-center">
+          <ActivityIndicator color={isPrimary ? '#FFFFFF' : '#0F3D2E'} />
+          <Text
+            className={`ml-2 text-base font-semibold ${isPrimary ? 'text-white' : 'text-brand-600'}`}
+          >
+            {label}
+          </Text>
+        </View>
       ) : (
         <Text
           className={`text-base font-semibold ${isPrimary ? 'text-white' : 'text-brand-600'}`}
