@@ -1,9 +1,14 @@
-import type { EmailOtpType } from '@supabase/supabase-js';
+import type { EmailOtpType, Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
-import { logAuthError, toFriendlyAuthError } from '../utils/authErrors';
+import {
+  RESET_EXPIRED_MESSAGE,
+  logAuthError,
+  toFriendlyAuthError,
+  type AuthErrorFlow,
+} from '../utils/authErrors';
 
 export type AuthLinkKind =
   | 'recovery'
@@ -16,10 +21,58 @@ export type AuthLinkKind =
 export type AuthLinkResult = {
   kind: AuthLinkKind;
   handled: boolean;
+  duplicate: boolean;
+  session: Session | null;
 };
 
 const handledSecrets = new Set<string>();
 const inFlight = new Map<string, Promise<AuthLinkResult>>();
+const processingListeners = new Set<(busy: boolean) => void>();
+let processingCount = 0;
+let capturedLaunchUrl: string | null = null;
+let lastHandledKind: AuthLinkKind = 'unknown';
+
+function captureLaunchUrl(): void {
+  if (capturedLaunchUrl) {
+    return;
+  }
+  if (Platform.OS === 'web' && typeof globalThis.location?.href === 'string') {
+    capturedLaunchUrl = globalThis.location.href;
+  }
+}
+
+captureLaunchUrl();
+
+function notifyProcessing(): void {
+  const busy = processingCount > 0;
+  processingListeners.forEach((listener) => listener(busy));
+}
+
+function beginCallbackProcessing(): void {
+  processingCount += 1;
+  notifyProcessing();
+}
+
+function endCallbackProcessing(): void {
+  processingCount = Math.max(0, processingCount - 1);
+  notifyProcessing();
+}
+
+export function isAuthCallbackProcessing(): boolean {
+  return processingCount > 0;
+}
+
+export function subscribeAuthCallbackProcessing(listener: (busy: boolean) => void): () => void {
+  processingListeners.add(listener);
+  listener(processingCount > 0);
+  return () => {
+    processingListeners.delete(listener);
+  };
+}
+
+export function getLastHandledAuthLinkKind(): AuthLinkKind {
+  return lastHandledKind;
+}
 
 /**
  * Parse query + hash params from a Supabase auth redirect URL.
@@ -65,10 +118,25 @@ export function parseAuthUrl(urlString: string): {
   }
 }
 
-function resolveKind(type: string | null): AuthLinkKind {
+export function hasAuthSecret(url: string | null | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+  const parsed = parseAuthUrl(url);
+  return Boolean(
+    parsed.code ||
+      parsed.tokenHash ||
+      parsed.accessToken ||
+      parsed.errorDescription ||
+      parsed.error,
+  );
+}
+
+function resolveKind(type: string | null, urlString?: string): AuthLinkKind {
+  if (type === 'recovery' || urlString?.includes('type=recovery')) {
+    return 'recovery';
+  }
   switch (type) {
-    case 'recovery':
-      return 'recovery';
     case 'signup':
       return 'signup';
     case 'invite':
@@ -89,7 +157,8 @@ function looksLikeAuthRedirect(urlString: string): boolean {
     urlString.includes('access_token') ||
     urlString.includes('token_hash') ||
     urlString.includes('code=') ||
-    urlString.includes('type=recovery')
+    urlString.includes('type=recovery') ||
+    urlString.includes('type=signup')
   );
 }
 
@@ -98,7 +167,7 @@ export function isAuthCallbackLocation(urlString?: string | null): boolean {
     urlString ??
     (Platform.OS === 'web' && typeof globalThis.location?.href === 'string'
       ? globalThis.location.href
-      : '');
+      : capturedLaunchUrl ?? '');
   if (!target) {
     return false;
   }
@@ -113,11 +182,16 @@ function isConsumedSessionError(message: string): boolean {
   const text = message.toLowerCase();
   return (
     text.includes('already been used') ||
+    text.includes('already used') ||
     text.includes('code verifier') ||
     text.includes('both auth code and code verifier') ||
     text.includes('invalid flow state') ||
     text.includes('expired')
   );
+}
+
+function errorFlow(kind: AuthLinkKind): AuthErrorFlow {
+  return kind === 'recovery' ? 'recovery' : 'verify';
 }
 
 function cleanAuthParamsFromUrl(): void {
@@ -131,18 +205,56 @@ function cleanAuthParamsFromUrl(): void {
   if (!looksLikeAuthRedirect(location.href)) {
     return;
   }
-  globalThis.history.replaceState(globalThis.history.state, '', `${location.origin}${location.pathname}`);
+  globalThis.history.replaceState(
+    globalThis.history.state,
+    '',
+    `${location.origin}${location.pathname}`,
+  );
 }
 
-async function exchangeParsed(parsed: ReturnType<typeof parseAuthUrl>): Promise<AuthLinkResult> {
+async function currentSession(): Promise<Session | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session ?? null;
+}
+
+function sessionIsVerified(session: Session | null): boolean {
+  const user = session?.user;
+  if (!user) {
+    return false;
+  }
+  if (user.app_metadata?.role === 'child' || user.user_metadata?.role === 'child') {
+    return true;
+  }
+  return Boolean(user.email_confirmed_at ?? user.confirmed_at);
+}
+
+async function duplicateResult(kind: AuthLinkKind): Promise<AuthLinkResult> {
+  const session = await currentSession();
+  lastHandledKind = kind;
+  return {
+    kind,
+    handled: true,
+    duplicate: true,
+    session,
+  };
+}
+
+async function exchangeParsed(
+  parsed: ReturnType<typeof parseAuthUrl>,
+  urlString: string,
+): Promise<AuthLinkResult> {
+  const kind = resolveKind(parsed.type, urlString);
+
   if (parsed.errorDescription || parsed.error) {
     const description = parsed.errorDescription
       ? decodeURIComponent(parsed.errorDescription.replace(/\+/g, ' '))
       : parsed.error;
     logAuthError(description || parsed.error);
-    throw toFriendlyAuthError(
-      description || parsed.error || 'Verification could not be completed. Please try again.',
-    );
+    const session = await currentSession();
+    if (kind !== 'recovery' && session && sessionIsVerified(session)) {
+      return { kind, handled: true, duplicate: true, session };
+    }
+    throw toFriendlyAuthError(description || parsed.error || RESET_EXPIRED_MESSAGE, errorFlow(kind));
   }
 
   if (parsed.tokenHash) {
@@ -152,25 +264,31 @@ async function exchangeParsed(parsed: ReturnType<typeof parseAuthUrl>): Promise<
       token_hash: parsed.tokenHash,
     });
     if (error) {
+      const session = await currentSession();
+      if (kind !== 'recovery' && session && sessionIsVerified(session)) {
+        return { kind, handled: true, duplicate: true, session };
+      }
       logAuthError(error);
-      throw toFriendlyAuthError(error);
+      throw toFriendlyAuthError(error, errorFlow(kind));
     }
-    return { kind: resolveKind(parsed.type), handled: true };
+    return { kind, handled: true, duplicate: false, session: await currentSession() };
   }
 
   if (parsed.code) {
     const { error } = await supabase.auth.exchangeCodeForSession(parsed.code);
     if (error) {
-      if (isConsumedSessionError(error.message)) {
-        const existing = await supabase.auth.getSession();
-        if (existing.data.session) {
-          return { kind: resolveKind(parsed.type), handled: true };
-        }
+      const session = await currentSession();
+      if (kind !== 'recovery' && session && sessionIsVerified(session)) {
+        return { kind, handled: true, duplicate: true, session };
+      }
+      if (kind === 'recovery' && isConsumedSessionError(error.message)) {
+        logAuthError(error);
+        throw toFriendlyAuthError(error, 'recovery');
       }
       logAuthError(error);
-      throw toFriendlyAuthError(error);
+      throw toFriendlyAuthError(error, errorFlow(kind));
     }
-    return { kind: resolveKind(parsed.type), handled: true };
+    return { kind, handled: true, duplicate: false, session: await currentSession() };
   }
 
   if (parsed.accessToken && parsed.refreshToken) {
@@ -179,13 +297,17 @@ async function exchangeParsed(parsed: ReturnType<typeof parseAuthUrl>): Promise<
       refresh_token: parsed.refreshToken,
     });
     if (error) {
+      const session = await currentSession();
+      if (kind !== 'recovery' && session && sessionIsVerified(session)) {
+        return { kind, handled: true, duplicate: true, session };
+      }
       logAuthError(error);
-      throw toFriendlyAuthError(error);
+      throw toFriendlyAuthError(error, errorFlow(kind));
     }
-    return { kind: resolveKind(parsed.type), handled: true };
+    return { kind, handled: true, duplicate: false, session: await currentSession() };
   }
 
-  return { kind: resolveKind(parsed.type), handled: false };
+  return { kind, handled: false, duplicate: false, session: await currentSession() };
 }
 
 /**
@@ -195,60 +317,76 @@ async function exchangeParsed(parsed: ReturnType<typeof parseAuthUrl>): Promise<
  */
 export async function handleAuthRedirectUrl(urlString: string): Promise<AuthLinkResult> {
   if (!looksLikeAuthRedirect(urlString)) {
-    return { kind: 'unknown', handled: false };
+    return { kind: 'unknown', handled: false, duplicate: false, session: await currentSession() };
   }
 
-  const parsed = parseAuthUrl(urlString);
-  const key = secretKey(parsed);
-
-  if (key && handledSecrets.has(key)) {
-    return { kind: resolveKind(parsed.type), handled: true };
-  }
-
-  if (key) {
-    const pending = inFlight.get(key);
-    if (pending) {
-      return pending;
-    }
-  }
-
-  const work = (async () => {
-    try {
-      const result = await exchangeParsed(parsed);
-      if (result.handled && key) {
-        handledSecrets.add(key);
-        cleanAuthParamsFromUrl();
-      }
-      return result;
-    } catch (error) {
-      if (key && isConsumedSessionError(error instanceof Error ? error.message : '')) {
-        const existing = await supabase.auth.getSession();
-        if (existing.data.session) {
-          handledSecrets.add(key);
-          cleanAuthParamsFromUrl();
-          return { kind: resolveKind(parsed.type), handled: true };
-        }
-      }
-      throw error;
-    }
-  })();
-
-  if (key) {
-    inFlight.set(key, work);
-  }
-
+  beginCallbackProcessing();
   try {
-    return await work;
-  } finally {
-    if (key) {
-      inFlight.delete(key);
+    const parsed = parseAuthUrl(urlString);
+    const key = secretKey(parsed);
+    const kind = resolveKind(parsed.type, urlString);
+
+    if (key && handledSecrets.has(key)) {
+      return duplicateResult(kind);
     }
+
+    if (key) {
+      const pending = inFlight.get(key);
+      if (pending) {
+        return pending;
+      }
+    }
+
+    const work = (async () => {
+      try {
+        const result = await exchangeParsed(parsed, urlString);
+        if (result.handled && key) {
+          handledSecrets.add(key);
+          lastHandledKind = result.kind;
+          cleanAuthParamsFromUrl();
+        }
+        return result;
+      } catch (error) {
+        if (key && kind !== 'recovery' && isConsumedSessionError(error instanceof Error ? error.message : '')) {
+          const session = await currentSession();
+          if (session && sessionIsVerified(session)) {
+            handledSecrets.add(key);
+            lastHandledKind = kind;
+            cleanAuthParamsFromUrl();
+            return { kind, handled: true, duplicate: true, session };
+          }
+        }
+        throw error;
+      }
+    })();
+
+    if (key) {
+      inFlight.set(key, work);
+    }
+
+    try {
+      return await work;
+    } finally {
+      if (key) {
+        inFlight.delete(key);
+      }
+    }
+  } finally {
+    endCallbackProcessing();
   }
 }
 
 export async function getInitialAuthUrl(): Promise<string | null> {
+  captureLaunchUrl();
   if (Platform.OS === 'web' && typeof globalThis.location?.href === 'string') {
-    return globalThis.location.href;
+    const current = globalThis.location.href;
+    if (hasAuthSecret(current)) {
+      return current;
+    }
+    if (hasAuthSecret(capturedLaunchUrl)) {
+      return capturedLaunchUrl;
+    }
+    return current;
   }
   return Linking.getInitialURL();
 }

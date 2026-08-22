@@ -19,7 +19,7 @@ import {
 export default function LoginScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ role?: string; email?: string }>();
-  const { session, isEmailVerified: sessionVerified } = useAuth();
+  const { session, isEmailVerified: sessionVerified, needsPasswordReset } = useAuth();
   const [email, setEmail] = useState(
     typeof params.email === 'string' ? params.email : '',
   );
@@ -36,10 +36,14 @@ export default function LoginScreen() {
     if (welcomeBack || loading) {
       return;
     }
+    if (needsPasswordReset && session) {
+      router.replace('/(auth)/reset-password');
+      return;
+    }
     if (session && sessionVerified) {
       router.replace('/');
     }
-  }, [loading, router, session, sessionVerified, welcomeBack]);
+  }, [loading, needsPasswordReset, router, session, sessionVerified, welcomeBack]);
 
   useEffect(() => {
     if (!welcomeBack) {
@@ -91,7 +95,7 @@ export default function LoginScreen() {
         });
         return;
       }
-      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error);
+      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error, 'login');
       if (mapped.kind === 'invalid_credentials') {
         setWrongPassword(true);
         setFormError(mapped.message);
@@ -139,6 +143,7 @@ export default function LoginScreen() {
         value={email}
         onChangeText={setEmail}
         error={fieldErrors.email}
+        editable={!loading}
       />
       <TextField
         label="Password"
@@ -147,6 +152,7 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
         error={fieldErrors.password}
+        editable={!loading}
       />
       {formError ? <Text className="mb-3 text-sm text-red-600">{formError}</Text> : null}
       <PrimaryButton

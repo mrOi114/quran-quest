@@ -8,7 +8,7 @@ import { FamilyCommsProvider } from '@/features/family-comms';
 export default function AppLayout() {
   const {
     isBootstrapping,
-    isAccountHydrating,
+    isProcessingAuthCallback,
     session,
     isEmailVerified,
     isGuest,
@@ -16,7 +16,7 @@ export default function AppLayout() {
     needsPasswordReset,
   } = useAuth();
 
-  if (isBootstrapping || (isAccountHydrating && !isGuest && !isChildFamilySession)) {
+  if (isBootstrapping || isProcessingAuthCallback) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />

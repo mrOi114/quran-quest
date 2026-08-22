@@ -12,6 +12,7 @@ import {
   EMAIL_NOT_CONFIRMED_MESSAGE,
   EmailAuthError,
   RESEND_FAILURE_MESSAGE,
+  classifyAuthError,
   logAuthError,
   toFriendlyAuthError,
 } from '../utils/authErrors';
@@ -21,9 +22,9 @@ export type AuthResult = {
   session: Session | null;
 };
 
-function throwAuthError(error: unknown): never {
+function throwAuthError(error: unknown, flow: 'recovery' | 'signup' | 'login' | 'verify' | 'unknown' = 'unknown'): never {
   logAuthError(error);
-  throw toFriendlyAuthError(error);
+  throw toFriendlyAuthError(error, flow);
 }
 
 function getAuthRedirectTo(): string {
@@ -55,11 +56,25 @@ export async function registerAccount(input: RegisterInput): Promise<AuthResult>
     });
 
     if (error) {
-      throwAuthError(error);
+      const mapped = classifyAuthError(error, 'signup');
+      if (mapped.kind === 'already_registered' || mapped.kind === 'rate_limited') {
+        throw new EmailAuthError(
+          ALREADY_REGISTERED_MESSAGE,
+          mapped.code || 'user_already_exists',
+          'already_registered',
+        );
+      }
+      throwAuthError(error, 'signup');
     }
 
-    // Supabase returns a user with empty identities when the email is already registered.
-    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    // Duplicate signup: empty identities, or an already-confirmed user without a session.
+    const identities = data.user?.identities;
+    const alreadyConfirmed = Boolean(data.user?.email_confirmed_at ?? data.user?.confirmed_at);
+    if (
+      !data.session &&
+      data.user &&
+      ((Array.isArray(identities) && identities.length === 0) || alreadyConfirmed)
+    ) {
       throw new EmailAuthError(
         ALREADY_REGISTERED_MESSAGE,
         'user_already_exists',
@@ -72,7 +87,7 @@ export async function registerAccount(input: RegisterInput): Promise<AuthResult>
     if (error instanceof EmailAuthError) {
       throw error;
     }
-    throwAuthError(error);
+    throwAuthError(error, 'signup');
   }
 }
 
@@ -91,7 +106,7 @@ export async function loginAccount(input: LoginInput): Promise<AuthResult> {
           'email_not_confirmed',
         );
       }
-      throwAuthError(error);
+      throwAuthError(error, 'login');
     }
 
     return { user: data.user, session: data.session };
@@ -99,7 +114,7 @@ export async function loginAccount(input: LoginInput): Promise<AuthResult> {
     if (error instanceof EmailAuthError) {
       throw error;
     }
-    throwAuthError(error);
+    throwAuthError(error, 'login');
   }
 }
 
@@ -110,13 +125,13 @@ export async function requestPasswordReset(email: string): Promise<void> {
     });
 
     if (error) {
-      throwAuthError(error);
+      throwAuthError(error, 'recovery');
     }
   } catch (error) {
     if (error instanceof EmailAuthError) {
       throw error;
     }
-    throwAuthError(error);
+    throwAuthError(error, 'recovery');
   }
 }
 
@@ -124,13 +139,13 @@ export async function updatePassword(password: string): Promise<void> {
   try {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
-      throwAuthError(error);
+      throwAuthError(error, 'recovery');
     }
   } catch (error) {
     if (error instanceof EmailAuthError) {
       throw error;
     }
-    throwAuthError(error);
+    throwAuthError(error, 'recovery');
   }
 }
 
@@ -148,13 +163,13 @@ export async function resendVerificationEmail(email: string): Promise<void> {
     });
 
     if (error) {
-      throwAuthError(error);
+      throwAuthError(error, 'verify');
     }
   } catch (error) {
     if (error instanceof EmailAuthError) {
       throw error;
     }
-    throwAuthError(error);
+    throwAuthError(error, 'verify');
   }
 }
 
@@ -167,7 +182,11 @@ export async function verifySignupOtp(email: string, token: string): Promise<Aut
     });
 
     if (error) {
-      throwAuthError(error);
+      const existing = await getSession();
+      if (existing && isEmailVerified(existing.user)) {
+        return { user: existing.user, session: existing };
+      }
+      throwAuthError(error, 'verify');
     }
 
     return { user: data.user, session: data.session };
@@ -175,7 +194,11 @@ export async function verifySignupOtp(email: string, token: string): Promise<Aut
     if (error instanceof EmailAuthError) {
       throw error;
     }
-    throwAuthError(error);
+    const existing = await getSession();
+    if (existing && isEmailVerified(existing.user)) {
+      return { user: existing.user, session: existing };
+    }
+    throwAuthError(error, 'verify');
   }
 }
 

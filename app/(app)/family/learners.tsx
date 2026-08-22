@@ -1,6 +1,6 @@
 import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, Text } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
 import { AuthScreen, PrimaryButton, useAuth } from '@/features/auth';
 
@@ -17,6 +17,7 @@ export default function FamilyLearnersScreen() {
     canManageFamily,
     session,
     isEmailVerified,
+    isAccountHydrating,
   } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -27,7 +28,10 @@ export default function FamilyLearnersScreen() {
   useEffect(() => {
     void ensureDeviceRegistered().catch(() => undefined);
     void refreshChildren().catch(() => undefined);
-  }, [ensureDeviceRegistered, refreshChildren]);
+    if (!profile) {
+      void refreshProfile().catch(() => undefined);
+    }
+  }, [ensureDeviceRegistered, profile, refreshChildren, refreshProfile]);
 
   if (isGuest || !session || !isEmailVerified) {
     return <Redirect href="/(auth)/child-entry" />;
@@ -35,24 +39,19 @@ export default function FamilyLearnersScreen() {
 
   if (!profile) {
     return (
-      <AuthScreen
-        title="Who is learning?"
-        subtitle="We couldn't load your profile yet."
-      >
-        <Text className="mb-3 text-sm text-red-600">
-          Verification could not be completed. Please try again.
-        </Text>
-        <PrimaryButton
-          label="Try again"
-          onPress={() => {
-            void refreshProfile().catch(() => undefined);
-          }}
-        />
-        <PrimaryButton
-          label="Back to login"
-          onPress={() => router.replace('/(auth)/login')}
-          variant="secondary"
-        />
+      <AuthScreen title="Who is learning?" subtitle="Loading your family…">
+        <View className="items-center py-6">
+          <ActivityIndicator color="#0F3D2E" size="large" />
+        </View>
+        {isAccountHydrating ? null : (
+          <PrimaryButton
+            label="Try again"
+            onPress={() => {
+              void refreshProfile().catch(() => undefined);
+            }}
+            variant="secondary"
+          />
+        )}
       </AuthScreen>
     );
   }

@@ -1,11 +1,12 @@
-import { Redirect, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Text } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 
 import {
   AuthScreen,
   EmailAuthError,
   PrimaryButton,
+  RESET_EXPIRED_MESSAGE,
   TextField,
   logAuthError,
   resetPasswordSchema,
@@ -16,7 +17,13 @@ import {
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const { session, needsPasswordReset, clearPasswordResetFlag, signOut } = useAuth();
+  const {
+    session,
+    needsPasswordReset,
+    isProcessingAuthCallback,
+    clearPasswordResetFlag,
+    signOut,
+  } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -24,14 +31,12 @@ export default function ResetPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [updated, setUpdated] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [settled, setSettled] = useState(false);
 
-  if (!session && !updated) {
-    return <Redirect href="/(auth)/forgot-password" />;
-  }
-
-  if (!needsPasswordReset && !updated) {
-    return <Redirect href="/" />;
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   async function onSubmit() {
     if (loading) {
@@ -58,7 +63,7 @@ export default function ResetPasswordScreen() {
       setUpdated(true);
     } catch (error) {
       logAuthError(error);
-      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error);
+      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error, 'recovery');
       setFormError(mapped.message);
     } finally {
       setLoading(false);
@@ -90,31 +95,63 @@ export default function ResetPasswordScreen() {
     );
   }
 
+  if (isProcessingAuthCallback || (!settled && (!session || !needsPasswordReset))) {
+    return (
+      <AuthScreen title="Create a new password" subtitle="Finishing the secure reset link…">
+        <View className="items-center py-6">
+          <ActivityIndicator color="#0F3D2E" size="large" />
+        </View>
+      </AuthScreen>
+    );
+  }
+
+  if (!session || !needsPasswordReset) {
+    return (
+      <AuthScreen
+        title="This reset link has expired. Request a new one."
+        subtitle="The link was already used or is no longer valid."
+      >
+        <Text className="mb-4 text-base text-brand-700">{RESET_EXPIRED_MESSAGE}</Text>
+        <PrimaryButton
+          label="Request a new reset email"
+          onPress={() => router.replace('/(auth)/forgot-password')}
+        />
+        <PrimaryButton
+          label="Log In"
+          onPress={() => router.replace('/(auth)/login')}
+          variant="secondary"
+        />
+      </AuthScreen>
+    );
+  }
+
   return (
     <AuthScreen
       title="Create a new password"
       subtitle="Choose a new password for your QuranFamily account."
     >
       <TextField
-        label="New password"
+        label="New Password"
         secureTextEntry
         autoComplete="new-password"
         value={password}
         onChangeText={setPassword}
         error={fieldErrors.password}
         hint="At least 8 characters"
+        editable={!loading}
       />
       <TextField
-        label="Confirm password"
+        label="Confirm Password"
         secureTextEntry
         autoComplete="new-password"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         error={fieldErrors.confirmPassword}
+        editable={!loading}
       />
       {formError ? <Text className="mb-3 text-sm text-red-600">{formError}</Text> : null}
       <PrimaryButton
-        label={loading ? 'Updating password…' : 'Save password'}
+        label={loading ? 'Updating password…' : 'Save New Password'}
         onPress={() => void onSubmit()}
         loading={loading}
       />

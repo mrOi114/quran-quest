@@ -8,12 +8,20 @@ import {
   handleAuthRedirectUrl,
   isAuthCallbackLocation,
   parseAuthUrl,
+  type AuthLinkKind,
 } from '../services';
-import { logAuthError, toFriendlyAuthError } from '../utils/authErrors';
+import {
+  RESET_EXPIRED_MESSAGE,
+  logAuthError,
+  toFriendlyAuthError,
+} from '../utils/authErrors';
 
-const CALLBACK_WAIT_MS = 8000;
+const CALLBACK_WAIT_MS = 10000;
 const CALLBACK_POLL_MS = 200;
+const AUTO_CONTINUE_MS = 700;
 const CALLBACK_ERROR_MESSAGE = 'Verification could not be completed. Please try again.';
+
+const finishedSecrets = new Set<string>();
 
 function hasAuthSecret(url: string | null): boolean {
   if (!url) {
@@ -69,6 +77,24 @@ function urlFromRouteParams(params: Record<string, string | string[] | undefined
   return `https://quran-quest-5640.vercel.app/callback?${query}`;
 }
 
+function secretFromUrl(url: string | null): string | null {
+  if (!url) {
+    return null;
+  }
+  const parsed = parseAuthUrl(url);
+  return parsed.tokenHash || parsed.code || parsed.accessToken;
+}
+
+function isRecoveryKind(kind: AuthLinkKind | null, url: string | null): boolean {
+  if (kind === 'recovery') {
+    return true;
+  }
+  if (!url) {
+    return false;
+  }
+  return parseAuthUrl(url).type === 'recovery';
+}
+
 /**
  * Deep-link landing for email verification and password recovery.
  * Exchanges PKCE code / implicit tokens / token_hash, then routes by auth state.
@@ -76,11 +102,35 @@ function urlFromRouteParams(params: Record<string, string | string[] | undefined
 export function AuthCallbackScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { needsPasswordReset, isEmailVerified, session, isAccountHydrating } = useAuth();
+  const {
+    needsPasswordReset,
+    isEmailVerified,
+    session,
+    isProcessingAuthCallback,
+  } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [verified, setVerified] = useState(false);
+  const [recoveryExpired, setRecoveryExpired] = useState(false);
+  const [linkKind, setLinkKind] = useState<AuthLinkKind | null>(null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const navigatedRef = useRef(false);
+  const sourceUrlRef = useRef<string | null>(null);
+
+  function goOnce(href: '/(auth)/reset-password' | '/' | '/(auth)/login'): void {
+    const secret = secretFromUrl(sourceUrlRef.current);
+    if (secret && finishedSecrets.has(secret) && navigatedRef.current) {
+      return;
+    }
+    if (navigatedRef.current) {
+      return;
+    }
+    navigatedRef.current = true;
+    if (secret) {
+      finishedSecrets.add(secret);
+    }
+    router.replace(href);
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -92,15 +142,38 @@ export function AuthCallbackScreen() {
           params as Record<string, string | string[] | undefined>,
         );
         const url = pickAuthUrl(currentUrl, paramUrl);
+        sourceUrlRef.current = url;
+        if (mounted) {
+          setSourceUrl(url);
+        }
 
         if (url) {
-          await handleAuthRedirectUrl(url);
+          const result = await handleAuthRedirectUrl(url);
+          if (!mounted) {
+            return;
+          }
+          setLinkKind(result.kind);
+          if (result.kind === 'recovery' && result.handled && !result.session) {
+            setRecoveryExpired(true);
+            setError(RESET_EXPIRED_MESSAGE);
+            return;
+          }
         }
       } catch (err) {
         logAuthError(err);
-        if (mounted) {
-          setError(toFriendlyAuthError(err).message || CALLBACK_ERROR_MESSAGE);
+        if (!mounted) {
+          return;
         }
+        const mapped = toFriendlyAuthError(
+          err,
+          isRecoveryKind(null, sourceUrlRef.current) ? 'recovery' : 'verify',
+        );
+        if (mapped.kind === 'recovery_expired' || isRecoveryKind(null, sourceUrlRef.current)) {
+          setRecoveryExpired(true);
+          setError(RESET_EXPIRED_MESSAGE);
+          return;
+        }
+        setError(mapped.message || CALLBACK_ERROR_MESSAGE);
       } finally {
         if (mounted) {
           setReady(true);
@@ -121,28 +194,58 @@ export function AuthCallbackScreen() {
       return;
     }
 
-    if (needsPasswordReset && session) {
-      navigatedRef.current = true;
-      router.replace('/(auth)/reset-password');
+    if ((needsPasswordReset || linkKind === 'recovery') && session) {
+      if (!needsPasswordReset) {
+        return;
+      }
+      goOnce('/(auth)/reset-password');
       return;
     }
 
-    if (isAccountHydrating) {
+    if (isProcessingAuthCallback) {
       return;
     }
 
     if (session && isEmailVerified) {
       setVerified(true);
     }
-  }, [error, isAccountHydrating, isEmailVerified, needsPasswordReset, ready, router, session]);
+  }, [
+    error,
+    isEmailVerified,
+    isProcessingAuthCallback,
+    linkKind,
+    needsPasswordReset,
+    ready,
+    session,
+    sourceUrl,
+  ]);
 
   useEffect(() => {
-    if (!ready || error || session || navigatedRef.current || verified) {
+    if (!verified || navigatedRef.current) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      goOnce('/');
+    }, AUTO_CONTINUE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verified]);
+
+  useEffect(() => {
+    if (!ready || error || session || navigatedRef.current || verified || recoveryExpired) {
+      return;
+    }
+    if (isProcessingAuthCallback) {
       return;
     }
 
     const timeout = setTimeout(() => {
       if (navigatedRef.current || session) {
+        return;
+      }
+      if (isRecoveryKind(linkKind, sourceUrl)) {
+        setRecoveryExpired(true);
+        setError(RESET_EXPIRED_MESSAGE);
         return;
       }
       setError(CALLBACK_ERROR_MESSAGE);
@@ -159,7 +262,27 @@ export function AuthCallbackScreen() {
       clearTimeout(timeout);
       clearInterval(poll);
     };
-  }, [error, ready, session, verified]);
+  }, [error, isProcessingAuthCallback, linkKind, ready, recoveryExpired, session, sourceUrl, verified]);
+
+  if (recoveryExpired || (error && isRecoveryKind(linkKind, sourceUrl))) {
+    return (
+      <View className="flex-1 items-center justify-center bg-brand-50 px-6">
+        <Text className="mb-2 text-center text-lg font-semibold text-brand-800">
+          {error || RESET_EXPIRED_MESSAGE}
+        </Text>
+        <Text className="mb-6 text-center text-base text-brand-700">
+          You can request a new reset email and try again.
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.replace('/(auth)/forgot-password')}
+          className="min-h-12 items-center rounded-xl bg-brand-600 px-6 py-3"
+        >
+          <Text className="text-base font-semibold text-white">Request a new reset email</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (error) {
     return (
@@ -187,15 +310,8 @@ export function AuthCallbackScreen() {
           Email verified! ✅
         </Text>
         <Text className="mb-6 text-center text-base text-brand-700">
-          You can continue into QuranFamily now.
+          Taking you into QuranFamily…
         </Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.replace('/')}
-          className="min-h-12 items-center rounded-xl bg-brand-600 px-6 py-3"
-        >
-          <Text className="text-base font-semibold text-white">Continue</Text>
-        </Pressable>
       </View>
     );
   }

@@ -7,7 +7,7 @@ export default function AuthLayout() {
   const pathname = usePathname();
   const {
     isBootstrapping,
-    isAccountHydrating,
+    isProcessingAuthCallback,
     session,
     isEmailVerified,
     activeLearner,
@@ -20,9 +20,10 @@ export default function AuthLayout() {
     pathname.includes('reset-password') ||
     pathname.includes('callback') ||
     pathname.includes('verify-email') ||
-    pathname.includes('login');
+    pathname.includes('login') ||
+    pathname.includes('forgot-password');
 
-  if (isBootstrapping || (isAccountHydrating && !isGuest && !onAuthCompletion)) {
+  if (isBootstrapping || (isProcessingAuthCallback && !onAuthCompletion)) {
     return (
       <View className="flex-1 items-center justify-center bg-brand-600">
         <ActivityIndicator color="#FFFFFF" size="large" />
@@ -30,7 +31,7 @@ export default function AuthLayout() {
     );
   }
 
-  if (needsPasswordReset && session && !onAuthCompletion) {
+  if (needsPasswordReset && session && !pathname.includes('reset-password') && !pathname.includes('callback')) {
     return <Redirect href="/(auth)/reset-password" />;
   }
 

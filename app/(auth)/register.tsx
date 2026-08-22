@@ -74,7 +74,7 @@ export default function RegisterScreen() {
       });
     } catch (error) {
       logAuthError(error);
-      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error);
+      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error, 'signup');
       if (mapped.kind === 'already_registered') {
         setAlreadyRegistered(true);
         setFormError(ALREADY_REGISTERED_MESSAGE);
@@ -131,6 +131,7 @@ export default function RegisterScreen() {
         value={displayName}
         onChangeText={setDisplayName}
         error={fieldErrors.displayName}
+        editable={!loading}
       />
       <TextField
         label="Email"
@@ -140,6 +141,7 @@ export default function RegisterScreen() {
         value={email}
         onChangeText={setEmail}
         error={fieldErrors.email}
+        editable={!loading}
       />
       <TextField
         label="Password"
@@ -149,6 +151,7 @@ export default function RegisterScreen() {
         onChangeText={setPassword}
         error={fieldErrors.password}
         hint="At least 8 characters"
+        editable={!loading}
       />
       <TextField
         label="Confirm password"
@@ -157,6 +160,7 @@ export default function RegisterScreen() {
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         error={fieldErrors.confirmPassword}
+        editable={!loading}
       />
       {formError ? <Text className="mb-3 text-sm text-red-600">{formError}</Text> : null}
       <PrimaryButton

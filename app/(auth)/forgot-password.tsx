@@ -43,7 +43,7 @@ export default function ForgotPasswordScreen() {
       setSuccess(true);
     } catch (error) {
       logAuthError(error);
-      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error);
+      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error, 'recovery');
       setFormError(mapped.message);
     } finally {
       setLoading(false);
@@ -96,7 +96,7 @@ export default function ForgotPasswordScreen() {
       />
       {formError ? <Text className="mb-3 text-sm text-red-600">{formError}</Text> : null}
       <PrimaryButton
-        label={loading ? 'Sending code…' : 'Send reset email'}
+        label={loading ? 'Sending reset email…' : 'Send Reset Email'}
         onPress={() => void onSubmit()}
         loading={loading}
       />

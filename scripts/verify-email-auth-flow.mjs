@@ -132,6 +132,18 @@ assert(
   'Callback exchange must be idempotent to avoid double-using a PKCE code',
 );
 assert(
+  sessionLink.includes('isAuthCallbackProcessing') && authContext.includes('isProcessingAuthCallback'),
+  'Callback processing must be shared so layouts do not treat a pending link as signed out',
+);
+assert(
+  !read('app/index.tsx').includes('isAccountHydrating'),
+  'App entry must not wait on profile/device hydration after authentication',
+);
+assert(
+  resetPassword.includes('Save New Password') && resetPassword.includes('Request a new reset email'),
+  'Reset password must save a new password and recover from a consumed link',
+);
+assert(
   callbackScreen.includes('handleAuthRedirectUrl') &&
     callbackScreen.includes('Verification could not be completed. Please try again.') &&
     callbackScreen.includes('Email verified!'),
@@ -180,5 +192,13 @@ assert(pkceUrl.code === 'abc123', 'Web PKCE callback must parse code');
 const nativeUrl = parseAuthUrl('quranfamily://auth/callback?token_hash=hash1&type=signup');
 assert(nativeUrl.tokenHash === 'hash1', 'Native callback must parse token_hash');
 assert(nativeUrl.type === 'signup', 'Native callback must parse type');
+
+const recoveryUrl = parseAuthUrl(
+  'https://quran-quest-5640.vercel.app/callback#access_token=tok&refresh_token=ref&type=recovery',
+);
+assert(recoveryUrl.type === 'recovery', 'Recovery callback must parse type=recovery');
+
+const nativeRecovery = parseAuthUrl('quranfamily://auth/callback?type=recovery&access_token=tok');
+assert(nativeRecovery.type === 'recovery', 'Native recovery callback must parse type=recovery');
 
 console.log('Email auth flow checks passed.');

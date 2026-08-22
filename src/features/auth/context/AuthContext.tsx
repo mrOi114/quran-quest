@@ -31,8 +31,10 @@ import {
   getGuestProfile,
   getGuestProgress,
   getInitialAuthUrl,
+  getLastHandledAuthLinkKind,
   getSession,
   isAuthCallbackLocation,
+  isAuthCallbackProcessing,
   isGuestSessionActive,
   getStoredActiveLearnerId,
   handleAuthRedirectUrl,
@@ -47,6 +49,7 @@ import {
   saveGuestProfile,
   setChildPin,
   setStoredActiveLearnerId,
+  subscribeAuthCallbackProcessing,
   subscribeToAuthUrls,
   toChildFamilyLearner,
   transferGuestProgressToAccount,
@@ -72,6 +75,7 @@ import { canManageFamily } from '../utils/access';
 type AuthContextValue = {
   isBootstrapping: boolean;
   isAccountHydrating: boolean;
+  isProcessingAuthCallback: boolean;
   session: Session | null;
   user: User | null;
   profile: Profile | null;
@@ -124,6 +128,7 @@ type AuthContextValue = {
 const missingAuthContextValue: AuthContextValue = {
   isBootstrapping: false,
   isAccountHydrating: false,
+  isProcessingAuthCallback: false,
   session: null,
   user: null,
   profile: null,
@@ -196,6 +201,9 @@ function guestToLearner(guest: GuestProfile): GuestLearner {
 export function AuthProvider({ children: reactChildren }: { children: ReactNode }) {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isAccountHydrating, setIsAccountHydrating] = useState(false);
+  const [isProcessingAuthCallback, setIsProcessingAuthCallback] = useState(
+    () => isAuthCallbackProcessing() || isAuthCallbackLocation(),
+  );
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -208,7 +216,9 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [familyCode, setFamilyCode] = useState<string | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const bootstrappedRef = useRef(false);
+  const processingCallbackRef = useRef(isAuthCallbackProcessing() || isAuthCallbackLocation());
   sessionRef.current = session;
+  processingCallbackRef.current = isProcessingAuthCallback;
 
   const syncGuestMilestone = useCallback(async (progress: GuestProgress | null) => {
     if (!progress) {
@@ -300,6 +310,10 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     const result = await handleAuthRedirectUrl(url);
     if (result.handled && result.kind === 'recovery') {
       setNeedsPasswordReset(true);
+    }
+    if (result.session) {
+      setSession(result.session);
+      setUser(result.session.user);
     }
     return result;
   }, []);
@@ -427,6 +441,11 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
     void bootstrap();
 
+    const unsubscribeProcessing = subscribeAuthCallbackProcessing((busy) => {
+      processingCallbackRef.current = busy;
+      setIsProcessingAuthCallback(busy);
+    });
+
     const unsubscribeLinks = subscribeToAuthUrls((url) => {
       void processAuthUrl(url).catch(() => undefined);
     });
@@ -445,11 +464,20 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         try {
           if (event === 'PASSWORD_RECOVERY') {
             setNeedsPasswordReset(true);
+          } else if (
+            nextSession?.user &&
+            getLastHandledAuthLinkKind() === 'recovery' &&
+            (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')
+          ) {
+            setNeedsPasswordReset(true);
           }
 
           const guestActive = await isGuestSessionActive();
+          const callbackBusy =
+            processingCallbackRef.current || isAuthCallbackProcessing() || isAuthCallbackLocation();
           if (
             guestActive &&
+            !callbackBusy &&
             (event === 'INITIAL_SESSION' ||
               event === 'TOKEN_REFRESHED' ||
               (event === 'USER_UPDATED' && !isAuthCallbackLocation()))
@@ -461,6 +489,9 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
           setUser(nextSession?.user ?? null);
 
           if (!nextSession?.user) {
+            if (callbackBusy) {
+              return;
+            }
             setIsAccountHydrating(false);
             setProfile(null);
             setChildProfiles([]);
@@ -539,6 +570,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
 
     return () => {
       mounted = false;
+      unsubscribeProcessing();
       unsubscribeLinks();
       authListener.subscription.unsubscribe();
     };
@@ -867,6 +899,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     () => ({
       isBootstrapping,
       isAccountHydrating,
+      isProcessingAuthCallback,
       session,
       user,
       profile,
@@ -927,6 +960,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       isChildFamilySession,
       isGuest,
       isGuestAtLimit,
+      isProcessingAuthCallback,
       migrateGuestProgressAfterRegister,
       needsPasswordReset,
       profile,

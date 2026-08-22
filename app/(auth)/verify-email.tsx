@@ -39,12 +39,8 @@ export default function VerifyEmailScreen() {
   const [showCode, setShowCode] = useState(params.reason !== 'unverified');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [status, setStatus] = useState<'code' | 'all-set' | 'verified'>(
-    params.status === 'all-set'
-      ? 'all-set'
-      : params.status === 'verified'
-        ? 'verified'
-        : 'code',
+  const [status, setStatus] = useState<'code' | 'verified'>(
+    params.status === 'all-set' || params.status === 'verified' ? 'verified' : 'code',
   );
   const cooldown = useResendCooldown();
   const unverifiedLogin = params.reason === 'unverified';
@@ -63,9 +59,19 @@ export default function VerifyEmailScreen() {
       return;
     }
     if (session && isEmailVerified) {
-      setStatus(unverifiedLogin ? 'verified' : 'all-set');
+      setStatus('verified');
     }
-  }, [isEmailVerified, session, status, unverifiedLogin]);
+  }, [isEmailVerified, session, status]);
+
+  useEffect(() => {
+    if (status !== 'verified') {
+      return;
+    }
+    const timer = setTimeout(() => {
+      router.replace('/');
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [router, status]);
 
   async function onVerify() {
     if (verifyLoading || resendLoading) {
@@ -88,10 +94,10 @@ export default function VerifyEmailScreen() {
     setMessage(null);
     try {
       await verifySignupOtp(email, token);
-      setStatus('all-set');
+      setStatus('verified');
     } catch (error) {
       logAuthError(error);
-      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error);
+      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error, 'verify');
       if (mapped.kind === 'otp_expired') {
         setCodeError(OTP_EXPIRED_MESSAGE);
         return;
@@ -126,7 +132,7 @@ export default function VerifyEmailScreen() {
       cooldown.start();
     } catch (error) {
       logAuthError(error);
-      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error);
+      const mapped = error instanceof EmailAuthError ? error : toFriendlyAuthError(error, 'verify');
       setFormError(mapped.message || RESEND_FAILURE_MESSAGE);
     } finally {
       setResendLoading(false);
@@ -142,28 +148,12 @@ export default function VerifyEmailScreen() {
     }
   }
 
-  function onContinue() {
-    router.replace('/');
-  }
-
-  if (status === 'all-set') {
-    return (
-      <AuthScreen title="You're all set! 🎉">
-        <Text className="mb-4 text-base text-brand-700">
-          Your email is verified. Continue to start using QuranFamily.
-        </Text>
-        <PrimaryButton label="Continue to QuranFamily" onPress={onContinue} />
-      </AuthScreen>
-    );
-  }
-
   if (status === 'verified') {
     return (
       <AuthScreen title="Email verified! ✅">
         <Text className="mb-4 text-base text-brand-700">
-          You can continue into QuranFamily now.
+          Taking you into QuranFamily…
         </Text>
-        <PrimaryButton label="Continue" onPress={onContinue} />
       </AuthScreen>
     );
   }
