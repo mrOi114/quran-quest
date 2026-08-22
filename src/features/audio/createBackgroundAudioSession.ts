@@ -43,6 +43,27 @@ export function shouldResetEndedGuard(alreadyPlayingSameTrack: boolean): boolean
   return !alreadyPlayingSameTrack;
 }
 
+/**
+ * Known-good playback (expo-av createAsync) waited until the MP3 was loaded
+ * before play. Auto-resuming a pause that happened while swapping src plays a
+ * half-decoded buffer and makes consecutive ayahs sound unclear.
+ */
+export function shouldAutoResumeWebPause(options: {
+  wantsPlayback: boolean;
+  readyForFinish: boolean;
+  replacingSource: boolean;
+  ended: boolean;
+  finishedCurrentTrack: boolean;
+}): boolean {
+  return (
+    options.wantsPlayback &&
+    options.readyForFinish &&
+    !options.replacingSource &&
+    !options.ended &&
+    !options.finishedCurrentTrack
+  );
+}
+
 export type BackgroundAudioSession = {
   play: (
     url: string,
@@ -122,6 +143,7 @@ export function createBackgroundAudioSession(
   let webAudio: HTMLAudioElement | null = null;
   let webListenersBound = false;
   let webResumeInFlight = false;
+  let replacingWebSource = false;
   let lastTime = 0;
   let lastDuration = 0;
   let readyForFinish = false;
@@ -240,7 +262,16 @@ export function createBackgroundAudioSession(
       if (typeof navigator !== 'undefined' && navigator.mediaSession) {
         navigator.mediaSession.playbackState = userWantsPlayback ? 'playing' : 'paused';
       }
-      if (userWantsPlayback && !el.ended && !finishedCurrentTrack && !webResumeInFlight) {
+      if (
+        !webResumeInFlight &&
+        shouldAutoResumeWebPause({
+          wantsPlayback: userWantsPlayback,
+          readyForFinish,
+          replacingSource: replacingWebSource,
+          ended: el.ended,
+          finishedCurrentTrack,
+        })
+      ) {
         webResumeInFlight = true;
         void el
           .play()
@@ -289,6 +320,29 @@ export function createBackgroundAudioSession(
     bindWebAudioElement(el);
     webAudio = el;
     return el;
+  }
+
+  function assignWebSource(el: HTMLAudioElement, url: string): Promise<void> {
+    replacingWebSource = true;
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        el.removeEventListener('canplay', onReady);
+        el.removeEventListener('error', onError);
+        replacingWebSource = false;
+      };
+      const onReady = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = () => {
+        cleanup();
+        reject(new Error('Audio could not play. Try again.'));
+      };
+      el.addEventListener('canplay', onReady, { once: true });
+      el.addEventListener('error', onError, { once: true });
+      el.src = url;
+      el.load();
+    });
   }
 
   function resumeWebIfWanted() {
@@ -548,8 +602,10 @@ export function createBackgroundAudioSession(
         applyWebMediaSession(metadata);
 
         if (!sameSourcePaused) {
-          el.src = url;
-          el.load();
+          await assignWebSource(el, url);
+          if (generation !== playGeneration) {
+            return;
+          }
         }
         if (typeof startAt === 'number' && startAt > 0) {
           el.currentTime = startAt;
@@ -638,12 +694,22 @@ export function createBackgroundAudioSession(
     if (isWeb()) {
       const el = ensureWebAudioElement();
       applyWebMediaSession(metadata);
-      el.src = url;
-      el.load();
-      void el.play().then(() => emitStatus(true)).catch(() => {
-        userWantsPlayback = false;
-        currentCallbacks.onError?.('Audio could not play. Try again.');
-      });
+      const generation = playGeneration;
+      void assignWebSource(el, url)
+        .then(async () => {
+          if (generation !== playGeneration) {
+            return;
+          }
+          await el.play();
+          emitStatus(true);
+        })
+        .catch(() => {
+          if (generation !== playGeneration) {
+            return;
+          }
+          userWantsPlayback = false;
+          currentCallbacks.onError?.('Audio could not play. Try again.');
+        });
       return;
     }
 

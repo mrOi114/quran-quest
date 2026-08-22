@@ -175,12 +175,59 @@ assert(
   'end of a surah must continue at ayah 1 of the next surah',
 );
 
+function shouldAutoResumeWebPause(options) {
+  return (
+    options.wantsPlayback &&
+    options.readyForFinish &&
+    !options.replacingSource &&
+    !options.ended &&
+    !options.finishedCurrentTrack
+  );
+}
+
+assert(
+  shouldAutoResumeWebPause({
+    wantsPlayback: true,
+    readyForFinish: true,
+    replacingSource: false,
+    ended: false,
+    finishedCurrentTrack: false,
+  }),
+  'a ready in-progress ayah may resume after a background pause',
+);
+assert(
+  !shouldAutoResumeWebPause({
+    wantsPlayback: true,
+    readyForFinish: false,
+    replacingSource: true,
+    ended: false,
+    finishedCurrentTrack: false,
+  }),
+  'src swap must not play a half-decoded MP3',
+);
+
+const mushaf = JSON.parse(readSrc('src/features/reader/content/fullQuran.json'));
+const consecutive = mushaf.verses.filter(
+  (verse) => verse.surahNumber === 1 && verse.ayahNumber <= 5,
+);
+assert(consecutive.length === 5, 'Al-Fatihah sample must include 5 consecutive ayahs');
+for (const verse of consecutive) {
+  const stem = `001${String(verse.ayahNumber).padStart(3, '0')}`;
+  assert(
+    verse.audioUrl === `https://everyayah.com/data/Husary_128kbps/${stem}.mp3`,
+    `ayah ${verse.ayahNumber} must keep the known-good Husary 128kbps URL`,
+  );
+}
+
 const session = readSrc('src/features/audio/createBackgroundAudioSession.ts');
 assert(session.includes('shouldPlayInBackground: true'), 'Expo audio mode keeps background play');
 assert(session.includes("interruptionMode: 'doNotMix'"), 'lock-screen requires doNotMix');
 assert(session.includes('keepAudioSessionActive: true'), 'player keeps the native session');
 assert(session.includes('finishedCurrentTrack'), 'ended tracks must be marked finished');
 assert(session.includes('shouldResetEndedGuard'), 'already-playing remount must not drop ended');
+assert(session.includes('shouldAutoResumeWebPause'), 'src swap must not auto-play a partial buffer');
+assert(session.includes("addEventListener('canplay'"), 'web load must wait until MP3 can decode');
+assert(session.includes('assignWebSource'), 'consecutive ayahs must load fully before play');
 const playNowSrc = session.slice(
   session.indexOf('async function playNow'),
   session.indexOf('function playImmediateNow'),
