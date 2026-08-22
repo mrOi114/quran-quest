@@ -16,3 +16,7 @@ verify_jwt = false
 
 [functions.send-family-push]
 verify_jwt = true
+
+# Guests have no auth JWT. Membership is the device participant key.
+[functions.competition]
+verify_jwt = false

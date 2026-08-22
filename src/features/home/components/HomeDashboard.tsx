@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MilestonePrompt, useAuth } from '@/features/auth';
 import { FamilyCommsEntry } from '@/features/family-comms';
 import { CircleEntry } from '@/features/circles';
+import { CompetitionEntry } from '@/features/competition';
 import { useTafsirMode } from '@/features/tafsir';
 import { useI18n } from '@/i18n';
 
@@ -140,6 +141,10 @@ export function HomeDashboard() {
         />
 
         <ReadJuz30Button onPress={() => router.push('/(app)/reader')} />
+
+        <View className="mb-4 rounded-2xl bg-white px-4 py-4">
+          <CompetitionEntry compact />
+        </View>
 
         <DailyRevisionCard
           verseCount={dashboard.revisionVerseCount}

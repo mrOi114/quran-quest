@@ -338,6 +338,68 @@ export type CircleMessageReaction = {
   created_at: string;
 };
 
+export type CompetitionVisibility = 'public' | 'invite';
+export type CompetitionStatus =
+  | 'waiting'
+  | 'ready_check'
+  | 'question'
+  | 'reveal'
+  | 'complete'
+  | 'expired'
+  | 'cancelled';
+export type CompetitionAgeBand = 'child' | 'teen' | 'adult';
+
+export type CompetitionChallenge = {
+  id: string;
+  code: string;
+  visibility: CompetitionVisibility;
+  age_band: CompetitionAgeBand;
+  status: CompetitionStatus;
+  max_participants: number;
+  tier: number;
+  question_count: number;
+  current_index: number;
+  questions_public: Json;
+  question_started_at: string | null;
+  question_ends_at: string | null;
+  reveal_until: string | null;
+  last_round_result: Json | null;
+  rematch_code: string | null;
+  parent_challenge_id: string | null;
+  created_at: string;
+  expires_at: string;
+  completed_at: string | null;
+};
+
+export type CompetitionQuestionKey = {
+  challenge_id: string;
+  answer_key: Json;
+};
+
+export type CompetitionParticipant = {
+  id: string;
+  challenge_id: string;
+  participant_key_hash: string;
+  profile_id: string | null;
+  display_label: string;
+  age_band: CompetitionAgeBand;
+  is_ready: boolean;
+  score: number;
+  seat_index: number;
+  last_seen_at: string;
+  created_at: string;
+};
+
+export type CompetitionAnswer = {
+  id: string;
+  challenge_id: string;
+  participant_id: string;
+  question_index: number;
+  choice_id: string | null;
+  submitted_at: string | null;
+  is_correct: boolean | null;
+};
+
 type TableDef<Row, Insert, Update> = {
   Row: Row;
   Insert: Insert;
@@ -740,6 +802,66 @@ export type Database = {
         },
         Partial<CircleMessageReaction>
       >;
+      competition_challenges: TableDef<
+        CompetitionChallenge,
+        {
+          id?: string;
+          code: string;
+          visibility: CompetitionVisibility;
+          age_band: CompetitionAgeBand;
+          status?: CompetitionStatus;
+          max_participants?: number;
+          tier?: number;
+          question_count: number;
+          current_index?: number;
+          questions_public?: Json;
+          question_started_at?: string | null;
+          question_ends_at?: string | null;
+          reveal_until?: string | null;
+          last_round_result?: Json | null;
+          rematch_code?: string | null;
+          parent_challenge_id?: string | null;
+          created_at?: string;
+          expires_at: string;
+          completed_at?: string | null;
+        },
+        Partial<CompetitionChallenge>
+      >;
+      competition_question_keys: TableDef<
+        CompetitionQuestionKey,
+        { challenge_id: string; answer_key: Json },
+        Partial<CompetitionQuestionKey>
+      >;
+      competition_participants: TableDef<
+        CompetitionParticipant,
+        {
+          id?: string;
+          challenge_id: string;
+          participant_key_hash: string;
+          profile_id?: string | null;
+          display_label: string;
+          age_band: CompetitionAgeBand;
+          is_ready?: boolean;
+          score?: number;
+          seat_index: number;
+          last_seen_at?: string;
+          created_at?: string;
+        },
+        Partial<CompetitionParticipant>
+      >;
+      competition_answers: TableDef<
+        CompetitionAnswer,
+        {
+          id?: string;
+          challenge_id: string;
+          participant_id: string;
+          question_index: number;
+          choice_id?: string | null;
+          submitted_at?: string | null;
+          is_correct?: boolean | null;
+        },
+        Partial<CompetitionAnswer>
+      >;
     };
     Views: Record<string, never>;
     Functions: {
@@ -881,6 +1003,9 @@ export type Database = {
       circle_kind: CircleKind;
       circle_member_role: CircleMemberRole;
       teacher_approval_status: TeacherApprovalStatus;
+      competition_visibility: CompetitionVisibility;
+      competition_status: CompetitionStatus;
+      competition_age_band: CompetitionAgeBand;
     };
   };
 };

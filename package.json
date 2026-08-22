@@ -28,6 +28,7 @@
     "verify:family-circle": "node ./scripts/verify-family-circle.mjs",
     "verify:qisas": "node ./scripts/verify-qisas-catalog.mjs",
     "verify:guest-session": "node ./scripts/verify-guest-session.mjs",
+    "verify:competition": "node ./scripts/verify-competition-room.mjs",
     "verify:audio-repeat": "node ./scripts/verify-background-audio-repeat.mjs",
     "verify:email-auth": "node ./scripts/verify-email-auth-flow.mjs && node ./scripts/verify-auth-error-mapping.mjs && node --experimental-strip-types ./scripts/verify-auth-error-runtime.mjs",
     "postinstall": "node ./scripts/ensure-native-deps.js"

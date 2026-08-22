@@ -15,6 +15,7 @@ type NavId =
   | 'companion'
   | 'leaderboard'
   | 'circle'
+  | 'competition'
   | 'chat'
   | 'family'
   | 'profile'
@@ -44,6 +45,7 @@ const NAV_LABEL_KEY: Record<NavId, MessageKey> = {
   companion: 'nav.companion',
   leaderboard: 'nav.leaderboard',
   circle: 'nav.circle',
+  competition: 'nav.competition',
   chat: 'nav.chat',
   family: 'nav.family',
   profile: 'nav.profile',
@@ -79,6 +81,12 @@ const learnerNavItems: NavItem[] = [
       pathname.startsWith('/leaderboard') || pathname.startsWith('/progress'),
   },
   { id: 'circle', icon: '🔵', href: '/(app)/circle', matches: (pathname) => pathname.startsWith('/circle') },
+  {
+    id: 'competition',
+    icon: '🌙',
+    href: '/(app)/competition',
+    matches: (pathname) => pathname.startsWith('/competition') || pathname.startsWith('/challenge'),
+  },
   {
     id: 'chat',
     icon: '💬',
@@ -120,6 +128,12 @@ const parentNavItems: NavItem[] = [
     matches: (pathname) => pathname.startsWith('/circle'),
   },
   {
+    id: 'competition',
+    icon: '🌙',
+    href: '/(app)/competition',
+    matches: (pathname) => pathname.startsWith('/competition') || pathname.startsWith('/challenge'),
+  },
+  {
     id: 'chat',
     icon: '💬',
     href: '/(app)/family/chat',
@@ -142,9 +156,9 @@ const parentNavItems: NavItem[] = [
   { id: 'settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
 ];
 
-const learnerQuickIds: NavId[] = ['home', 'learn', 'lesson', 'leaderboard', 'circle'];
-const parentQuickIds: NavId[] = ['home', 'myFamily', 'circle', 'chat', 'settings'];
-const childFamilyQuickIds: NavId[] = ['home', 'learn', 'chat', 'leaderboard', 'games'];
+const learnerQuickIds: NavId[] = ['home', 'learn', 'lesson', 'circle', 'competition'];
+const parentQuickIds: NavId[] = ['home', 'myFamily', 'circle', 'competition', 'settings'];
+const childFamilyQuickIds: NavId[] = ['home', 'learn', 'chat', 'competition', 'games'];
 
 function isActiveNavItem(item: NavItem, pathname: string): boolean {
   return item.matches(pathname);

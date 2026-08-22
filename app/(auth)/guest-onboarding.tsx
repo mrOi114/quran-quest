@@ -1,4 +1,4 @@
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -14,6 +14,7 @@ import {
   type AgeGroupId,
 } from '@/features/auth';
 import { useI18n, type MessageKey } from '@/i18n';
+import { consumePendingChallengeCode } from '@/features/competition/services/pendingChallenge';
 
 export default function GuestOnboardingScreen() {
   const router = useRouter();
@@ -55,7 +56,15 @@ export default function GuestOnboardingScreen() {
     setLoading(true);
     try {
       await startGuest(parsed.data);
-      router.replace('/(app)/home');
+      const pendingCode = await consumePendingChallengeCode();
+      if (pendingCode) {
+        router.replace({
+          pathname: '/(app)/competition/[code]',
+          params: { code: pendingCode },
+        } as Href);
+      } else {
+        router.replace('/(app)/home');
+      }
     } catch (error) {
       setFormError(
         error instanceof Error ? error.message : t('guest.startError'),
