@@ -153,10 +153,11 @@ export async function playVerseAudio(
   } else {
     await meaningSession.stop();
   }
-  if (options?.continuous && options.cursor) {
-    enableQuranListen(options.cursor, options.repeatCount ?? '1', {
+  if (options?.cursor) {
+    enableQuranListen(options.cursor, options.repeatCount ?? '3', {
       resetRemaining: options.resetRemaining,
       kind,
+      advance: Boolean(options.continuous),
     });
   } else {
     disableQuranListen();

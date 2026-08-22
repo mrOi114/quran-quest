@@ -1,5 +1,6 @@
 export * from './audioPlayerService';
 export * from './quranListenQueue';
+export * from './quranListenRepeat';
 export * from './browseAccess';
 export * from './futureSettings';
 export * from './guestReaderMigration';

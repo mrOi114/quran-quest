@@ -116,6 +116,7 @@ export function createBackgroundAudioSession(
   let lastTime = 0;
   let lastDuration = 0;
   let readyForFinish = false;
+  let finishedCurrentTrack = false;
 
   const session: BackgroundAudioSession = {
     play: playNow,
@@ -230,7 +231,7 @@ export function createBackgroundAudioSession(
       if (typeof navigator !== 'undefined' && navigator.mediaSession) {
         navigator.mediaSession.playbackState = userWantsPlayback ? 'playing' : 'paused';
       }
-      if (userWantsPlayback && !el.ended && !webResumeInFlight) {
+      if (userWantsPlayback && !el.ended && !finishedCurrentTrack && !webResumeInFlight) {
         webResumeInFlight = true;
         void el
           .play()
@@ -246,6 +247,7 @@ export function createBackgroundAudioSession(
         return;
       }
       readyForFinish = false;
+      finishedCurrentTrack = true;
       const continued = currentCallbacks.onEnded?.() === true;
       if (!continued) {
         userWantsPlayback = false;
@@ -296,8 +298,17 @@ export function createBackgroundAudioSession(
     appStateWired = true;
 
     AppState.addEventListener('change', (next) => {
-      if (next === 'background' || next === 'inactive') {
-        maintainBackground();
+      if (next === 'inactive') {
+        holdLockScreen();
+        return;
+      }
+      if (next === 'background') {
+        holdLockScreen();
+        resumeNativeIfWanted();
+        return;
+      }
+      if (next === 'active' && userWantsPlayback && !finishedCurrentTrack) {
+        void resumeNow(lastMetadata);
       }
     });
 
@@ -343,6 +354,7 @@ export function createBackgroundAudioSession(
           return;
         }
         readyForFinish = false;
+        finishedCurrentTrack = true;
         const continued = currentCallbacks.onEnded?.() === true;
         if (!continued) {
           userWantsPlayback = false;
@@ -386,25 +398,37 @@ export function createBackgroundAudioSession(
     return getStatus().playing;
   }
 
-  function maintainBackground(): void {
+  function holdLockScreen(): void {
     if (!userWantsPlayback || !currentUrl) {
       return;
     }
     void ensureAudioMode();
     if (isWeb()) {
-      resumeWebIfWanted();
       applyWebMediaSession(lastMetadata);
       return;
     }
     if (player) {
       activateLockScreen(player, lastMetadata);
-      if (!player.playing) {
-        try {
-          player.play();
-        } catch {
-          // Native session may still be starting.
-        }
+    }
+  }
+
+  function resumeNativeIfWanted(): void {
+    if (!userWantsPlayback || !currentUrl || finishedCurrentTrack || isWeb()) {
+      return;
+    }
+    if (player && !player.playing) {
+      try {
+        player.play();
+      } catch {
+        // Native session may still be starting.
       }
+    }
+  }
+
+  function maintainBackground(): void {
+    holdLockScreen();
+    if (isWeb() && !finishedCurrentTrack) {
+      resumeWebIfWanted();
     }
   }
 
@@ -427,6 +451,7 @@ export function createBackgroundAudioSession(
   async function stopNow(): Promise<void> {
     playGeneration += 1;
     userWantsPlayback = false;
+    finishedCurrentTrack = false;
     currentCallbacks = {};
     currentUrl = null;
     lastTime = 0;
@@ -492,6 +517,8 @@ export function createBackgroundAudioSession(
     userWantsPlayback = true;
     readyForFinish = false;
     const startAt = playOptions?.startAt;
+    const restartFinishedTrack = finishedCurrentTrack && !(typeof startAt === 'number' && startAt > 0);
+    finishedCurrentTrack = false;
 
     try {
       if (isWeb()) {
@@ -515,6 +542,9 @@ export function createBackgroundAudioSession(
         if (typeof startAt === 'number' && startAt > 0) {
           el.currentTime = startAt;
           lastTime = startAt;
+        } else if (restartFinishedTrack || el.ended) {
+          el.currentTime = 0;
+          lastTime = 0;
         }
 
         await el.play();
@@ -542,6 +572,9 @@ export function createBackgroundAudioSession(
         if (typeof startAt === 'number' && startAt > 0) {
           await activePlayer.seekTo(startAt);
           lastTime = startAt;
+        } else if (restartFinishedTrack) {
+          await activePlayer.seekTo(0);
+          lastTime = 0;
         }
         activePlayer.play();
         emitStatus(true);
@@ -581,6 +614,7 @@ export function createBackgroundAudioSession(
     lastMetadata = metadata;
     userWantsPlayback = true;
     readyForFinish = false;
+    finishedCurrentTrack = false;
     currentUrl = url;
     lastTime = 0;
 
@@ -611,6 +645,7 @@ export function createBackgroundAudioSession(
 
     lastMetadata = metadata ?? lastMetadata;
     userWantsPlayback = true;
+    finishedCurrentTrack = false;
     wireAppLifecycle();
 
     try {

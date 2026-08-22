@@ -46,6 +46,7 @@ export function VerseAudioControls({
   const { t } = useI18n();
   const repeatLabel: Record<AudioRepeatCount, string> = {
     '1': t('reader.once'),
+    '2': t('reader.times2'),
     '3': t('reader.times3'),
     loop: t('reader.loop'),
   };

@@ -19,7 +19,12 @@ import {
   type VerseAudioStatus,
 } from '../services/audioPlayerService';
 import type { QuranListenCursor, QuranListenKind } from '../services/quranListenQueue';
-import { isQuranListenPaused } from '../services/quranListenQueue';
+import {
+  getQuranListenRemainingPlays,
+  isQuranListenEnabled,
+  isQuranListenPaused,
+} from '../services/quranListenQueue';
+import { playsForRepeat } from '../services/quranListenRepeat';
 
 type UseVerseAudioOptions = {
   audioUrl: string | null;
@@ -49,16 +54,6 @@ type UseVerseAudioResult = {
   seekTo: (seconds: number) => Promise<void>;
   clearError: () => void;
 };
-
-function initialPlaysForRepeat(repeatCount: AudioRepeatCount): number {
-  if (repeatCount === 'loop') {
-    return Number.POSITIVE_INFINITY;
-  }
-  if (repeatCount === '3') {
-    return 3;
-  }
-  return 1;
-}
 
 export function useVerseAudio({
   audioUrl,
@@ -142,7 +137,7 @@ export function useVerseAudio({
       }
 
       if (resetRemaining) {
-        remainingRef.current = initialPlaysForRepeat(repeatCountRef.current);
+        remainingRef.current = playsForRepeat(repeatCountRef.current);
       }
 
       setError(null);
@@ -155,6 +150,12 @@ export function useVerseAudio({
           url,
           {
             onEnded: () => {
+              if (cursorRef.current) {
+                remainingRef.current = 0;
+                setIsPlaying(false);
+                onPlaybackCompleteRef.current?.();
+                return;
+              }
               remainingRef.current -= 1;
               if (remainingRef.current > 0) {
                 void startPlaybackRef.current(false);
@@ -176,15 +177,13 @@ export function useVerseAudio({
             },
           },
           metadataRef.current,
-          continuousRef.current && cursorRef.current
-            ? {
-                continuous: true,
-                cursor: cursorRef.current,
-                repeatCount: repeatCountRef.current,
-                resetRemaining: resetRemaining,
-                kind: kindRef.current,
-              }
-            : { kind: kindRef.current },
+          {
+            continuous: continuousRef.current,
+            cursor: cursorRef.current,
+            repeatCount: repeatCountRef.current,
+            resetRemaining,
+            kind: kindRef.current,
+          },
         );
       } catch {
         setIsPlaying(false);
@@ -220,10 +219,19 @@ export function useVerseAudio({
       getVerseAudioUrl() === audioUrl &&
       (isVerseAudioPlaying() || verseAudioWantsPlayback())
     ) {
+      if (isQuranListenEnabled()) {
+        remainingRef.current = getQuranListenRemainingPlays();
+      }
       void playVerseAudio(
         audioUrl,
         {
           onEnded: () => {
+            if (cursorRef.current) {
+              remainingRef.current = 0;
+              setIsPlaying(false);
+              onPlaybackCompleteRef.current?.();
+              return;
+            }
             remainingRef.current -= 1;
             if (remainingRef.current > 0) {
               void startPlaybackRef.current(false);
@@ -245,15 +253,13 @@ export function useVerseAudio({
           },
         },
         metadataRef.current,
-        continuousRef.current && cursorRef.current
-          ? {
-              continuous: true,
-              cursor: cursorRef.current,
-              repeatCount: repeatCountRef.current,
-              resetRemaining: false,
-              kind: kindRef.current,
-            }
-          : { kind: kindRef.current },
+        {
+          continuous: continuousRef.current,
+          cursor: cursorRef.current,
+          repeatCount: repeatCountRef.current,
+          resetRemaining: false,
+          kind: kindRef.current,
+        },
       );
       setIsPlaying(true);
       return;
@@ -263,7 +269,7 @@ export function useVerseAudio({
 
   useEffect(() => {
     const onAppState = (next: AppStateStatus) => {
-      if (next === 'background' || next === 'inactive') {
+      if (next === 'background') {
         maintainBackgroundPlayback();
         return;
       }
@@ -281,6 +287,9 @@ export function useVerseAudio({
 
   const play = useCallback(async () => {
     const url = audioUrlRef.current;
+    if (isQuranListenEnabled() && remainingRef.current <= 0) {
+      remainingRef.current = getQuranListenRemainingPlays();
+    }
     if (
       url &&
       getVerseAudioUrl() === url &&

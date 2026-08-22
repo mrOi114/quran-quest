@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const audioRepeatCountSchema = z.enum(['1', '3', 'loop']);
+export const audioRepeatCountSchema = z.enum(['1', '2', '3', 'loop']);
 export const readerFontScaleSchema = z.enum(['default', 'large', 'xlarge']);
 
 export const readerFutureSettingsSchema = z.object({

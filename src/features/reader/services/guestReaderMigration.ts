@@ -124,7 +124,8 @@ async function loadCloudPreferenceFields(
   return {
     rowExists: true,
     showTranslation: data.show_translation,
-    repeatCount: repeat === '1' || repeat === '3' || repeat === 'loop' ? repeat : null,
+    repeatCount:
+      repeat === '1' || repeat === '2' || repeat === '3' || repeat === 'loop' ? repeat : null,
     preferredReciterKey: data.preferred_reciter_key?.trim()
       ? data.preferred_reciter_key
       : null,

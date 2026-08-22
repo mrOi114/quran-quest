@@ -29,6 +29,35 @@ function usesLocalReaderStore(learner: ActiveLearner): boolean {
   return isGuestLearner(learner) || isChildFamilyLearner(learner);
 }
 
+const CLOUD_REPEAT_COUNTS = new Set<AudioRepeatCount>(['1', '3', 'loop']);
+
+function isAudioRepeatCount(value: unknown): value is AudioRepeatCount {
+  return value === '1' || value === '2' || value === '3' || value === 'loop';
+}
+
+function toCloudRepeatCount(value: AudioRepeatCount): '1' | '3' | 'loop' {
+  return value === '2' ? '3' : value;
+}
+
+async function loadLocalPreferences(learnerId: string): Promise<ReaderPreferences | null> {
+  const raw = await AsyncStorage.getItem(localPrefsKey(learnerId));
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed = readerPreferencesSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
+      return null;
+    }
+    return {
+      ...parsed.data,
+      fontScale: null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function buildDefaultPreferences(learner: ActiveLearner): ReaderPreferences {
   const ageGroup = resolveAgeGroup(learner);
   return {
@@ -52,25 +81,10 @@ export async function loadReaderPreferences(
   learner: ActiveLearner,
 ): Promise<ReaderPreferences> {
   const defaults = buildDefaultPreferences(learner);
+  const local = await loadLocalPreferences(learner.id);
 
   if (usesLocalReaderStore(learner)) {
-    const raw = await AsyncStorage.getItem(localPrefsKey(learner.id));
-    if (!raw) {
-      return defaults;
-    }
-    try {
-      const parsed = readerPreferencesSchema.safeParse(JSON.parse(raw));
-      if (!parsed.success) {
-        return defaults;
-      }
-      return {
-        ...parsed.data,
-        // V1: Arabic size stays age-derived.
-        fontScale: null,
-      };
-    } catch {
-      return defaults;
-    }
+    return local ?? defaults;
   }
 
   const { data, error } = await supabase
@@ -89,9 +103,11 @@ export async function loadReaderPreferences(
   return {
     showTranslation: data.show_translation,
     repeatCount:
-      repeat === '1' || repeat === '3' || repeat === 'loop'
-        ? repeat
-        : defaults.repeatCount,
+      local?.repeatCount === '2'
+        ? '2'
+        : isAudioRepeatCount(repeat) && CLOUD_REPEAT_COUNTS.has(repeat)
+          ? repeat
+          : defaults.repeatCount,
     preferredReciterKey: data.preferred_reciter_key || DEFAULT_RECITER_KEY,
     preferredTranslationId: data.preferred_translation_id,
     fontScale: null,
@@ -108,8 +124,9 @@ export async function saveReaderPreferences(
     fontScale: null,
   });
 
+  await AsyncStorage.setItem(localPrefsKey(learner.id), JSON.stringify(validated));
+
   if (usesLocalReaderStore(learner)) {
-    await AsyncStorage.setItem(localPrefsKey(learner.id), JSON.stringify(validated));
     return;
   }
 
@@ -117,7 +134,7 @@ export async function saveReaderPreferences(
     {
       learner_id: learner.id,
       show_translation: validated.showTranslation,
-      repeat_count: validated.repeatCount,
+      repeat_count: toCloudRepeatCount(validated.repeatCount),
       preferred_reciter_key: validated.preferredReciterKey,
       preferred_translation_id: validated.preferredTranslationId,
       font_scale: null,

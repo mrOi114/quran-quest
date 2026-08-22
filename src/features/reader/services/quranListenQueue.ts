@@ -6,6 +6,11 @@ import {
   getSomaliYacobAudioUrl,
   somaliYacobAudioMetadata,
 } from '../content/somaliYacobAudio';
+import {
+  playsForRepeat,
+  resolveListenEndedAction,
+  shouldPreserveRemainingPlays,
+} from './quranListenRepeat';
 
 export type QuranListenKind = 'quran' | 'meaning';
 
@@ -35,19 +40,10 @@ let pausedByUser = false;
 let listenKind: QuranListenKind = 'quran';
 let cursor: QuranListenCursor = { surahNumber: 1, ayahNumber: 1 };
 let remainingPlays = 1;
-let repeatCount: AudioRepeatCount = '1';
+let repeatCount: AudioRepeatCount = '3';
+let advanceOnComplete = false;
 let completed = false;
 const listeners = new Set<(snapshot: QuranListenSnapshot) => void>();
-
-function playsFor(count: AudioRepeatCount): number {
-  if (count === 'loop') {
-    return Number.POSITIVE_INFINITY;
-  }
-  if (count === '3') {
-    return 3;
-  }
-  return 1;
-}
 
 function verseId(surahNumber: number, ayahNumber: number): string {
   return `${surahNumber}:${ayahNumber}`;
@@ -172,7 +168,7 @@ export function getQuranListenKind(): QuranListenKind {
 export function enableQuranListen(
   position: QuranListenCursor,
   nextRepeatCount: AudioRepeatCount,
-  options?: { resetRemaining?: boolean; kind?: QuranListenKind },
+  options?: { resetRemaining?: boolean; kind?: QuranListenKind; advance?: boolean },
 ): void {
   enabled = true;
   pausedByUser = false;
@@ -180,19 +176,32 @@ export function enableQuranListen(
   if (options?.kind) {
     listenKind = options.kind;
   }
+  if (options?.advance !== undefined) {
+    advanceOnComplete = options.advance;
+  }
   const sameCursor =
     cursor.surahNumber === position.surahNumber &&
     cursor.ayahNumber === position.ayahNumber;
   cursor = position;
   repeatCount = nextRepeatCount;
-  if (!(options?.resetRemaining === false && sameCursor && remainingPlays > 0)) {
-    remainingPlays = playsFor(nextRepeatCount);
+  if (
+    !shouldPreserveRemainingPlays({
+      resetRemaining: options?.resetRemaining,
+      sameCursor,
+      remainingPlays,
+    })
+  ) {
+    remainingPlays = playsForRepeat(nextRepeatCount);
   }
   emit();
 }
 
 export function setQuranListenRepeat(nextRepeatCount: AudioRepeatCount): void {
   repeatCount = nextRepeatCount;
+}
+
+export function getQuranListenRemainingPlays(): number {
+  return remainingPlays;
 }
 
 export function syncQuranListenCursor(position: QuranListenCursor): void {
@@ -203,7 +212,7 @@ export function syncQuranListenCursor(position: QuranListenCursor): void {
     return;
   }
   cursor = position;
-  remainingPlays = playsFor(repeatCount);
+  remainingPlays = playsForRepeat(repeatCount);
   completed = false;
   emit();
 }
@@ -236,8 +245,15 @@ export function handleQuranListenEnded(): boolean {
   }
 
   remainingPlays -= 1;
-  if (remainingPlays > 0) {
+  const action = resolveListenEndedAction(remainingPlays, advanceOnComplete);
+  if (action === 'replay') {
     return playCursor();
+  }
+
+  if (action === 'complete') {
+    enabled = false;
+    remainingPlays = 0;
+    return false;
   }
 
   const next = nextQuranListenCursor(cursor.surahNumber, cursor.ayahNumber);
@@ -251,6 +267,6 @@ export function handleQuranListenEnded(): boolean {
   }
 
   cursor = next;
-  remainingPlays = playsFor(repeatCount);
+  remainingPlays = playsForRepeat(repeatCount);
   return playCursor();
 }

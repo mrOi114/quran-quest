@@ -10,9 +10,9 @@ export const READER_STATE_STORAGE_KEY = 'qq.reader.state';
 
 export const ARABIC_FONT_FAMILY = 'Amiri_400Regular';
 
-export const DEFAULT_READER_REPEAT: AudioRepeatCount = '1';
+export const DEFAULT_READER_REPEAT: AudioRepeatCount = '3';
 
-/** Beginner-friendly default repeat for younger learners. */
+/** Default learning option is Repeat 3× (children already used 3×; adults now match). */
 export function defaultRepeatForAgeGroup(ageGroup: AgeGroupId): AudioRepeatCount {
   if (ageGroup === 'child_3_6' || ageGroup === 'child_7_10') {
     return '3';

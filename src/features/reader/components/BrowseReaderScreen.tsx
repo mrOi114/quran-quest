@@ -18,8 +18,9 @@ type BrowseReaderScreenProps = {
 };
 
 function nextRepeat(current: AudioRepeatCount): AudioRepeatCount {
-  if (current === '1') return '3';
-  if (current === '3') return 'loop';
+  if (current === '1') return '2';
+  if (current === '2') return '3';
+  if (current === '3') return '1';
   return '1';
 }
 

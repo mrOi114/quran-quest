@@ -198,7 +198,7 @@ export type LearningEvent = {
   created_at: string;
 };
 
-export type AudioRepeatCount = '1' | '3' | 'loop';
+export type AudioRepeatCount = '1' | '2' | '3' | 'loop';
 export type ReaderFontScale = 'default' | 'large' | 'xlarge';
 
 export type VerseExplanation = {
