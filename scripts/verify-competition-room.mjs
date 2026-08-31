@@ -44,8 +44,8 @@ assert(so.includes("'competition.title': 'Qolka Tartanka Qur’aanka'"), 'Somali
 assert(shell.includes("id: 'competition'"), 'Competition Room is a nav item');
 assert(shell.includes("href: '/(app)/competition'"), 'Competition Room has its own route');
 assert(
-  /id: 'circle'[\s\S]{0,220}id: 'competition'/.test(shell),
-  'Competition Room must sit next to Circle in navigation',
+  /id: 'lesson'[\s\S]{0,280}id: 'competition'[\s\S]{0,280}id: 'leaderboard'/.test(shell),
+  'Nav order is Read Quran, Lessons, Competition, Leaderboard',
 );
 assert(!shell.includes("href: '/(app)/circle/competition'"), 'Must not nest inside Circle');
 

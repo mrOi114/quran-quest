@@ -70,9 +70,12 @@ const learnerNavItems: NavItem[] = [
     href: '/(app)/lesson',
     matches: (pathname) => pathname.startsWith('/lesson'),
   },
-  { id: 'revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
-  { id: 'games', icon: '🎮', href: '/(app)/games', matches: (pathname) => pathname.startsWith('/games') || pathname.startsWith('/companion') || pathname.startsWith('/qisas') },
-  { id: 'companion', icon: '🤖', href: '/(app)/companion', matches: (pathname) => pathname.startsWith('/companion') },
+  {
+    id: 'competition',
+    icon: '🌙',
+    href: '/(app)/competition',
+    matches: (pathname) => pathname.startsWith('/competition') || pathname.startsWith('/challenge'),
+  },
   {
     id: 'leaderboard',
     icon: '🏆',
@@ -80,13 +83,10 @@ const learnerNavItems: NavItem[] = [
     matches: (pathname) =>
       pathname.startsWith('/leaderboard') || pathname.startsWith('/progress'),
   },
+  { id: 'revision', icon: '🔄', href: '/(app)/revision', matches: (pathname) => pathname.startsWith('/revision') },
+  { id: 'games', icon: '🎮', href: '/(app)/games', matches: (pathname) => pathname.startsWith('/games') || pathname.startsWith('/companion') || pathname.startsWith('/qisas') },
+  { id: 'companion', icon: '🤖', href: '/(app)/companion', matches: (pathname) => pathname.startsWith('/companion') },
   { id: 'circle', icon: '🔵', href: '/(app)/circle', matches: (pathname) => pathname.startsWith('/circle') },
-  {
-    id: 'competition',
-    icon: '🌙',
-    href: '/(app)/competition',
-    matches: (pathname) => pathname.startsWith('/competition') || pathname.startsWith('/challenge'),
-  },
   {
     id: 'chat',
     icon: '💬',
@@ -156,9 +156,9 @@ const parentNavItems: NavItem[] = [
   { id: 'settings', icon: '⚙️', href: '/(app)/settings', matches: (pathname) => pathname.startsWith('/settings') },
 ];
 
-const learnerQuickIds: NavId[] = ['home', 'learn', 'lesson', 'circle', 'competition'];
+const learnerQuickIds: NavId[] = ['home', 'learn', 'lesson', 'competition', 'leaderboard'];
 const parentQuickIds: NavId[] = ['home', 'myFamily', 'circle', 'competition', 'settings'];
-const childFamilyQuickIds: NavId[] = ['home', 'learn', 'chat', 'competition', 'games'];
+const childFamilyQuickIds: NavId[] = ['home', 'learn', 'lesson', 'competition', 'leaderboard'];
 
 function isActiveNavItem(item: NavItem, pathname: string): boolean {
   return item.matches(pathname);
@@ -264,7 +264,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
       : isChildLearning
         ? childFamilyQuickIds
         : isGuest
-          ? (['home', 'learn', 'lesson', 'competition', 'games'] as NavId[])
+          ? (['home', 'learn', 'lesson', 'competition', 'leaderboard'] as NavId[])
           : learnerQuickIds;
     return ids
       .map((id) => mainNavItems.find((item) => item.id === id))
