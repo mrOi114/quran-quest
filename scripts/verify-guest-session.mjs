@@ -66,4 +66,49 @@ assert(resolveGuestSessionActive('false', true) === false, 'ended flag wins even
 assert(resolveGuestSessionActive(null, true) === true, 'legacy profile restores Guest Mode');
 assert(resolveGuestSessionActive(null, false) === false, 'no flag and no profile is not Guest Mode');
 
+assert(guestService.includes("const GUEST_USED_NAMES_KEY = 'qq.guest.used_names'"), 'Used guest names are persisted');
+assert(guestService.includes('guestDisplayNameConflicts'), 'Guest name conflict helper exists');
+assert(guestService.includes('GuestNameTakenError'), 'Taken guest names throw a dedicated error');
+assert(!/GUEST_USED_NAMES_KEY/.test(guestService.slice(guestService.indexOf('export async function clearGuestProfile'))), 'Ending Guest Mode must keep reserved names');
+
+function normalizeGuestDisplayName(name) {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function guestDisplayNameConflicts(options) {
+  if (!options.normalizedName) {
+    return false;
+  }
+  const keepingOwnName =
+    Boolean(options.savingGuestId) &&
+    options.savingGuestId === options.currentGuestId &&
+    options.currentNormalizedName === options.normalizedName;
+  if (keepingOwnName) {
+    return false;
+  }
+  return options.reservedNames.includes(options.normalizedName);
+}
+
+assert(normalizeGuestDisplayName('  Mohamed  ') === 'mohamed', 'Guest names compare case-insensitively');
+assert(
+  guestDisplayNameConflicts({
+    normalizedName: 'mohamed',
+    reservedNames: ['mohamed'],
+    currentGuestId: null,
+    savingGuestId: undefined,
+    currentNormalizedName: null,
+  }) === true,
+  'A later guest cannot reuse a reserved name',
+);
+assert(
+  guestDisplayNameConflicts({
+    normalizedName: 'mohamed',
+    reservedNames: ['mohamed'],
+    currentGuestId: 'guest-1',
+    savingGuestId: 'guest-1',
+    currentNormalizedName: 'mohamed',
+  }) === false,
+  'The same guest may keep their own name',
+);
+
 console.log('Guest Mode persistence checks passed.');

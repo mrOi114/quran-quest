@@ -310,6 +310,8 @@ export const so = {
   'guest.ageGroup': 'Daâ€™da',
   'guest.startLearning': 'Bilow barashada',
   'guest.startError': 'Habka Martida lama bilaabi karin',
+  'guest.nameTaken':
+    'Magacaas hore ayaa qof ku isticmaalay qalabkan. Dooro magac ama naanays kale si Horyaalku u caddnaado.',
 
   'circle.section': 'Goobta QuranFamily',
   'circle.titleWithSurah': 'Goobta {surah}',
@@ -736,7 +738,8 @@ export const so = {
   'leaderboard.continue': 'Sii wad barashada',
   'leaderboard.openCircle': 'Fur Goobta',
   'leaderboard.youSuffix': ' (Adiga)',
-  'leaderboard.rankCountry': 'Darajo {rank} Â· Dalka oo keliya ayaa la muujiyaa',
+  'leaderboard.rankCountry': 'Darajo {rank} · Dalka oo keliya ayaa la muujiyaa',
+  'leaderboard.rankOnly': 'Darajo {rank}',
   'leaderboard.pts': '{points} dhibcood',
   'leaderboard.viewAge': 'Daâ€™da',
   'leaderboard.viewJuz': 'Tartanka Juzâ€™',
@@ -970,6 +973,7 @@ export const so = {
   'competition.playerReady': 'ðŸŸ¢ Diyaar',
   'competition.challengeAgain': '🔄 Mar kale tartan',
   'competition.backToCompetition': '🏠 Ku noqo Tartanka',
+  'competition.leaveCompetition': 'Ka bax Tartanka',
   'competition.soundOn': '🔊 Codka waa furan',
   'competition.soundOff': '🔇 Codka waa xiran',
   'competition.cheerCorrect': '⭐🎉 MashaAllah! Si fiican!',

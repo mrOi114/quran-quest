@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/features/auth';
 import { WebAppShell } from '@/components/ui/WebAppShell';
 import { FamilyCommsProvider } from '@/features/family-comms';
+import { CompetitionMembershipHost } from '@/features/competition/components/CompetitionMembershipHost';
 
 export default function AppLayout() {
   const {
@@ -38,6 +39,7 @@ export default function AppLayout() {
 
   return (
     <FamilyCommsProvider>
+      <CompetitionMembershipHost />
       <WebAppShell>
         <Stack screenOptions={{ headerShown: false }} />
       </WebAppShell>

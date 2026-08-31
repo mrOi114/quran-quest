@@ -7,7 +7,8 @@ import { PrimaryButton, TextField, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
-import { fetchWeeklyLeaders, resolveCompetitionAgeBand } from '../services';
+import { fetchWeeklyLeaders, resolveCompetitionAgeBand, resumeActiveChallenge } from '../services';
+import { rememberLiveChallenge } from '../services/activeRoom';
 import { playGreetingOnce } from '../services/competitionVoice';
 import { motivationToneForLearner } from '../services/motivationClips';
 import { useMotivationSound } from '../services/voicePreference';
@@ -43,10 +44,39 @@ export function CompetitionHomeScreen() {
   const [quranRange, setQuranRange] = useState<QuranRangeId>(DEFAULT_QURAN_RANGE);
   const [leaders, setLeaders] = useState<CompetitionWeeklyLeader[]>([]);
   const [progress, setProgress] = useState<CompetitionPlayerRewards | null>(null);
+  const [restoring, setRestoring] = useState(true);
 
   const ageBand = activeLearner ? resolveCompetitionAgeBand(activeLearner) : null;
   const guestName = activeLearner?.display_name?.trim() ?? '';
   const rangeReady = isQuranRangePlayable(quranRange);
+
+  useEffect(() => {
+    let cancelled = false;
+    void resumeActiveChallenge()
+      .then(async (state) => {
+        if (cancelled || !state?.challenge.code) {
+          return false;
+        }
+        await rememberLiveChallenge(state.challenge.code, state.challenge.status);
+        if (cancelled) {
+          return false;
+        }
+        router.replace({
+          pathname: '/(app)/competition/[code]',
+          params: { code: state.challenge.code },
+        } as unknown as Href);
+        return true;
+      })
+      .catch(() => false)
+      .then((moved) => {
+        if (!cancelled && !moved) {
+          setRestoring(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +104,14 @@ export function CompetitionHomeScreen() {
       pathname: '/(app)/competition/[code]',
       params: { code: nextCode },
     } as unknown as Href);
+  }
+
+  if (restoring) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-brand-600">
+        <Text className="text-base text-white">{t('common.loading')}</Text>
+      </SafeAreaView>
+    );
   }
 
   return (

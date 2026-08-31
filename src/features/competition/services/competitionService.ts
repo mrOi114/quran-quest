@@ -76,12 +76,35 @@ export async function joinChallengeByCode(
   });
 }
 
+export async function resumeActiveChallenge(): Promise<CompetitionState | null> {
+  const participant_key = await getOrCreateParticipantKey();
+  const result = await supabase.functions.invoke('competition', {
+    body: { action: 'resume', participant_key },
+  });
+  const data = await assertFunctionOk<{ ok?: true; challenge?: CompetitionState['challenge'] | null } & Partial<CompetitionState>>(
+    result,
+  );
+  if (!data.challenge || typeof data.challenge !== 'object' || !('code' in data.challenge)) {
+    return null;
+  }
+  return data as CompetitionState;
+}
+
 export async function getChallengeState(code: string): Promise<CompetitionState> {
   const parsed = challengeCodeSchema.parse(code);
   return invokeCompetition({
     action: 'get_state',
     code: parsed,
   });
+}
+
+export async function leaveChallenge(code: string): Promise<void> {
+  const parsed = challengeCodeSchema.parse(code);
+  const participant_key = await getOrCreateParticipantKey();
+  const result = await supabase.functions.invoke('competition', {
+    body: { action: 'leave', code: parsed, participant_key },
+  });
+  await assertFunctionOk<{ ok: true }>(result);
 }
 
 export async function setChallengeReady(code: string): Promise<CompetitionState> {
@@ -167,6 +190,6 @@ export function localizeCompetitionError(
   if (message === 'age_mismatch') return t('competition.ageMismatch');
   if (message === 'busy') return t('competition.roomFull');
   if (message === 'range_unavailable') return t('competition.rangeUnavailable');
-  if (message === 'not_member') return t('competition.error');
+  if (message === 'not_member') return t('competition.notFound');
   return t('competition.error');
 }

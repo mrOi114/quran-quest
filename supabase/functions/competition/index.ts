@@ -29,7 +29,9 @@ type Action =
   | 'list_public'
   | 'challenge_player'
   | 'respond_challenge'
-  | 'weekly_leaders';
+  | 'weekly_leaders'
+  | 'resume'
+  | 'leave';
 
 type Body = {
   action?: Action;
@@ -342,6 +344,10 @@ async function handleAction(
     if (!quranRange) {
       return { status: 400, body: { error: 'range_unavailable' } };
     }
+    const live = await resumeActiveSeat(service, keyHash);
+    if (live) {
+      return { status: 200, body: await buildState(service, live.challenge, live.me) };
+    }
     const created = await createChallenge(service, {
       visibility: 'invite',
       ageBand,
@@ -373,26 +379,45 @@ async function handleAction(
     return { status: joined.errorStatus ?? 200, body: joined.body };
   }
 
+  if (action === 'resume') {
+    const found = await resumeActiveSeat(service, keyHash);
+    if (!found) {
+      return { status: 200, body: { ok: true, challenge: null } };
+    }
+    return { status: 200, body: await buildState(service, found.challenge, found.me) };
+  }
+
   const challenge = await loadChallengeForParticipant(service, body, keyHash);
   if ('error' in challenge) {
     return { status: challenge.status, body: { error: challenge.error } };
   }
 
   if (action === 'get_state') {
-    await touchParticipant(service, challenge.me.id);
-    if (challenge.row.status === 'cancelled' && challenge.row.rematch_code) {
-      const dest = await fetchChallengeByCode(service, challenge.row.rematch_code);
+    await pruneStaleWaitingSeats(service, challenge.row);
+    const stillHere = await refetchParticipant(service, challenge.me.id);
+    if (!stillHere) {
+      return { status: 403, body: { error: 'not_member' } };
+    }
+    await touchParticipant(service, stillHere.id);
+    const row = (await refetchChallenge(service, challenge.row.id)) ?? challenge.row;
+    if (row.status === 'cancelled' && row.rematch_code) {
+      const dest = await fetchChallengeByCode(service, row.rematch_code);
       if (dest && !isExpired(dest)) {
         const joined = await joinExisting(service, dest, {
           keyHash,
-          ageBand: challenge.me.age_band,
-          displayName: challenge.me.display_label,
+          ageBand: stillHere.age_band,
+          displayName: stillHere.display_label,
           profileId,
         });
         return { status: joined.errorStatus ?? 200, body: joined.body };
       }
     }
-    return { status: 200, body: await buildState(service, challenge.row, challenge.me) };
+    return { status: 200, body: await buildState(service, row, stillHere) };
+  }
+
+  if (action === 'leave') {
+    await leaveChallengeSeat(service, challenge.row, challenge.me);
+    return { status: 200, body: { ok: true, left: true } };
   }
 
   if (action === 'challenge_player') {
@@ -676,36 +701,23 @@ async function joinPublic(
     quranRange: QuranRangeId;
   },
 ) {
-  const nowIso = new Date().toISOString();
-  const { data: seats } = await service
-    .from('competition_participants')
-    .select('challenge_id, id')
-    .eq('participant_key_hash', input.keyHash);
-
-  for (const seat of seats ?? []) {
-    const room = await refetchChallenge(service, seat.challenge_id);
+  const live = await resumeActiveSeat(service, input.keyHash);
+  if (live) {
+    const room = live.challenge;
     if (
-      room &&
       room.visibility === 'public' &&
       room.status === 'waiting' &&
       room.age_band === input.ageBand &&
-      !isExpired(room) &&
-      Date.parse(room.expires_at) > Date.parse(nowIso)
+      challengeRange(room) !== input.quranRange
     ) {
-      const me = await refetchParticipant(service, seat.id);
-      if (me) {
-        await touchParticipant(service, me.id);
-        if (challengeRange(room) !== input.quranRange) {
-          const people = await fetchParticipants(service, room.id);
-          if (people.length <= 1) {
-            await applyLockedRange(service, room, input.quranRange, room.tier, room.age_band);
-            const updated = (await refetchChallenge(service, room.id)) ?? room;
-            return { challenge: updated, me };
-          }
-        }
-        return { challenge: room, me };
+      const people = await fetchParticipants(service, room.id);
+      if (people.length <= 1) {
+        await applyLockedRange(service, room, input.quranRange, room.tier, room.age_band);
+        const updated = (await refetchChallenge(service, room.id)) ?? room;
+        return { challenge: updated, me: live.me };
       }
     }
+    return { challenge: room, me: live.me };
   }
 
   return createChallenge(service, {
@@ -739,7 +751,7 @@ async function joinByCode(
 
 async function joinExisting(
   service: ReturnType<typeof createServiceClient>,
-  challenge: ChallengeRow,
+  incoming: ChallengeRow,
   input: {
     keyHash: string;
     ageBand: CompetitionAgeBand;
@@ -752,7 +764,13 @@ async function joinExisting(
   challenge?: ChallengeRow;
   me?: ParticipantRow;
 }> {
+  let challenge = incoming;
   if (isExpired(challenge)) {
+    return { errorStatus: 410, body: { error: 'expired' } };
+  }
+  await pruneStaleWaitingSeats(service, challenge);
+  challenge = (await refetchChallenge(service, challenge.id)) ?? challenge;
+  if (isExpired(challenge) || challenge.status === 'cancelled' || challenge.status === 'expired') {
     return { errorStatus: 410, body: { error: 'expired' } };
   }
   if (challenge.age_band !== input.ageBand) {
@@ -1197,6 +1215,7 @@ async function listAvailablePublic(
     if (excludeChallengeId && room.id === excludeChallengeId) {
       continue;
     }
+    await pruneStaleWaitingSeats(service, room);
     const people = (await fetchParticipants(service, room.id)).filter(
       (person) => !isFakeLabel(person.display_label),
     );
@@ -1209,7 +1228,7 @@ async function listAvailablePublic(
     if (people.length >= roomCap()) {
       continue;
     }
-    const host = people[0]!;
+    const host = people.find((person) => Date.now() - Date.parse(person.last_seen_at) < STALE_WAITING_MS) ?? people[0]!;
     players.push({
       code: room.code,
       display_label: host.display_label,
@@ -1379,5 +1398,84 @@ async function maybeExpire(
       .from('competition_challenges')
       .update({ status: 'expired' })
       .eq('id', challenge.id);
+  }
+}
+
+const STALE_WAITING_MS = 5 * 60 * 1000;
+const LIVE_ROOM_STATUSES = new Set(['waiting', 'ready_check', 'question', 'reveal']);
+
+async function pruneStaleWaitingSeats(
+  service: ReturnType<typeof createServiceClient>,
+  challenge: ChallengeRow,
+) {
+  if (challenge.status !== 'waiting' && challenge.status !== 'ready_check') {
+    return;
+  }
+  const cutoff = Date.now() - STALE_WAITING_MS;
+  const people = await fetchParticipants(service, challenge.id);
+  for (const person of people) {
+    if (Date.parse(person.last_seen_at) >= cutoff) {
+      continue;
+    }
+    await service.from('competition_participants').delete().eq('id', person.id);
+  }
+  const remaining = (await fetchParticipants(service, challenge.id)).filter(
+    (person) => !isFakeLabel(person.display_label),
+  );
+  if (remaining.length === 0) {
+    await service
+      .from('competition_challenges')
+      .update({ status: 'cancelled' })
+      .eq('id', challenge.id)
+      .in('status', ['waiting', 'ready_check']);
+  }
+}
+
+async function resumeActiveSeat(
+  service: ReturnType<typeof createServiceClient>,
+  keyHash: string,
+) {
+  const { data: seats } = await service
+    .from('competition_participants')
+    .select('challenge_id, id')
+    .eq('participant_key_hash', keyHash);
+
+  for (const seat of seats ?? []) {
+    const room = await refetchChallenge(service, seat.challenge_id);
+    if (!room || isExpired(room) || !LIVE_ROOM_STATUSES.has(room.status)) {
+      continue;
+    }
+    await pruneStaleWaitingSeats(service, room);
+    const me = await refetchParticipant(service, seat.id);
+    if (!me) {
+      continue;
+    }
+    await touchParticipant(service, me.id);
+    const fresh = (await refetchChallenge(service, room.id)) ?? room;
+    if (!LIVE_ROOM_STATUSES.has(fresh.status) || isExpired(fresh)) {
+      continue;
+    }
+    return { challenge: fresh, me };
+  }
+  return null;
+}
+
+async function leaveChallengeSeat(
+  service: ReturnType<typeof createServiceClient>,
+  challenge: ChallengeRow,
+  me: ParticipantRow,
+) {
+  await service.from('competition_participants').delete().eq('id', me.id);
+  if (challenge.status === 'waiting' || challenge.status === 'ready_check') {
+    const remaining = (await fetchParticipants(service, challenge.id)).filter(
+      (person) => !isFakeLabel(person.display_label),
+    );
+    if (remaining.length === 0) {
+      await service
+        .from('competition_challenges')
+        .update({ status: 'cancelled' })
+        .eq('id', challenge.id)
+        .in('status', ['waiting', 'ready_check']);
+    }
   }
 }

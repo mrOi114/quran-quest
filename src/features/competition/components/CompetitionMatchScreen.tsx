@@ -52,7 +52,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
   const { enabled: soundEnabled } = useMotivationSound();
   const tone = motivationToneForLearner(activeLearner);
   const playful = tone === 'playful';
-  const { state, loading, error, readyUp, submit, rematch, joining, challengePlayer, respondChallenge } =
+  const { state, loading, error, readyUp, submit, rematch, joining, challengePlayer, respondChallenge, leaveRoom } =
     useCompetitionChallenge(code);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [challengeRange, setChallengeRange] = useState<QuranRangeId>(DEFAULT_QURAN_RANGE);
@@ -427,6 +427,20 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
         ) : null}
 
         {error ? <Text className="mt-4 text-sm text-red-100">{error}</Text> : null}
+
+        {!complete ? (
+          <View className="mt-5">
+            <PrimaryButton
+              label={t('competition.leaveCompetition')}
+              variant="secondary"
+              onPress={() => {
+                void leaveRoom().then(() => {
+                  router.replace('/(app)/competition' as Href);
+                });
+              }}
+            />
+          </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

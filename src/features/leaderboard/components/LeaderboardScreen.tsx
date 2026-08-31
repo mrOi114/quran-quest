@@ -44,11 +44,14 @@ function RankRow({ entry }: { entry: LeaderboardEntry }) {
           </View>
           <View className="flex-1">
             <Text className="text-base font-semibold text-brand-800">
-              {entry.flag} {entry.displayName}
+              {entry.flag ? `${entry.flag} ` : ''}
+              {entry.displayName}
               {entry.isCurrentUser ? t('leaderboard.youSuffix') : ''}
             </Text>
             <Text className="mt-1 text-xs text-brand-500">
-              {t('leaderboard.rankCountry', { rank: entry.rank })}
+              {entry.flag
+                ? t('leaderboard.rankCountry', { rank: entry.rank })
+                : t('leaderboard.rankOnly', { rank: entry.rank })}
             </Text>
           </View>
         </View>
@@ -224,7 +227,7 @@ export function LeaderboardScreen() {
             {t('leaderboard.headline')}
           </Text>
           <Text className="mt-2 text-3xl font-bold text-brand-800">
-            {model.flag} {model.displayName}
+            {model.displayName}
           </Text>
           <Text className="mt-2 text-base text-brand-600">{t('leaderboard.effortCounts')}</Text>
           <Text className="mt-3 text-sm font-semibold text-brand-700">

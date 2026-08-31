@@ -5,6 +5,8 @@ export {
   createInviteChallenge,
   joinChallengeByCode,
   getChallengeState,
+  resumeActiveChallenge,
+  leaveChallenge,
   setChallengeReady,
   submitChallengeAnswer,
   closeChallengeRound,
@@ -16,7 +18,12 @@ export {
   fetchWeeklyLeaders,
   localizeCompetitionError,
 } from './competitionService';
-export { getOrCreateParticipantKey } from './participantKey';
+export {
+  saveActiveChallengeCode,
+  peekActiveChallengeCode,
+  clearActiveChallengeCode,
+  rememberLiveChallenge,
+} from './activeRoom';
 export {
   savePendingChallengeCode,
   peekPendingChallengeCode,

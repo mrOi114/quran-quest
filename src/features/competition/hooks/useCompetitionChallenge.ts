@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth, type ActiveLearner } from '@/features/auth';
 import { useI18n } from '@/i18n';
@@ -12,6 +12,7 @@ import {
   getChallengeState,
   joinChallengeByCode,
   joinPublicChallenge,
+  leaveChallenge,
   listPublicPlayers,
   localizeCompetitionError,
   requestHarderChallenge,
@@ -20,6 +21,7 @@ import {
   setChallengeReady,
   submitChallengeAnswer,
 } from '../services';
+import { rememberLiveChallenge, clearActiveChallengeCode } from '../services/activeRoom';
 import type { CompetitionState } from '../types';
 import type { QuranRangeId } from '../services/quranRange';
 import { DEFAULT_QURAN_RANGE } from '../services/quranRange';
@@ -47,6 +49,7 @@ export function useCompetitionChallenge(code?: string) {
   const apply = useCallback((next: CompetitionState) => {
     setState(next);
     setError(null);
+    void rememberLiveChallenge(next.challenge.code, next.challenge.status);
   }, []);
 
   const fail = useCallback(
@@ -259,6 +262,20 @@ export function useCompetitionChallenge(code?: string) {
     [apply, fail, state],
   );
 
+  const leaveRoom = useCallback(async () => {
+    const currentCode = codeRef.current ?? state?.challenge.code;
+    if (currentCode) {
+      try {
+        await leaveChallenge(currentCode);
+      } catch {
+        // Local leave still stands if the seat is already gone.
+      }
+    }
+    await clearActiveChallengeCode();
+    setState(null);
+    setError(null);
+  }, [state?.challenge.code]);
+
   return {
     state,
     loading,
@@ -274,7 +291,9 @@ export function useCompetitionChallenge(code?: string) {
     rematch,
     challengePlayer,
     respondChallenge,
+    leaveRoom,
     loadWeeklyLeaders: fetchWeeklyLeaders,
     loadPublicPlayers: listPublicPlayers,
   };
 }
+

@@ -97,7 +97,26 @@ assert(invite.includes('Share.share'), 'Invite uses the device share sheet');
 assert(invite.includes('PRODUCTION_WEB_ORIGIN') || invite.includes('/challenge/'), 'Invite URL contains only the challenge path');
 assert(!invite.includes('email') || true, 'invite helper exists');
 
-assert(service.includes("action: 'join_public'"), 'Public join exists');
+assert(matchScreen.includes('leaveCompetition'), 'Leave Competition is on the match screen');
+assert(homeScreen.includes('resumeActiveChallenge'), 'Home restores an active room');
+assert(service.includes("action: 'leave'"), 'Leave room action exists');
+assert(service.includes("action: 'resume'"), 'Resume room action exists');
+assert(edge.includes("action === 'leave'"), 'Server leave removes the seat');
+assert(edge.includes("action === 'resume'"), 'Server resume restores membership');
+assert(edge.includes('pruneStaleWaitingSeats'), 'Stale waiting players are cleaned up');
+assert(edge.includes('STALE_WAITING_MS'), 'Waiting presence uses a heartbeat timeout');
+assert(read('src/features/competition/constants.ts').includes('ACTIVE_CHALLENGE_STORAGE'), 'Active room code is persisted');
+assert(
+  read('app/(app)/_layout.tsx').includes('CompetitionMembershipHost'),
+  'Heartbeat continues while using the rest of the app',
+);
+assert(!matchScreen.includes('leaveRoom(); setState(null)'), 'Unmount is not an implicit leave');
+assert(read('src/features/competition/hooks/useCompetitionChallenge.ts').includes('cancelled = true'), 'Leaving the match screen only stops local polling');
+assert(
+  !read('src/features/competition/hooks/useCompetitionChallenge.ts').includes('void leaveChallenge') &&
+    read('src/features/competition/hooks/useCompetitionChallenge.ts').includes('await leaveChallenge(currentCode)'),
+  'Leave is explicit, not an unmount side effect',
+);
 assert(service.includes("action: 'create_invite'"), 'Invite create exists');
 assert(service.includes("action: 'join_code'"), 'Code join exists');
 

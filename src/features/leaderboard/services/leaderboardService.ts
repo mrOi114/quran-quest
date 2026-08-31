@@ -190,17 +190,18 @@ function toEntry(
   points: number,
   activeNow: boolean,
 ): Omit<LeaderboardEntry, 'rank'> {
+  const isMe = row.learner.id === currentId;
   return {
     id: row.learner.id,
     displayName: row.displayName,
-    countryCode: row.learner.country_code,
-    flag: flagForCountryCode(row.learner.country_code),
+    countryCode: isMe ? '' : row.learner.country_code,
+    flag: isMe ? '' : flagForCountryCode(row.learner.country_code),
     avatarKey: row.learner.avatar_key,
     points,
     lifetimePoints: row.lifetimePoints,
     ageGroup: row.ageGroup,
-    isCurrentUser: row.learner.id === currentId,
-    isActiveNow: activeNow && row.learner.id === currentId,
+    isCurrentUser: isMe,
+    isActiveNow: activeNow && isMe,
   };
 }
 
@@ -350,8 +351,8 @@ export async function buildLeaderboardModel(options: {
 
   return {
     displayName: currentName,
-    countryCode: activeLearner.country_code,
-    flag: flagForCountryCode(activeLearner.country_code),
+    countryCode: '',
+    flag: '',
     ageGroup,
     ageGroupLabel: ageGroupLabel(ageGroup),
     effort,

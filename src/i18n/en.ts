@@ -298,6 +298,8 @@ export const en = {
   'guest.ageGroup': 'Age group',
   'guest.startLearning': 'Start learning',
   'guest.startError': 'Could not start Guest Mode',
+  'guest.nameTaken':
+    'That name is already used on this device. Choose a different first name or nickname so the Leaderboard stays clear.',
 
   'circle.section': 'QuranFamily Circle',
   'circle.titleWithSurah': '{surah} Circle',
@@ -721,6 +723,7 @@ export const en = {
   'leaderboard.openCircle': 'Open Circle',
   'leaderboard.youSuffix': ' (You)',
   'leaderboard.rankCountry': 'Rank {rank} · Country shown only',
+  'leaderboard.rankOnly': 'Rank {rank}',
   'leaderboard.pts': '{points} pts',
   'leaderboard.viewAge': 'Age Group',
   'leaderboard.viewJuz': 'Juz Challenge',
@@ -949,6 +952,7 @@ export const en = {
   'competition.playerReady': '🟢 Ready',
   'competition.challengeAgain': '🔄 Challenge Again',
   'competition.backToCompetition': '🏠 Back to Competition',
+  'competition.leaveCompetition': 'Leave Competition',
   'competition.soundOn': '🔊 Sound On',
   'competition.soundOff': '🔇 Sound Off',
   'competition.cheerCorrect': '⭐🎉 MashaAllah! Great job!',

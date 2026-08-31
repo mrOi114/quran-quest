@@ -12,6 +12,9 @@ const GUEST_PROGRESS_KEY = 'qq.guest.progress';
 const GUEST_MILESTONE_DISMISSED_KEY = 'qq.guest.milestone_dismissed';
 /** Explicit Guest Mode flag — restored locally, independent of Supabase Auth. */
 const GUEST_SESSION_KEY = 'qq.guest.session_active';
+/** Nicknames already used on this device — kept after Guest Mode ends. */
+const GUEST_USED_NAMES_KEY = 'qq.guest.used_names';
+export const GUEST_NAME_TAKEN = 'guest_name_taken';
 const GUEST_MIGRATION_PREFIX = 'qq.migrated_progress.';
 /** Staged separately so Feature 005 reader merge does not race Feature 004 learning merge. */
 const GUEST_READER_MIGRATION_PREFIX = 'qq.migrated_reader.';
@@ -41,6 +44,74 @@ function emptyProgress(): GuestProgress {
     learningPayload: {},
     updatedAt: new Date().toISOString(),
   };
+}
+
+export function normalizeGuestDisplayName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+export function guestDisplayNameConflicts(options: {
+  normalizedName: string;
+  reservedNames: string[];
+  currentGuestId: string | null;
+  savingGuestId: string | undefined;
+  currentNormalizedName: string | null;
+}): boolean {
+  if (!options.normalizedName) {
+    return false;
+  }
+  const keepingOwnName =
+    Boolean(options.savingGuestId) &&
+    options.savingGuestId === options.currentGuestId &&
+    options.currentNormalizedName === options.normalizedName;
+  if (keepingOwnName) {
+    return false;
+  }
+  return options.reservedNames.includes(options.normalizedName);
+}
+
+export class GuestNameTakenError extends Error {
+  readonly code = GUEST_NAME_TAKEN;
+
+  constructor() {
+    super(GUEST_NAME_TAKEN);
+    this.name = 'GuestNameTakenError';
+  }
+}
+
+export function isGuestNameTakenError(error: unknown): boolean {
+  return (
+    error instanceof GuestNameTakenError ||
+    (error instanceof Error && error.message === GUEST_NAME_TAKEN)
+  );
+}
+
+async function loadReservedGuestNames(): Promise<string[]> {
+  const raw = await AsyncStorage.getItem(GUEST_USED_NAMES_KEY);
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((item): item is string => typeof item === 'string' && item.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+async function reserveGuestDisplayName(name: string): Promise<void> {
+  const normalized = normalizeGuestDisplayName(name);
+  if (!normalized) {
+    return;
+  }
+  const reserved = await loadReservedGuestNames();
+  if (reserved.includes(normalized)) {
+    return;
+  }
+  await AsyncStorage.setItem(GUEST_USED_NAMES_KEY, JSON.stringify([...reserved, normalized]));
 }
 
 export function resolveGuestSessionActive(
@@ -123,6 +194,21 @@ export async function updateGuestPreferredLanguage(
 export async function saveGuestProfile(
   input: Omit<GuestProfile, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
 ): Promise<GuestProfile> {
+  const current = await getGuestProfile();
+  const normalizedName = normalizeGuestDisplayName(input.displayName);
+  const reservedNames = await loadReservedGuestNames();
+  if (
+    guestDisplayNameConflicts({
+      normalizedName,
+      reservedNames,
+      currentGuestId: current?.id ?? null,
+      savingGuestId: input.id,
+      currentNormalizedName: current ? normalizeGuestDisplayName(current.displayName) : null,
+    })
+  ) {
+    throw new GuestNameTakenError();
+  }
+
   const profile: GuestProfile = {
     id: input.id ?? Crypto.randomUUID(),
     displayName: input.displayName.trim(),
@@ -132,6 +218,7 @@ export async function saveGuestProfile(
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
   await AsyncStorage.setItem(GUEST_PROFILE_KEY, JSON.stringify(profile));
+  await reserveGuestDisplayName(profile.displayName);
   await markGuestSessionActive();
 
   const existingProgress = await AsyncStorage.getItem(GUEST_PROGRESS_KEY);

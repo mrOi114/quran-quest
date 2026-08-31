@@ -7,6 +7,7 @@ import {
   AuthScreen,
   CountryPicker,
   guestOnboardingSchema,
+  isGuestNameTakenError,
   LanguagePicker,
   PrimaryButton,
   TextField,
@@ -66,9 +67,11 @@ export default function GuestOnboardingScreen() {
         router.replace('/(app)/home');
       }
     } catch (error) {
-      setFormError(
-        error instanceof Error ? error.message : t('guest.startError'),
-      );
+      if (isGuestNameTakenError(error)) {
+        setFieldErrors({ displayName: t('guest.nameTaken') });
+      } else {
+        setFormError(error instanceof Error ? error.message : t('guest.startError'));
+      }
     } finally {
       setLoading(false);
     }
