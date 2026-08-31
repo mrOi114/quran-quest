@@ -1,5 +1,5 @@
 import { useRouter, type Href } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,7 +7,19 @@ import { PrimaryButton, TextField, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
-import { resolveCompetitionAgeBand } from '../services';
+import { fetchWeeklyLeaders, resolveCompetitionAgeBand } from '../services';
+import type { CompetitionPlayerRewards, CompetitionWeeklyLeader } from '../types';
+
+function powerLevelLabel(
+  key: CompetitionPlayerRewards['level_key'],
+  t: (key: 'competition.level.beginner' | 'competition.level.star' | 'competition.level.gold' | 'competition.level.diamond' | 'competition.level.champion') => string,
+) {
+  if (key === 'champion') return t('competition.level.champion');
+  if (key === 'diamond') return t('competition.level.diamond');
+  if (key === 'gold') return t('competition.level.gold');
+  if (key === 'star') return t('competition.level.star');
+  return t('competition.level.beginner');
+}
 
 export function CompetitionHomeScreen() {
   const router = useRouter();
@@ -15,15 +27,38 @@ export function CompetitionHomeScreen() {
   const { activeLearner } = useAuth();
   const { joinPublic, createInvite, joinCode, joining, error } = useCompetitionChallenge();
   const [code, setCode] = useState('');
+  const [leaders, setLeaders] = useState<CompetitionWeeklyLeader[]>([]);
+  const [progress, setProgress] = useState<CompetitionPlayerRewards | null>(null);
 
   const ageBand = activeLearner ? resolveCompetitionAgeBand(activeLearner) : null;
+  const guestName = activeLearner?.display_name?.trim() ?? '';
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchWeeklyLeaders()
+      .then((next) => {
+        if (!cancelled) {
+          setLeaders(next.leaders);
+          setProgress(next.progress);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLeaders([]);
+          setProgress(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function go(nextCode: string | undefined) {
     if (!nextCode) return;
     router.push({
       pathname: '/(app)/competition/[code]',
       params: { code: nextCode },
-    } as Href);
+    } as unknown as Href);
   }
 
   return (
@@ -37,6 +72,49 @@ export function CompetitionHomeScreen() {
         </Text>
         <Text className="mt-2 text-3xl font-bold text-white">{t('competition.title')}</Text>
         <Text className="mt-2 text-base text-brand-100">{t('competition.subtitle')}</Text>
+        {guestName ? (
+          <Text className="mt-3 text-base font-semibold text-white">
+            {t('competition.playingAs', { name: guestName })}
+          </Text>
+        ) : null}
+
+        <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            {t('competition.chooseRange')}
+          </Text>
+          <View className="mt-3 rounded-2xl border-2 border-brand-600 bg-brand-50 px-4 py-4">
+            <Text className="text-lg font-bold text-brand-800">{t('competition.rangeJuz30')}</Text>
+            <Text className="mt-1 text-sm text-brand-600">{t('competition.rangeJuz30Help')}</Text>
+          </View>
+        </View>
+
+        {progress ? (
+          <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+            <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+              {t('competition.quranPower')}
+            </Text>
+            <Text className="mt-3 text-2xl font-bold text-brand-800">
+              {progress.avatar_emoji} {t('competition.powerTotal', { power: progress.power })}
+            </Text>
+            <Text className="mt-1 text-sm text-brand-600">{powerLevelLabel(progress.level_key, t)}</Text>
+          </View>
+        ) : null}
+
+        <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            {t('competition.weeklyLeaders')}
+          </Text>
+          {leaders.length === 0 ? (
+            <Text className="mt-3 text-sm text-brand-600">{t('competition.weeklyLeadersEmpty')}</Text>
+          ) : (
+            leaders.map((leader, index) => (
+              <Text key={`${leader.display_label}-${index}`} className="mt-2 text-base text-brand-800">
+                {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {leader.display_label}
+                {leader.score > 0 ? ` · ${leader.score}` : ''}
+              </Text>
+            ))
+          )}
+        </View>
 
         <View className="mt-5 rounded-3xl bg-white px-5 py-5">
           {ageBand ? (

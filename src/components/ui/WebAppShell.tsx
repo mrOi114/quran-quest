@@ -247,25 +247,29 @@ export function WebAppShell({ children }: WebAppShellProps) {
     isChildFamilySession || activeLearner?.role === 'child' || profile?.role === 'child';
 
   const mainNavItems = useMemo(() => {
+    const hideCircle = (items: NavItem[]) =>
+      isGuest ? items.filter((item) => item.id !== 'circle') : items;
     if (useParentMenu) {
-      return parentNavItems;
+      return hideCircle(parentNavItems);
     }
     if (isChildLearning) {
-      return learnerNavItems.filter((item) => item.id !== 'family');
+      return hideCircle(learnerNavItems.filter((item) => item.id !== 'family'));
     }
-    return learnerNavItems.filter((item) => item.id !== 'chat');
-  }, [isChildLearning, useParentMenu]);
+    return hideCircle(learnerNavItems.filter((item) => item.id !== 'chat'));
+  }, [isChildLearning, isGuest, useParentMenu]);
 
   const quickNavItems = useMemo(() => {
     const ids = useParentMenu
       ? parentQuickIds
       : isChildLearning
         ? childFamilyQuickIds
-        : learnerQuickIds;
+        : isGuest
+          ? (['home', 'learn', 'lesson', 'competition', 'games'] as NavId[])
+          : learnerQuickIds;
     return ids
       .map((id) => mainNavItems.find((item) => item.id === id))
       .filter((item): item is NavItem => Boolean(item));
-  }, [isChildLearning, mainNavItems, useParentMenu]);
+  }, [isChildLearning, isGuest, mainNavItems, useParentMenu]);
 
   const learnerLabel =
     activeLearner?.display_name ||

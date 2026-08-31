@@ -190,10 +190,6 @@ function buildBoard(options: {
   juzNumber?: JuzChallengeNumber;
   juzStatus?: 'active' | 'upcoming';
 }): LeaderboardBoard {
-  const filteredPeers = options.filter
-    ? options.peers.filter(options.filter)
-    : options.peers;
-
   const youRow: Omit<LeaderboardEntry, 'rank'> = {
     id: `you-${options.learner.id}`,
     displayName: options.learner.display_name.trim() || 'You',
@@ -204,15 +200,7 @@ function buildBoard(options: {
     isCurrentUser: true,
   };
 
-  const peerRows: Array<Omit<LeaderboardEntry, 'rank'>> = filteredPeers.map((peer) => ({
-    id: peer.id,
-    displayName: peer.displayName,
-    countryCode: peer.countryCode,
-    flag: flagForCountryCode(peer.countryCode),
-    points: peer.points,
-    ageGroup: peer.ageGroup,
-    isCurrentUser: false,
-  }));
+  const peerRows: Array<Omit<LeaderboardEntry, 'rank'>> = [];
 
   const entries = sortAndRank([youRow, ...peerRows]);
   const you = personalStanding(entries, options.placesMoved);

@@ -10,6 +10,10 @@ export {
   closeChallengeRound,
   advanceChallenge,
   requestHarderChallenge,
+  listPublicPlayers,
+  challengePublicPlayer,
+  respondPublicChallenge,
+  fetchWeeklyLeaders,
   localizeCompetitionError,
 } from './competitionService';
 export { getOrCreateParticipantKey } from './participantKey';
@@ -21,3 +25,4 @@ export {
 } from './pendingChallenge';
 export { buildChallengeUrl, shareChallengeInvite, buildInviteMessage } from './inviteShare';
 export { localizeCompetitionQuestion, formatCompetitionTimer } from './localizeQuestion';
+export { speakEnglishQuestion, stopQuestionSpeech } from './speakEnglishQuestion';

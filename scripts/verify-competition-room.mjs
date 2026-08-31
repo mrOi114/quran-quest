@@ -51,6 +51,22 @@ assert(!shell.includes("href: '/(app)/circle/competition'"), 'Must not nest insi
 
 assert(home.includes('CompetitionEntry'), 'Home shows Competition Room');
 assert(home.includes('CircleEntry'), 'Circle entry remains on home');
+assert(home.includes('!isGuest'), 'Circle home cards are hidden for guests');
+
+assert(homeScreen.includes('rangeJuz30'), 'Juz 30 range is shown');
+assert(homeScreen.includes('playingAs'), 'Guest display name is reused');
+assert(homeScreen.includes('weeklyLeaders'), 'Weekly leaders are on the home screen');
+assert(matchScreen.includes('availableOnline'), 'Available Online list exists');
+assert(matchScreen.includes('someoneChallenging'), 'Incoming challenge prompt exists');
+assert(matchScreen.includes('challengeAgain'), 'Challenge Again exists');
+assert(edge.includes('computeProgress'), 'Server computes Qur’an Power');
+assert(edge.includes('awardPower'), 'Reward amount is server-side');
+assert(!matchScreen.includes('AI Opponent'), 'Match UI has no AI opponent');
+assert(!homeScreen.includes('AI Opponent'), 'Home UI has no AI opponent');
+assert(
+  read('supabase/migrations/20260831010000_competition_five_players.sql').includes('set default 5'),
+  'Migration sets room default to 5',
+);
 
 assert(ageBand.includes('resolveAgeGroup'), 'Age comes from existing learner data');
 assert(ageBand.includes("return 'child'"), 'Child band exists');
@@ -86,7 +102,17 @@ assert(questions.includes("ageBands: ['adult']") || questions.includes("'adult'"
 assert(edge.includes("error: 'age_mismatch'"), 'Server rejects cross-age matching');
 assert(edge.includes("error: 'full'"), 'Server rejects full rooms');
 assert(edge.includes('participant_key_hash'), 'Duplicate seats use the participant key');
-assert(edge.includes('MAX_PARTICIPANTS_V1'), 'v1 is 2 participants');
+assert(edge.includes('MAX_PARTICIPANTS_V1'), 'Room capacity constant exists');
+assert(questions.includes('MAX_PARTICIPANTS_V1 = 5'), 'Server max is 5 players');
+assert(read('src/features/competition/constants.ts').includes('COMPETITION_MAX_PARTICIPANTS = 5'), 'Client max is 5');
+assert(questions.includes('QUESTION_SECONDS = 60'), 'Timer is 60 seconds');
+assert(!edge.includes('play_against_ai'), 'No AI opponent action');
+assert(!edge.includes('pickAiChoice'), 'No AI answer picker');
+assert(edge.includes('challenge_player'), 'Public challenge request exists');
+assert(edge.includes('respond_challenge'), 'Accept/Decline exists');
+assert(edge.includes('available_players'), 'Available online list is server-backed');
+assert(edge.includes('weekly_leaders'), 'Weekly leaders are real completed players');
+assert(shell.includes('isGuest ? items.filter'), 'Circle is hidden from guest navigation');
 assert(edge.includes('question_ends_at'), 'Server-authoritative timer');
 assert(!edge.includes('family_messages'), 'Competition function must not touch family chat');
 assert(!edge.includes('circle_messages'), 'Competition function must not touch circle chat');
@@ -97,6 +123,10 @@ assert(migration.includes('competition_question_keys'), 'Answer keys are isolate
 assert(migration.includes('revoke all on public.competition_challenges'), 'Invite codes are not enumerable');
 assert(config.includes('[functions.competition]'), 'Competition function is registered');
 assert(config.includes('verify_jwt = false'), 'Guests can call the competition function');
+
+assert(matchScreen.includes('ListenToQuestionButton'), 'English questions have a listen button');
+assert(read('src/features/competition/services/speakEnglishQuestion.ts').includes("language: 'en-US'"), 'TTS uses English');
+assert(!/Speech\.speak\(/.test(matchScreen), 'Question audio is tap-to-play only');
 
 assert(!matchScreen.toLowerCase().includes('chat') || matchScreen.includes('No chat'), 'Match UI has no chat');
 assert(!matchScreen.includes('family/call'), 'Match UI has no calls');

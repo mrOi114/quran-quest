@@ -31,7 +31,34 @@ export type CompetitionPlayerView = {
   is_ready: boolean;
   seat_index: number;
   is_you: boolean;
-  is_ai: boolean;
+};
+
+export type CompetitionLobbyPlayer = {
+  code: string;
+  display_label: string;
+  tier: number;
+  participant_count: number;
+  max_participants: number;
+  is_ready: boolean;
+};
+
+export type CompetitionPendingChallenge = {
+  label: string;
+};
+
+export type CompetitionWeeklyLeader = {
+  display_label: string;
+  score: number;
+};
+
+export type CompetitionPowerLevel = 'beginner' | 'star' | 'gold' | 'diamond' | 'champion';
+
+export type CompetitionPlayerRewards = {
+  power: number;
+  earned: number;
+  level_key: CompetitionPowerLevel;
+  avatar_key: string;
+  avatar_emoji: string;
 };
 
 export type CompetitionRoundPlayer = {
@@ -64,6 +91,8 @@ export type CompetitionChallengeView = {
   reveal_until: string | null;
   last_round_result: CompetitionRoundResult | null;
   players: CompetitionPlayerView[];
+  available_players: CompetitionLobbyPlayer[];
+  pending_challenge: CompetitionPendingChallenge | null;
   rematch_code: string | null;
   expires_at: string;
 };
@@ -75,6 +104,7 @@ export type CompetitionMeView = {
   is_ready: boolean;
   score: number;
   my_choice_id: string | null;
+  rewards: CompetitionPlayerRewards | null;
 };
 
 export type CompetitionState = {

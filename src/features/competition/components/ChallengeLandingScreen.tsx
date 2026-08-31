@@ -59,7 +59,7 @@ export function ChallengeLandingScreen({ codeParam }: { codeParam: string }) {
         href={{
           pathname: '/(app)/competition/[code]',
           params: { code },
-        } as Href}
+        } as unknown as Href}
       />
     );
   }

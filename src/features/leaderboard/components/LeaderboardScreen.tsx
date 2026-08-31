@@ -303,7 +303,7 @@ export function LeaderboardScreen() {
 
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            {boardTitle(board, model, t)}
+            {t('leaderboard.weeklyLeaders')}
           </Text>
           <Text className="mt-1 text-sm text-brand-600">{boardSubtitle(board, t)}</Text>
           <Text className="mt-3 text-xs font-semibold uppercase tracking-wide text-brand-400">
@@ -320,7 +320,7 @@ export function LeaderboardScreen() {
           ) : null}
 
           <View className="mt-4 gap-3">
-            {board.entries.slice(0, 12).map((entry) => (
+            {board.entries.slice(0, 3).map((entry) => (
               <RankRow key={entry.id} entry={entry} />
             ))}
           </View>
@@ -331,11 +331,13 @@ export function LeaderboardScreen() {
             label={t('leaderboard.continue')}
             onPress={() => router.push('/(app)/lesson')}
           />
-          <PrimaryButton
-            label={t('leaderboard.openCircle')}
-            onPress={() => router.push('/(app)/gates/circle' as never)}
-            variant="secondary"
-          />
+          {!model.isGuest ? (
+            <PrimaryButton
+              label={t('leaderboard.openCircle')}
+              onPress={() => router.push('/(app)/gates/circle' as never)}
+              variant="secondary"
+            />
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>

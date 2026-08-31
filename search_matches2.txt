@@ -1,0 +1,9 @@
+﻿C:\Users\amiin\quran-quest\docs\feature-001-auth-design.md
+C:\Users\amiin\quran-quest\docs\feature-004-learning-design.md
+C:\Users\amiin\quran-quest\docs\FOUNDATION.md
+C:\Users\amiin\quran-quest\docs\MASTER_PROJECT_RULES.md
+C:\Users\amiin\quran-quest\docs\qisas-rights-status.md
+C:\Users\amiin\quran-quest\docs\qisas-somali-permission-request.md
+C:\Users\amiin\quran-quest\docs\tafsir-umal-permission-request.md
+C:\Users\amiin\quran-quest\docs\tafsir-umal-rights-status.md
+C:\Users\amiin\quran-quest\node_modules\.package-lock.json

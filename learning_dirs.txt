@@ -1,0 +1,5 @@
+﻿C:\Users\amiin\quran-quest\src\features\learning
+C:\Users\amiin\quran-quest\src\features\learning\components
+C:\Users\amiin\quran-quest\src\features\learning\content
+C:\Users\amiin\quran-quest\src\features\learning\hooks
+C:\Users\amiin\quran-quest\src\features\learning\services

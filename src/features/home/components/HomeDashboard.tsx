@@ -153,13 +153,15 @@ export function HomeDashboard() {
 
         <PracticeWithAiButton onPress={() => router.push('/(app)/companion')} />
 
-        <HifzCirclePlaceholder
-          title={dashboard.circlePreview.title}
-          subtitle={dashboard.circlePreview.subtitle}
-          trackLabel={dashboard.circlePreview.trackLabel}
-          roomCountLabel={dashboard.circlePreview.roomCountLabel}
-          onPress={() => router.push('/(app)/gates/circle')}
-        />
+        {!isGuest ? (
+          <HifzCirclePlaceholder
+            title={dashboard.circlePreview.title}
+            subtitle={dashboard.circlePreview.subtitle}
+            trackLabel={dashboard.circlePreview.trackLabel}
+            roomCountLabel={dashboard.circlePreview.roomCountLabel}
+            onPress={() => router.push('/(app)/gates/circle')}
+          />
+        ) : null}
 
         {!isGuest &&
         (profile?.role === 'parent' ||
@@ -169,9 +171,11 @@ export function HomeDashboard() {
           <FamilyCommsEntry />
         ) : null}
 
-        <View className="mb-4 rounded-2xl bg-white px-4 py-4">
-          <CircleEntry compact />
-        </View>
+        {!isGuest ? (
+          <View className="mb-4 rounded-2xl bg-white px-4 py-4">
+            <CircleEntry compact />
+          </View>
+        ) : null}
 
         <View className="mb-4 rounded-2xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">

@@ -4,8 +4,11 @@ import { supabase } from '@/lib/supabase';
 import { challengeCodeSchema } from '../schemas';
 import type {
   CompetitionAgeBand,
+  CompetitionLobbyPlayer,
+  CompetitionPlayerRewards,
   CompetitionPreview,
   CompetitionState,
+  CompetitionWeeklyLeader,
 } from '../types';
 import { getOrCreateParticipantKey } from './participantKey';
 
@@ -95,6 +98,54 @@ export async function requestHarderChallenge(code: string): Promise<CompetitionS
   return invokeCompetition({ action: 'request_rematch', code });
 }
 
+export async function listPublicPlayers(
+  ageBand: CompetitionAgeBand,
+): Promise<CompetitionLobbyPlayer[]> {
+  const participant_key = await getOrCreateParticipantKey();
+  const result = await supabase.functions.invoke('competition', {
+    body: { action: 'list_public', participant_key, age_band: ageBand },
+  });
+  const data = await assertFunctionOk<{ ok: true; players: CompetitionLobbyPlayer[] }>(result);
+  return data.players ?? [];
+}
+
+export async function challengePublicPlayer(
+  code: string,
+  targetCode: string,
+): Promise<CompetitionState> {
+  return invokeCompetition({
+    action: 'challenge_player',
+    code,
+    target_code: targetCode,
+  });
+}
+
+export async function respondPublicChallenge(
+  code: string,
+  accept: boolean,
+): Promise<CompetitionState> {
+  return invokeCompetition({ action: 'respond_challenge', code, accept });
+}
+
+export async function fetchWeeklyLeaders(): Promise<{
+  leaders: CompetitionWeeklyLeader[];
+  progress: CompetitionPlayerRewards | null;
+}> {
+  const participant_key = await getOrCreateParticipantKey();
+  const result = await supabase.functions.invoke('competition', {
+    body: { action: 'weekly_leaders', participant_key },
+  });
+  const data = await assertFunctionOk<{
+    ok: true;
+    leaders: CompetitionWeeklyLeader[];
+    progress?: CompetitionPlayerRewards | null;
+  }>(result);
+  return {
+    leaders: data.leaders ?? [],
+    progress: data.progress ?? null,
+  };
+}
+
 export function localizeCompetitionError(
   message: string,
   t: (key: 'competition.notFound' | 'competition.expired' | 'competition.roomFull' | 'competition.ageMismatch' | 'competition.error') => string,
@@ -103,6 +154,7 @@ export function localizeCompetitionError(
   if (message === 'expired') return t('competition.expired');
   if (message === 'full') return t('competition.roomFull');
   if (message === 'age_mismatch') return t('competition.ageMismatch');
+  if (message === 'busy') return t('competition.roomFull');
   if (message === 'not_member') return t('competition.error');
   return t('competition.error');
 }

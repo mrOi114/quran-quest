@@ -5,14 +5,18 @@ import { useI18n } from '@/i18n';
 
 import {
   advanceChallenge,
+  challengePublicPlayer,
   closeChallengeRound,
   createInviteChallenge,
+  fetchWeeklyLeaders,
   getChallengeState,
   joinChallengeByCode,
   joinPublicChallenge,
+  listPublicPlayers,
   localizeCompetitionError,
   requestHarderChallenge,
   resolveCompetitionAgeBand,
+  respondPublicChallenge,
   setChallengeReady,
   submitChallengeAnswer,
 } from '../services';
@@ -229,6 +233,30 @@ export function useCompetitionChallenge(code?: string) {
     }
   }, [apply, fail, state]);
 
+  const challengePlayer = useCallback(
+    async (targetCode: string) => {
+      if (!state) return;
+      try {
+        apply(await challengePublicPlayer(state.challenge.code, targetCode));
+      } catch (caught) {
+        fail(caught);
+      }
+    },
+    [apply, fail, state],
+  );
+
+  const respondChallenge = useCallback(
+    async (accept: boolean) => {
+      if (!state) return;
+      try {
+        apply(await respondPublicChallenge(state.challenge.code, accept));
+      } catch (caught) {
+        fail(caught);
+      }
+    },
+    [apply, fail, state],
+  );
+
   return {
     state,
     loading,
@@ -242,5 +270,9 @@ export function useCompetitionChallenge(code?: string) {
     readyUp,
     submit,
     rematch,
+    challengePlayer,
+    respondChallenge,
+    loadWeeklyLeaders: fetchWeeklyLeaders,
+    loadPublicPlayers: listPublicPlayers,
   };
 }

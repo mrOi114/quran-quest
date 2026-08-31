@@ -21,7 +21,7 @@ export type CompetitionQuestion = {
 /**
  * Verified Qur’an competition bank.
  * Facts are grounded in the app corpus (fullQuran.json / Quran.com) — not AI memory.
- * correctChoiceId is the trusted answer key used by the server for human and AI scoring.
+ * correctChoiceId is the trusted answer key used by the server for scoring.
  */
 export const COMPETITION_QUESTIONS: CompetitionQuestion[] = [
   // ——— Difficulty 1 (Challenge 1 / easier) ———
@@ -835,9 +835,9 @@ export const QUESTION_COUNT_BY_TIER: Record<1 | 2 | 3, number> = {
   3: 5,
 };
 
-export const QUESTION_SECONDS = 15;
+export const QUESTION_SECONDS = 60;
 export const REVEAL_SECONDS = 4;
-export const MAX_PARTICIPANTS_V1 = 2;
+export const MAX_PARTICIPANTS_V1 = 5;
 export const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export function difficultyRange(

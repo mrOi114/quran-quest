@@ -14,10 +14,18 @@ import {
   localizeCompetitionQuestion,
   shareChallengeInvite,
 } from '../services';
-import type { CompetitionState } from '../types';
+import type { CompetitionPlayerRewards } from '../types';
+import { ListenToQuestionButton } from './ListenToQuestionButton';
 
-function opponentOf(state: CompetitionState) {
-  return state.challenge.players.find((player) => !player.is_you) ?? null;
+function powerLevelLabel(
+  key: CompetitionPlayerRewards['level_key'],
+  t: (key: 'competition.level.beginner' | 'competition.level.star' | 'competition.level.gold' | 'competition.level.diamond' | 'competition.level.champion') => string,
+) {
+  if (key === 'champion') return t('competition.level.champion');
+  if (key === 'diamond') return t('competition.level.diamond');
+  if (key === 'gold') return t('competition.level.gold');
+  if (key === 'star') return t('competition.level.star');
+  return t('competition.level.beginner');
 }
 
 function useLiveRemaining(endsAt: string | null, active: boolean) {
@@ -38,7 +46,7 @@ function useLiveRemaining(endsAt: string | null, active: boolean) {
 export function CompetitionMatchScreen({ code }: { code: string }) {
   const router = useRouter();
   const { t, language } = useI18n();
-  const { state, loading, error, readyUp, submit, rematch, joining } =
+  const { state, loading, error, readyUp, submit, rematch, joining, challengePlayer, respondChallenge } =
     useCompetitionChallenge(code);
   const [shareNote, setShareNote] = useState<string | null>(null);
 
@@ -46,6 +54,15 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
     state?.challenge.question_ends_at ?? null,
     state?.challenge.status === 'question',
   );
+
+  useEffect(() => {
+    if (state?.challenge.code && state.challenge.code !== code) {
+      router.replace({
+        pathname: '/(app)/competition/[code]',
+        params: { code: state.challenge.code },
+      } as unknown as Href);
+    }
+  }, [code, router, state?.challenge.code]);
 
   const localized = useMemo(() => {
     if (!state?.challenge.question) {
@@ -97,19 +114,21 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
     );
   }
 
-  const opponent = opponentOf(state);
-  const you = state.challenge.players.find((player) => player.is_you);
   const waiting = state.challenge.status === 'waiting';
   const readyCheck = state.challenge.status === 'ready_check';
   const inQuestion = state.challenge.status === 'question';
   const revealing = state.challenge.status === 'reveal';
   const complete = state.challenge.status === 'complete';
+  const others = state.challenge.players.filter((player) => !player.is_you);
+  const available = state.challenge.available_players ?? [];
+  const pending = state.challenge.pending_challenge;
+  const ranked = [...state.challenge.players].sort((left, right) => {
+    if (right.score !== left.score) return right.score - left.score;
+    return left.seat_index - right.seat_index;
+  });
 
   const last = state.challenge.last_round_result;
   const myRound = last?.players.find((player) => player.participant_id === state.me.participant_id);
-  const opponentRound = last?.players.find(
-    (player) => player.participant_id !== state.me.participant_id,
-  );
   const correctChoice = localized?.choices.find((choice) => choice.id === last?.correct_choice_id);
 
   return (
@@ -128,25 +147,105 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
         {waiting || readyCheck ? (
           <View className="mt-5 rounded-3xl bg-white px-5 py-5">
             <Text className="text-xl font-bold text-brand-800">
-              {opponent ? t('competition.opponentJoined') : t('competition.waiting')}
+              {others.length > 0 ? t('competition.opponentJoined') : t('competition.waiting')}
             </Text>
             <Text className="mt-3 text-base text-brand-700">
               {t('competition.codeLabel', { code: state.challenge.code })}
             </Text>
             <Text className="mt-2 text-sm text-brand-600">
-              {t('competition.joinedCount', {
+              {t('competition.playersCount', {
                 count: state.challenge.participant_count,
                 max: state.challenge.max_participants,
               })}
               {state.challenge.is_full ? ` · ${t('competition.full')}` : ''}
             </Text>
 
-            <PrimaryButton label={t('competition.invite')} onPress={() => void onInvite()} />
-            {shareNote ? <Text className="mb-3 text-sm text-brand-600">{shareNote}</Text> : null}
+            {state.challenge.players.map((player) => (
+              <Text key={player.participant_id} className="mt-2 text-base text-brand-800">
+                {player.display_label}
+                {player.is_you ? ` · ${t('competition.youTag')}` : ''}
+                {player.is_ready ? ` · ${t('competition.playerReady')}` : ''}
+              </Text>
+            ))}
 
-            {readyCheck || opponent ? (
+            {pending ? (
+              <View className="mt-4 rounded-2xl bg-brand-50 px-4 py-4">
+                <Text className="text-base font-semibold text-brand-800">
+                  {t('competition.someoneChallenging')}
+                </Text>
+                {pending.label ? (
+                  <Text className="mt-1 text-sm text-brand-600">{pending.label}</Text>
+                ) : null}
+                <PrimaryButton
+                  label={t('competition.accept')}
+                  onPress={() => {
+                    void respondChallenge(true);
+                  }}
+                />
+                <PrimaryButton
+                  label={t('competition.decline')}
+                  variant="secondary"
+                  onPress={() => {
+                    void respondChallenge(false);
+                  }}
+                />
+              </View>
+            ) : null}
+
+            {state.challenge.visibility === 'public' ? (
+              <View className="mt-4">
+                <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+                  {t('competition.availableOnline')}
+                </Text>
+                {available.length === 0 ? (
+                  <Text className="mt-2 text-sm text-brand-600">{t('competition.waiting')}</Text>
+                ) : (
+                  available.map((player) => (
+                    <View
+                      key={player.code}
+                      className="mt-3 flex-row items-center justify-between rounded-2xl border border-brand-100 px-3 py-3"
+                    >
+                      <View className="flex-1 pr-3">
+                        <Text className="text-base font-semibold text-brand-800">
+                          {player.display_label}
+                        </Text>
+                        <Text className="text-sm text-brand-600">
+                          {t('competition.rangeJuz30')}
+                        </Text>
+                        <Text className="text-sm text-brand-600">
+                          {t('competition.tierLabel', { n: player.tier })}
+                        </Text>
+                        <Text className="text-sm text-brand-600">
+                          {player.is_ready ? t('competition.playerReady') : t('competition.waiting')}
+                        </Text>
+                      </View>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => {
+                          void challengePlayer(player.code);
+                        }}
+                        className="min-h-11 items-center justify-center rounded-xl bg-brand-600 px-3"
+                      >
+                        <Text className="text-sm font-semibold text-white">
+                          {t('competition.challengePlayer')}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ))
+                )}
+              </View>
+            ) : null}
+
+            {!state.challenge.is_full ? (
+              <>
+                <PrimaryButton label={t('competition.invite')} onPress={() => void onInvite()} />
+                {shareNote ? <Text className="mb-3 text-sm text-brand-600">{shareNote}</Text> : null}
+              </>
+            ) : null}
+
+            {others.length > 0 ? (
               state.me.is_ready ? (
-                <Text className="text-base text-brand-700">{t('competition.youAreReady')}</Text>
+                <Text className="mt-4 text-base text-brand-700">{t('competition.youAreReady')}</Text>
               ) : (
                 <PrimaryButton
                   label={t('competition.ready')}
@@ -156,7 +255,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 />
               )
             ) : null}
-            {readyCheck && opponent && !opponent.is_ready ? (
+            {others.length > 0 && others.some((player) => !player.is_ready) ? (
               <Text className="mt-2 text-sm text-brand-600">{t('competition.waitingReady')}</Text>
             ) : null}
           </View>
@@ -175,9 +274,14 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 {t('competition.timer', { time: formatCompetitionTimer(remaining) })}
               </Text>
             ) : null}
-            <Text className="mt-4 text-lg font-semibold leading-6 text-brand-900">
-              {localized.prompt}
-            </Text>
+            <View className="mt-4 flex-row items-start">
+              <Text className="flex-1 text-lg font-semibold leading-6 text-brand-900">
+                {localized.prompt}
+              </Text>
+              {language === 'en' && state.challenge.question ? (
+                <ListenToQuestionButton englishText={state.challenge.question.prompt_en} />
+              ) : null}
+            </View>
 
             <View className="mt-4 gap-3">
               {localized.choices.map((choice) => {
@@ -220,17 +324,6 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 <Text className="mt-2 text-base text-brand-800">
                   {myRound?.correct ? t('competition.youCorrect') : t('competition.youIncorrect')}
                 </Text>
-                <Text className="mt-1 text-base text-brand-800">
-                  {opponentRound?.correct
-                    ? t('competition.opponentCorrect')
-                    : t('competition.opponentIncorrect')}
-                </Text>
-                <Text className="mt-3 text-sm text-brand-600">
-                  {t('competition.youPoints', { points: myRound?.points ?? 0 })}
-                </Text>
-                <Text className="text-sm text-brand-600">
-                  {t('competition.opponentPoints', { points: opponentRound?.points ?? 0 })}
-                </Text>
               </View>
             ) : null}
           </View>
@@ -239,32 +332,45 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
         {complete ? (
           <View className="mt-5 rounded-3xl bg-white px-5 py-5">
             <Text className="text-2xl font-bold text-brand-800">{t('competition.complete')}</Text>
-            <Text className="mt-4 text-lg text-brand-800">
-              {t('competition.youScore', {
-                score: you?.score ?? state.me.score,
-                total: state.challenge.question_count,
-              })}
-            </Text>
-            <Text className="mt-1 text-lg text-brand-800">
-              {t('competition.opponentScore', {
-                score: opponent?.score ?? 0,
-                total: state.challenge.question_count,
-              })}
-            </Text>
-            <Text className="mt-4 text-xl font-semibold text-brand-900">
-              {(you?.score ?? 0) === (opponent?.score ?? 0)
-                ? t('competition.draw')
-                : (you?.score ?? 0) > (opponent?.score ?? 0)
-                  ? t('competition.youWon')
-                  : t('competition.wellPlayed')}
-            </Text>
-            <Text className="mt-3 text-base leading-6 text-brand-600">
+            {ranked.map((player, index) => {
+              const total = state.challenge.question_count || 1;
+              const percent = Math.round((player.score / total) * 100);
+              const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+              return (
+                <Text
+                  key={player.participant_id}
+                  className={`mt-3 text-lg ${player.is_you ? 'font-bold text-brand-900' : 'text-brand-800'}`}
+                >
+                  {medal} {player.display_label}
+                  {player.is_you ? ` ${t('competition.youTag')}` : ''} — {player.score}/{total} — {percent}%
+                </Text>
+              );
+            })}
+            {state.me.rewards ? (
+              <View className="mt-4 rounded-2xl bg-brand-50 px-4 py-4">
+                <Text className="text-base font-semibold text-brand-800">
+                  {state.me.rewards.avatar_emoji} {t('competition.quranPower')}
+                </Text>
+                <Text className="mt-1 text-sm text-brand-700">
+                  {t('competition.powerTotal', { power: state.me.rewards.power })}
+                </Text>
+                {state.me.rewards.earned > 0 ? (
+                  <Text className="mt-1 text-sm text-brand-700">
+                    {t('competition.powerEarned', { power: state.me.rewards.earned })}
+                  </Text>
+                ) : null}
+                <Text className="mt-1 text-sm text-brand-600">
+                  {powerLevelLabel(state.me.rewards.level_key, t)}
+                </Text>
+              </View>
+            ) : null}
+            <Text className="mt-4 text-base leading-6 text-brand-600">
               {t('competition.continueJourney')}
             </Text>
 
             {state.challenge.tier < 3 ? (
               <PrimaryButton
-                label={t('competition.harder')}
+                label={t('competition.challengeAgain')}
                 loading={joining}
                 onPress={() => {
                   void rematch().then((next) => {
@@ -272,7 +378,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                       router.replace({
                         pathname: '/(app)/competition/[code]',
                         params: { code: next.challenge.code },
-                      } as Href);
+                      } as unknown as Href);
                     }
                   });
                 }}
@@ -280,9 +386,9 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
             ) : null}
 
             <PrimaryButton
-              label={t('common.backToHome')}
+              label={t('competition.backToCompetition')}
               variant="secondary"
-              onPress={() => router.replace('/(app)/home')}
+              onPress={() => router.replace('/(app)/competition' as Href)}
             />
           </View>
         ) : null}
