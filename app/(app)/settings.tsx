@@ -1,7 +1,13 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
-import { LanguagePicker, PrimaryButton, useAuth } from '@/features/auth';
+import {
+  GuestExitWarning,
+  LanguagePicker,
+  PrimaryButton,
+  useAuth,
+  useGuestExitWarning,
+} from '@/features/auth';
 import { useTafsirMode } from '@/features/tafsir';
 import { useI18n } from '@/i18n';
 
@@ -20,6 +26,8 @@ export default function SettingsRoute() {
   } = useAuth();
   const { t } = useI18n();
   const tafsir = useTafsirMode();
+  const { guestExitVisible, requestGuestExit, keepLearning, confirmLeave } =
+    useGuestExitWarning();
   const languageValue = activeLearner?.preferred_language ?? 'en';
 
   return (
@@ -105,22 +113,33 @@ export default function SettingsRoute() {
                   ? t('common.endGuestTrial')
                   : t('common.logOut')
             }
-            onPress={() =>
-              void (isChildFamilySession
-                ? endChildFamilySession()
-                : isGuest
-                  ? endGuestSession()
-                  : signOut()
-              ).then(() =>
-                router.replace(
-                  isChildFamilySession ? '/(auth)/child-entry' : '/(auth)/welcome',
-                ),
-              )
-            }
+            onPress={() => {
+              const leave = () =>
+                void (isChildFamilySession
+                  ? endChildFamilySession()
+                  : isGuest
+                    ? endGuestSession()
+                    : signOut()
+                ).then(() =>
+                  router.replace(
+                    isChildFamilySession ? '/(auth)/child-entry' : '/(auth)/welcome',
+                  ),
+                );
+              if (isGuest) {
+                requestGuestExit(leave);
+                return;
+              }
+              leave();
+            }}
             variant="secondary"
           />
         </View>
       </View>
+      <GuestExitWarning
+        visible={guestExitVisible}
+        onKeepLearning={keepLearning}
+        onLeaveGuestMode={confirmLeave}
+      />
     </ScrollView>
   );
 }

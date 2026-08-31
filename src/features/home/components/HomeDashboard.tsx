@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MilestonePrompt, useAuth } from '@/features/auth';
+import { GuestExitWarning, MilestonePrompt, useAuth, useGuestExitWarning } from '@/features/auth';
 import { FamilyCommsEntry } from '@/features/family-comms';
 import { CircleEntry } from '@/features/circles';
 import { CompetitionEntry } from '@/features/competition';
@@ -40,6 +40,8 @@ export function HomeDashboard() {
   const { dashboard, isLoading, refresh } = useHomeDashboard();
   const { t } = useI18n();
   const tafsir = useTafsirMode();
+  const { guestExitVisible, requestGuestExit, keepLearning, confirmLeave } =
+    useGuestExitWarning();
 
   async function handleContinueLearning() {
     if (!activeLearner || !dashboard) {
@@ -269,7 +271,9 @@ export function HomeDashboard() {
               accessibilityRole="button"
               accessibilityLabel={t('common.endGuestTrial')}
               onPress={() => {
-                void endGuestSession().then(() => router.replace('/(auth)/welcome'));
+                requestGuestExit(() => {
+                  void endGuestSession().then(() => router.replace('/(auth)/welcome'));
+                });
               }}
               className="min-h-12 items-center justify-center py-2"
             >
@@ -326,6 +330,11 @@ export function HomeDashboard() {
         onLater={() => {
           void dismissGuestMilestone();
         }}
+      />
+      <GuestExitWarning
+        visible={guestExitVisible}
+        onKeepLearning={keepLearning}
+        onLeaveGuestMode={confirmLeave}
       />
     </SafeAreaView>
   );

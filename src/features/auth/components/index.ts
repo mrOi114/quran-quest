@@ -4,6 +4,7 @@ export { AuthScreen } from './AuthScreen';
 export { AvatarPicker } from './AvatarPicker';
 export { CountryPicker } from './CountryPicker';
 export { GenderPicker } from './GenderPicker';
+export { GuestExitWarning, useGuestExitWarning } from './GuestExitWarning';
 export { LanguagePicker } from './LanguagePicker';
 export { MilestonePrompt } from './MilestonePrompt';
 export { OtpCodeInput } from './OtpCodeInput';

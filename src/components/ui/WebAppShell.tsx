@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePathname, useRouter } from 'expo-router';
 
-import { useAuth } from '@/features/auth';
+import { GuestExitWarning, useAuth, useGuestExitWarning } from '@/features/auth';
 import { useI18n, type MessageKey } from '@/i18n';
 
 type NavId =
@@ -239,6 +239,8 @@ export function WebAppShell({ children }: WebAppShellProps) {
   } = useAuth();
   const { t } = useI18n();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { guestExitVisible, requestGuestExit, keepLearning, confirmLeave } =
+    useGuestExitWarning();
 
   const isDesktop = width >= 1024;
   const useParentMenu = canManageFamily && !isChildFamilySession;
@@ -288,13 +290,19 @@ export function WebAppShell({ children }: WebAppShellProps) {
 
   function handleSignOut() {
     setDrawerOpen(false);
-    const leave =
-      isChildFamilySession
+    const leave = () => {
+      const action = isChildFamilySession
         ? endChildFamilySession()
         : isGuest
           ? endGuestSession()
           : signOut();
-    void leave.then(() => router.replace('/(auth)/welcome'));
+      void action.then(() => router.replace('/(auth)/welcome'));
+    };
+    if (isGuest) {
+      requestGuestExit(leave);
+      return;
+    }
+    leave();
   }
 
   const signOutLabel = isChildFamilySession
@@ -430,6 +438,11 @@ export function WebAppShell({ children }: WebAppShellProps) {
           </SafeAreaView>
         </View>
       </Modal>
+      <GuestExitWarning
+        visible={guestExitVisible}
+        onKeepLearning={keepLearning}
+        onLeaveGuestMode={confirmLeave}
+      />
     </View>
   );
 }

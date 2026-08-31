@@ -7,6 +7,9 @@ export const so = {
     'Ingiriis ayaa la muujinayaa ilaa luuqaddaadu diyaar noqoto.',
   'language.quranMeaningNote':
     'Macnaha Quraanka: Cabdullaahi Xasan Yacquub (QuranEnc.com). Qoraalka Carabiga lama beddelo.',
+  'country.choose': 'Choose your country',
+  'country.search': 'Raadi dalalka',
+  'country.noMatch': 'Dal lama helin',
 
   'nav.home': 'Hoyga',
   'nav.learn': 'Akhri Quraanka',
@@ -289,6 +292,17 @@ export const so = {
     'Dadaalkaagu qiimo buu leeyahay. Samee akoon bilaash ah si aad u kaydiso dhibcahan, u ilaaliso taxanaha, ugu biirto Horyaalka, uga sii wadatona qalab kasta.',
   'guest.keepStreakAchievements': 'Ilaali taxanaha iyo guulaha',
   'guest.createAccount': 'Samee akoon',
+  'guest.exitTitle': '⚠️ Ka baxaysaa Habka Martida?',
+  'guest.exitSavedHere':
+    'Horumarkaaga iyo barashadaadu waxay ku kaydsan yihiin qalabkan intaad marti tahay.',
+  'guest.exitIfLeave':
+    'Haddii aad ka baxdo Habka Martida, qalabkan wuxuu illoobi karaa kuwan ee martidan:',
+  'guest.exitItemXp': 'XP-ga casharrada',
+  'guest.exitItemStats': 'taxanaha casharrada iyo casharrada la dhammeeyay',
+  'guest.exitItemLearning': 'horumarka barashada ee aan weli akoon loo kaydin',
+  'guest.exitStaySafe': 'Waad sii wadan kartaa barashada hadda. Haddii aad sii jirto waxba lama tirtirayo.',
+  'guest.keepLearning': 'Sii wad barashada',
+  'guest.leaveGuestMode': 'Ka bax Habka Martida',
   'guest.onboardingTitle': 'Habka Martida',
   'guest.onboardingSubtitle':
     'Iimayl iyo furaha sirta lama baahna. Horumarkaagu wuxuu ku sii jiraa qalabkan ilaa aad sameysato akoon ama aad joojiso Habka Martida.',

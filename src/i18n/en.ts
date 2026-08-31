@@ -5,6 +5,9 @@ export const en = {
     'Showing English until your language is available.',
   'language.quranMeaningNote':
     'Qur’an meaning: Sahih International (English). Arabic text is unchanged.',
+  'country.choose': 'Choose your country',
+  'country.search': 'Search countries',
+  'country.noMatch': 'No matching country',
 
   'nav.home': 'Home',
   'nav.learn': 'Read Quran',
@@ -277,6 +280,17 @@ export const en = {
     'Your effort has value. Create your free account to save these points, keep your streak, join the Leaderboard, and continue from any device.',
   'guest.keepStreakAchievements': 'Keep your streak and achievements',
   'guest.createAccount': 'Create Account',
+  'guest.exitTitle': '⚠️ Leaving Guest Mode?',
+  'guest.exitSavedHere':
+    'Your progress and learning are saved on this device while you stay in Guest Mode.',
+  'guest.exitIfLeave':
+    'If you leave Guest Mode, this device may forget this guest’s:',
+  'guest.exitItemXp': 'XP from lessons',
+  'guest.exitItemStats': 'lesson streaks and completed lessons',
+  'guest.exitItemLearning': 'learning progress that is not saved to an account',
+  'guest.exitStaySafe': 'You can keep learning now. Nothing is deleted if you stay.',
+  'guest.keepLearning': 'Keep Learning',
+  'guest.leaveGuestMode': 'Leave Guest Mode',
   'guest.onboardingTitle': 'Guest Mode',
   'guest.onboardingSubtitle':
     'No email or password needed. Your progress stays on this device until you create an account or end Guest Mode.',

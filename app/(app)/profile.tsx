@@ -1,7 +1,13 @@
 import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 
-import { LanguagePicker, PrimaryButton, useAuth } from '@/features/auth';
+import {
+  GuestExitWarning,
+  LanguagePicker,
+  PrimaryButton,
+  useAuth,
+  useGuestExitWarning,
+} from '@/features/auth';
 import { useI18n } from '@/i18n';
 
 export default function ProfileRoute() {
@@ -19,6 +25,8 @@ export default function ProfileRoute() {
     setPreferredLanguage,
   } = useAuth();
   const { t } = useI18n();
+  const { guestExitVisible, requestGuestExit, keepLearning, confirmLeave } =
+    useGuestExitWarning();
 
   const isChildSession = activeLearner?.role === 'child';
   const name =
@@ -83,7 +91,9 @@ export default function ProfileRoute() {
             <PrimaryButton
               label={t('common.endGuestTrial')}
               onPress={() =>
-                void endGuestSession().then(() => router.replace('/(auth)/welcome'))
+                requestGuestExit(() => {
+                  void endGuestSession().then(() => router.replace('/(auth)/welcome'));
+                })
               }
               variant="secondary"
             />
@@ -118,6 +128,11 @@ export default function ProfileRoute() {
           )}
         </View>
       </View>
+      <GuestExitWarning
+        visible={guestExitVisible}
+        onKeepLearning={keepLearning}
+        onLeaveGuestMode={confirmLeave}
+      />
     </ScrollView>
   );
 }
