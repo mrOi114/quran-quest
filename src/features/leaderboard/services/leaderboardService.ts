@@ -1,10 +1,9 @@
 import type { ActiveLearner, AgeGroupId } from '@/features/auth';
 import { computeGameBonusPoints, loadGameProgress } from '@/features/games';
-import { resolveAgeGroup } from '@/features/learning';
+import { loadLearningSnapshot, resolveAgeGroup } from '@/features/learning';
 import type { LearningSnapshot } from '@/features/learning';
 
 import {
-  COMMUNITY_PEERS,
   JUZ_CHALLENGES,
   type JuzChallengeNumber,
   type LeaderboardViewId,
@@ -18,45 +17,23 @@ import type {
 } from '../types';
 import { ageGroupLabel } from '../types';
 import { flagForCountryCode } from './countryFlag';
-import { computeEffortBreakdown } from './effortPoints';
+import { computeCurrentPower, computeEffortBreakdown, latestLearningActivityAt } from './effortPoints';
 import {
   computePlacesMoved,
   loadRankSnapshot,
   saveRankSnapshot,
 } from './rankDeltaStorage';
 
-type PeerSeed = {
-  id: string;
+type RealLearnerRow = {
+  learner: ActiveLearner;
   displayName: string;
-  countryCode: string;
   ageGroup: AgeGroupId;
-  points: number;
+  lifetimePoints: number;
+  currentPower: number;
+  juzPoints: number;
+  juzCurrentPower: number;
+  effort: ReturnType<typeof computeEffortBreakdown>;
 };
-
-function scalePeerPoints(
-  basePoints: number,
-  learnerPoints: number,
-  index: number,
-): number {
-  // Keep peers near the learner so rank movement feels achievable.
-  const anchor = Math.max(learnerPoints, 120);
-  const spread = Math.round(anchor * (0.35 + (index % 7) * 0.08));
-  const offset = basePoints % 97;
-  return Math.max(40, anchor + spread - offset - index * 18);
-}
-
-function buildPeers(learnerPoints: number, view: LeaderboardViewId): PeerSeed[] {
-  return COMMUNITY_PEERS.map((peer, index) => {
-    const juzFactor = view === 'juz' ? 0.85 + (index % 5) * 0.04 : 1;
-    return {
-      id: peer.id,
-      displayName: peer.displayName,
-      countryCode: peer.countryCode,
-      ageGroup: peer.ageGroup,
-      points: Math.round(scalePeerPoints(peer.basePoints, learnerPoints, index) * juzFactor),
-    };
-  });
-}
 
 function sortAndRank(
   rows: Array<Omit<LeaderboardEntry, 'rank'>>,
@@ -176,33 +153,77 @@ function resolveCurrentJuz(snapshot: LearningSnapshot): JuzChallengeNumber {
   return 28;
 }
 
+async function loadRealLearnerRow(learner: ActiveLearner): Promise<RealLearnerRow | null> {
+  const displayName = learner.display_name.trim();
+  if (!displayName) {
+    return null;
+  }
+  try {
+    const ageGroup = resolveAgeGroup(learner);
+    const snapshot = await loadLearningSnapshot(learner);
+    const gameProgress = await loadGameProgress(learner);
+    const effort = computeEffortBreakdown(snapshot, {
+      gameBonusPoints: computeGameBonusPoints(gameProgress),
+    });
+    const lastActivityAt = latestLearningActivityAt(snapshot, [
+      gameProgress.lastPlayedDate,
+      ...gameProgress.completions.map((item) => item.completedAt),
+    ]);
+    return {
+      learner,
+      displayName,
+      ageGroup,
+      lifetimePoints: effort.totalPoints,
+      currentPower: computeCurrentPower(effort.totalPoints, lastActivityAt),
+      juzPoints: effort.juz30VersePoints,
+      juzCurrentPower: computeCurrentPower(effort.juz30VersePoints, lastActivityAt),
+      effort,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function toEntry(
+  row: RealLearnerRow,
+  currentId: string,
+  points: number,
+  activeNow: boolean,
+): Omit<LeaderboardEntry, 'rank'> {
+  return {
+    id: row.learner.id,
+    displayName: row.displayName,
+    countryCode: row.learner.country_code,
+    flag: flagForCountryCode(row.learner.country_code),
+    avatarKey: row.learner.avatar_key,
+    points,
+    lifetimePoints: row.lifetimePoints,
+    ageGroup: row.ageGroup,
+    isCurrentUser: row.learner.id === currentId,
+    isActiveNow: activeNow && row.learner.id === currentId,
+  };
+}
+
 function buildBoard(options: {
   view: LeaderboardViewId;
   title: string;
   subtitle: string;
-  learner: ActiveLearner;
-  ageGroup: AgeGroupId;
-  points: number;
+  currentId: string;
+  rows: RealLearnerRow[];
+  pickPoints: (row: RealLearnerRow) => number;
+  include: (row: RealLearnerRow) => boolean;
   effort: ReturnType<typeof computeEffortBreakdown>;
-  peers: PeerSeed[];
-  filter?: (peer: PeerSeed) => boolean;
   placesMoved: number | null;
   juzNumber?: JuzChallengeNumber;
   juzStatus?: 'active' | 'upcoming';
+  activeNow: boolean;
 }): LeaderboardBoard {
-  const youRow: Omit<LeaderboardEntry, 'rank'> = {
-    id: `you-${options.learner.id}`,
-    displayName: options.learner.display_name.trim() || 'You',
-    countryCode: options.learner.country_code,
-    flag: flagForCountryCode(options.learner.country_code),
-    points: options.points,
-    ageGroup: options.ageGroup,
-    isCurrentUser: true,
-  };
-
-  const peerRows: Array<Omit<LeaderboardEntry, 'rank'>> = [];
-
-  const entries = sortAndRank([youRow, ...peerRows]);
+  const selected = options.rows.filter(options.include);
+  const entries = sortAndRank(
+    selected.map((row) =>
+      toEntry(row, options.currentId, options.pickPoints(row), options.activeNow),
+    ),
+  );
   const you = personalStanding(entries, options.placesMoved);
 
   return {
@@ -221,6 +242,7 @@ export async function buildLeaderboardModel(options: {
   activeLearner: ActiveLearner;
   snapshot: LearningSnapshot;
   isGuest: boolean;
+  familyLearners: ActiveLearner[];
   selectedJuz?: JuzChallengeNumber;
 }): Promise<LeaderboardModel> {
   const { activeLearner, snapshot, isGuest } = options;
@@ -229,31 +251,56 @@ export async function buildLeaderboardModel(options: {
   const effort = computeEffortBreakdown(snapshot, {
     gameBonusPoints: computeGameBonusPoints(gameProgress),
   });
+  const lastActivityAt = latestLearningActivityAt(snapshot, [
+    gameProgress.lastPlayedDate,
+    ...gameProgress.completions.map((item) => item.completedAt),
+  ]);
+  const currentPower = computeCurrentPower(effort.totalPoints, lastActivityAt);
   const currentJuzNumber = options.selectedJuz ?? resolveCurrentJuz(snapshot);
   const juzMeta =
     JUZ_CHALLENGES.find((item) => item.juzNumber === currentJuzNumber) ?? JUZ_CHALLENGES[0];
 
-  const allPoints = effort.totalPoints;
-  const juzPoints =
-    juzMeta.status === 'active' ? Math.max(effort.juz30VersePoints, effort.totalPoints) : effort.totalPoints;
+  const uniqueById = new Map<string, ActiveLearner>();
+  uniqueById.set(activeLearner.id, activeLearner);
+  for (const learner of options.familyLearners) {
+    uniqueById.set(learner.id, learner);
+  }
 
-  const agePeers = buildPeers(allPoints, 'age');
-  const juzPeers = buildPeers(juzPoints, 'juz');
-  const allPeers = buildPeers(allPoints, 'all');
+  const rows: RealLearnerRow[] = [];
+  for (const learner of uniqueById.values()) {
+    if (learner.id === activeLearner.id) {
+      rows.push({
+        learner: activeLearner,
+        displayName: activeLearner.display_name.trim() || 'You',
+        ageGroup,
+        lifetimePoints: effort.totalPoints,
+        currentPower,
+        juzPoints: effort.juz30VersePoints,
+        juzCurrentPower: computeCurrentPower(effort.juz30VersePoints, lastActivityAt),
+        effort,
+      });
+      continue;
+    }
+    const loaded = await loadRealLearnerRow(learner);
+    if (loaded) {
+      rows.push(loaded);
+    }
+  }
 
   const previous = await loadRankSnapshot();
+  const activeNow = true;
 
   const ageBoard = buildBoard({
     view: 'age',
     title: ageGroupLabel(ageGroup),
     subtitle: 'Fair competition with learners in your age group.',
-    learner: activeLearner,
-    ageGroup,
-    points: allPoints,
+    currentId: activeLearner.id,
+    rows,
+    pickPoints: (row) => row.lifetimePoints,
+    include: (row) => row.learner.id === activeLearner.id || row.ageGroup === ageGroup,
     effort,
-    peers: agePeers,
-    filter: (peer) => peer.ageGroup === ageGroup,
     placesMoved: null,
+    activeNow,
   });
   ageBoard.you.placesMoved = computePlacesMoved(previous?.ranks.age, ageBoard.you.rank);
   ageBoard.motivations = buildMotivations(effort, ageBoard.you);
@@ -265,14 +312,15 @@ export async function buildLeaderboardModel(options: {
       juzMeta.status === 'active'
         ? 'Compare progress with students on the same Juz challenge.'
         : 'This Juz challenge is opening soon — keep building Juz 30 strength.',
-    learner: activeLearner,
-    ageGroup,
-    points: juzPoints,
+    currentId: activeLearner.id,
+    rows,
+    pickPoints: (row) => row.juzCurrentPower,
+    include: () => true,
     effort,
-    peers: juzPeers,
     placesMoved: null,
     juzNumber: juzMeta.juzNumber,
     juzStatus: juzMeta.status,
+    activeNow,
   });
   juzBoard.you.placesMoved = computePlacesMoved(previous?.ranks.juz, juzBoard.you.rank);
   juzBoard.motivations = buildMotivations(effort, juzBoard.you);
@@ -280,13 +328,14 @@ export async function buildLeaderboardModel(options: {
   const allBoard = buildBoard({
     view: 'all',
     title: '🌍 All Students',
-    subtitle: 'The wider QuranFamily learning community.',
-    learner: activeLearner,
-    ageGroup,
-    points: allPoints,
+    subtitle: 'Real Qur’an Quest learners this app can see.',
+    currentId: activeLearner.id,
+    rows,
+    pickPoints: (row) => row.lifetimePoints,
+    include: () => true,
     effort,
-    peers: allPeers,
     placesMoved: null,
+    activeNow,
   });
   allBoard.you.placesMoved = computePlacesMoved(previous?.ranks.all, allBoard.you.rank);
   allBoard.motivations = buildMotivations(effort, allBoard.you);
@@ -297,15 +346,19 @@ export async function buildLeaderboardModel(options: {
     all: allBoard.you.rank,
   });
 
+  const currentName = activeLearner.display_name.trim() || 'You';
+
   return {
-    displayName: activeLearner.display_name.trim() || 'Friend',
+    displayName: currentName,
     countryCode: activeLearner.country_code,
     flag: flagForCountryCode(activeLearner.country_code),
     ageGroup,
     ageGroupLabel: ageGroupLabel(ageGroup),
     effort,
+    currentPower,
     isGuest,
     currentJuzNumber: juzMeta.juzNumber,
+    learningNow: [{ id: activeLearner.id, displayName: currentName }],
     boards: {
       age: ageBoard,
       juz: juzBoard,

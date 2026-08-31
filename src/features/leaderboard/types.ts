@@ -10,9 +10,12 @@ export type LeaderboardEntry = {
   displayName: string;
   countryCode: string;
   flag: string;
+  avatarKey: string;
   points: number;
+  lifetimePoints: number;
   ageGroup: AgeGroupId;
   isCurrentUser: boolean;
+  isActiveNow: boolean;
 };
 
 export type PersonalStanding = {
@@ -46,8 +49,10 @@ export type LeaderboardModel = {
   ageGroup: AgeGroupId;
   ageGroupLabel: string;
   effort: EffortBreakdown;
+  currentPower: number;
   isGuest: boolean;
   currentJuzNumber: JuzChallengeNumber;
+  learningNow: Array<{ id: string; displayName: string }>;
   boards: {
     age: LeaderboardBoard;
     juz: LeaderboardBoard;

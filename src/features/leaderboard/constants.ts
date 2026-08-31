@@ -52,3 +52,9 @@ export const COMMUNITY_PEERS: ReadonlyArray<{
 ];
 
 export const RANK_DELTA_STORAGE_KEY = 'qq.leaderboard.rank_snapshot.v1';
+
+/** Days of inactivity before Current Power starts to ease. Lifetime XP is never touched. */
+export const CURRENT_POWER_GRACE_DAYS = 7;
+
+/** Fraction of Lifetime XP dropped per idle day after the grace period. */
+export const CURRENT_POWER_DAILY_DECAY = 0.002;

@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   ActivityIndicator,
+  AppState,
   Pressable,
   ScrollView,
   Text,
@@ -26,6 +27,7 @@ function medalForRank(rank: number): string {
 
 function RankRow({ entry }: { entry: LeaderboardEntry }) {
   const { t } = useI18n();
+  const initial = entry.displayName.trim().slice(0, 1).toUpperCase() || '•';
   return (
     <View
       className={`rounded-2xl px-4 py-4 ${
@@ -37,6 +39,9 @@ function RankRow({ entry }: { entry: LeaderboardEntry }) {
           <Text className="w-10 text-base font-bold text-brand-800">
             {medalForRank(entry.rank)}
           </Text>
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-brand-100">
+            <Text className="text-base font-bold text-brand-800">{initial}</Text>
+          </View>
           <View className="flex-1">
             <Text className="text-base font-semibold text-brand-800">
               {entry.flag} {entry.displayName}
@@ -160,7 +165,15 @@ export function LeaderboardScreen() {
   const [view, setView] = useState<LeaderboardViewId>('age');
   const [selectedJuz, setSelectedJuz] = useState<(typeof JUZ_CHALLENGES)[number]['juzNumber']>(30);
   const [dismissGuestCard, setDismissGuestCard] = useState(false);
+  const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const { model, isLoading, error, refresh } = useLeaderboard(selectedJuz);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      setAppActive(next === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   const board = useMemo(() => {
     if (!model) {
@@ -280,6 +293,21 @@ export function LeaderboardScreen() {
           </View>
         ) : null}
 
+        <View className="mb-4 rounded-3xl bg-white px-4 py-4">
+          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+            {t('leaderboard.learningNow')}
+          </Text>
+          {appActive && model.learningNow.length > 0 ? (
+            model.learningNow.map((person) => (
+              <Text key={person.id} className="mt-2 text-base text-brand-800">
+                🟢 {person.displayName}
+              </Text>
+            ))
+          ) : (
+            <Text className="mt-2 text-sm text-brand-600">{t('leaderboard.learningNowEmpty')}</Text>
+          )}
+        </View>
+
         <YourPositionCard board={board} />
 
         <View className="mb-4 rounded-3xl bg-white/10 px-4 py-4">
@@ -303,7 +331,7 @@ export function LeaderboardScreen() {
 
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            {t('leaderboard.weeklyLeaders')}
+            {t('leaderboard.allTime')}
           </Text>
           <Text className="mt-1 text-sm text-brand-600">{boardSubtitle(board, t)}</Text>
           <Text className="mt-3 text-xs font-semibold uppercase tracking-wide text-brand-400">
@@ -320,9 +348,11 @@ export function LeaderboardScreen() {
           ) : null}
 
           <View className="mt-4 gap-3">
-            {board.entries.slice(0, 3).map((entry) => (
-              <RankRow key={entry.id} entry={entry} />
-            ))}
+            {board.entries.length === 0 ? (
+              <Text className="text-sm text-brand-600">{t('leaderboard.realEmpty')}</Text>
+            ) : (
+              board.entries.map((entry) => <RankRow key={entry.id} entry={entry} />)
+            )}
           </View>
         </View>
 
