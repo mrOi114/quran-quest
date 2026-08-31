@@ -262,4 +262,9 @@ assert(verseKeys.has('96:1'), 'Corpus: 96:1 must exist');
 assert(verseKeys.has('97:3'), 'Corpus: 97:3 must exist');
 assert(corpus.juz?.[29]?.startSurahNumber === 78, 'Corpus: Juz 30 must start at Surah 78');
 
+assert(source.includes('questionFitsRange'), 'Range filter exists on the trusted bank');
+assert(source.includes('isQuranRangePlayable'), 'Playable ranges require enough verified items');
+assert(source.includes('quranRange'), 'Question picker stays inside the selected range');
+assert(!/openai|chatgpt|generateQuestion/i.test(source), 'Bank does not invent questions');
+
 console.log(`Competition question bank OK (${questions.length} questions, corpus-verified).`);

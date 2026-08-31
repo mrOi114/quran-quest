@@ -875,6 +875,81 @@ export function shuffle<T>(items: T[]): T[] {
   return next;
 }
 
+export type QuranRangeId =
+  | 'juz_30'
+  | 'first_5'
+  | 'first_10'
+  | 'first_15'
+  | 'first_20'
+  | 'first_25'
+  | 'all_30';
+
+export const DEFAULT_QURAN_RANGE: QuranRangeId = 'juz_30';
+export const QURAN_RANGE_IDS: QuranRangeId[] = [
+  'juz_30',
+  'first_5',
+  'first_10',
+  'first_15',
+  'first_20',
+  'first_25',
+  'all_30',
+];
+const MIN_RANGE_QUESTIONS = 5;
+
+/** Starting Juz for each Surah 1–114 (corpus-aligned, not guessed ayah text). */
+const SURAH_START_JUZ: number[] = [
+  1, 1, 3, 4, 6, 7, 8, 9, 10, 11, 11, 12, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 18, 19,
+  19, 20, 20, 21, 21, 21, 21, 22, 22, 22, 23, 23, 23, 24, 24, 25, 25, 25, 25, 26, 26, 26, 26, 26,
+  26, 27, 27, 27, 27, 27, 27, 28, 28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29,
+  29, 29, 29, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+  30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+];
+
+export function isQuranRangeId(value: unknown): value is QuranRangeId {
+  return typeof value === 'string' && (QURAN_RANGE_IDS as string[]).includes(value);
+}
+
+function surahStartJuz(surahNumber: number): number {
+  if (surahNumber < 1 || surahNumber > 114) {
+    return 30;
+  }
+  return SURAH_START_JUZ[surahNumber - 1] ?? 30;
+}
+
+export function questionFitsRange(
+  question: Pick<CompetitionQuestion, 'surahNumber'>,
+  range: QuranRangeId,
+): boolean {
+  if (range === 'all_30') {
+    return true;
+  }
+  if (!question.surahNumber) {
+    return true;
+  }
+  const juz = surahStartJuz(question.surahNumber);
+  if (range === 'juz_30') {
+    return juz === 30;
+  }
+  const maxJuz =
+    range === 'first_5'
+      ? 5
+      : range === 'first_10'
+        ? 10
+        : range === 'first_15'
+          ? 15
+          : range === 'first_20'
+            ? 20
+            : 25;
+  return juz <= maxJuz;
+}
+
+export function isQuranRangePlayable(range: QuranRangeId): boolean {
+  return (
+    COMPETITION_QUESTIONS.filter((question) => questionFitsRange(question, range)).length >=
+    MIN_RANGE_QUESTIONS
+  );
+}
+
 export type PublicQuestion = {
   id: string;
   prompt_en: string;
@@ -886,13 +961,15 @@ export function pickChallengeQuestions(
   tier: 1 | 2 | 3,
   ageBand: CompetitionAgeBand,
   excludeIds: string[] = [],
+  quranRange: QuranRangeId = DEFAULT_QURAN_RANGE,
 ): { questions: PublicQuestion[]; answerKey: Record<string, string> } {
   const count = QUESTION_COUNT_BY_TIER[tier];
   const range = difficultyRange(tier, ageBand);
   const wantedChoices = choiceCountForAge(ageBand);
   const exclude = new Set(excludeIds);
+  const inRange = COMPETITION_QUESTIONS.filter((question) => questionFitsRange(question, quranRange));
 
-  const pool = COMPETITION_QUESTIONS.filter(
+  const pool = inRange.filter(
     (question) =>
       question.ageBands.includes(ageBand) &&
       question.difficulty >= range.min &&
@@ -900,14 +977,14 @@ export function pickChallengeQuestions(
       !exclude.has(question.id),
   );
 
-  const fallback = COMPETITION_QUESTIONS.filter(
+  const fallback = inRange.filter(
     (question) =>
       question.ageBands.includes(ageBand) &&
       question.difficulty <= range.max &&
       !exclude.has(question.id),
   );
 
-  const source = pool.length >= count ? pool : fallback.length >= count ? fallback : COMPETITION_QUESTIONS;
+  const source = pool.length >= count ? pool : fallback.length >= count ? fallback : inRange;
   const selected = shuffle(source).slice(0, Math.min(count, source.length));
 
   const questions: PublicQuestion[] = [];

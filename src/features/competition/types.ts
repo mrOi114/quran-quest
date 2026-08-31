@@ -40,10 +40,15 @@ export type CompetitionLobbyPlayer = {
   participant_count: number;
   max_participants: number;
   is_ready: boolean;
+  quran_range?: string;
 };
 
 export type CompetitionPendingChallenge = {
   label: string;
+  quran_range?: string;
+  tier?: number;
+  question_count?: number;
+  question_seconds?: number;
 };
 
 export type CompetitionWeeklyLeader = {
@@ -93,6 +98,7 @@ export type CompetitionChallengeView = {
   players: CompetitionPlayerView[];
   available_players: CompetitionLobbyPlayer[];
   pending_challenge: CompetitionPendingChallenge | null;
+  quran_range?: string;
   rematch_code: string | null;
   expires_at: string;
 };
@@ -123,4 +129,5 @@ export type CompetitionPreview = {
   tier: number;
   question_count: number;
   visibility: CompetitionVisibility;
+  quran_range?: string;
 };

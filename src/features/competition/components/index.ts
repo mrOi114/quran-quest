@@ -3,3 +3,7 @@ export { CompetitionHomeScreen } from './CompetitionHomeScreen';
 export { CompetitionMatchScreen } from './CompetitionMatchScreen';
 export { ChallengeLandingScreen } from './ChallengeLandingScreen';
 export { ListenToQuestionButton } from './ListenToQuestionButton';
+export { QuranRangePicker } from './QuranRangePicker';
+export { CompetitionCelebration } from './CompetitionCelebration';
+export { CompetitionSoundToggle } from './CompetitionSoundToggle';
+export { CompetitionVoiceHost } from './CompetitionVoiceHost';

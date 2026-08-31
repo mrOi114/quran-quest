@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text } from 'react-native';
 
 import { useI18n } from '@/i18n';
@@ -8,10 +8,14 @@ import { speakEnglishQuestion, stopQuestionSpeech } from '../services/speakEngli
 export function ListenToQuestionButton({ englishText }: { englishText: string }) {
   const { t } = useI18n();
   const [speaking, setSpeaking] = useState(false);
+  const speakingRef = useRef(false);
 
   useEffect(() => {
     return () => {
-      void stopQuestionSpeech();
+      if (speakingRef.current) {
+        speakingRef.current = false;
+        void stopQuestionSpeech();
+      }
     };
   }, [englishText]);
 
@@ -22,9 +26,18 @@ export function ListenToQuestionButton({ englishText }: { englishText: string })
       accessibilityState={{ busy: speaking }}
       onPress={() => {
         void speakEnglishQuestion(englishText, {
-          onStart: () => setSpeaking(true),
-          onDone: () => setSpeaking(false),
-        }).catch(() => setSpeaking(false));
+          onStart: () => {
+            speakingRef.current = true;
+            setSpeaking(true);
+          },
+          onDone: () => {
+            speakingRef.current = false;
+            setSpeaking(false);
+          },
+        }).catch(() => {
+          speakingRef.current = false;
+          setSpeaking(false);
+        });
       }}
       className="ml-2 min-h-12 min-w-12 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 px-2"
     >

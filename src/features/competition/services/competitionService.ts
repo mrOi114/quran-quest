@@ -10,6 +10,7 @@ import type {
   CompetitionState,
   CompetitionWeeklyLeader,
 } from '../types';
+import { DEFAULT_QURAN_RANGE, type QuranRangeId } from './quranRange';
 import { getOrCreateParticipantKey } from './participantKey';
 
 type Identity = {
@@ -35,21 +36,29 @@ export async function previewChallenge(code: string): Promise<CompetitionPreview
   return data.preview;
 }
 
-export async function joinPublicChallenge(identity: Identity): Promise<CompetitionState> {
+export async function joinPublicChallenge(
+  identity: Identity,
+  quranRange: QuranRangeId = DEFAULT_QURAN_RANGE,
+): Promise<CompetitionState> {
   return invokeCompetition({
     action: 'join_public',
     display_label: identity.displayLabel,
     age_band: identity.ageBand,
     profile_id: identity.profileId,
+    quran_range: quranRange,
   });
 }
 
-export async function createInviteChallenge(identity: Identity): Promise<CompetitionState> {
+export async function createInviteChallenge(
+  identity: Identity,
+  quranRange: QuranRangeId = DEFAULT_QURAN_RANGE,
+): Promise<CompetitionState> {
   return invokeCompetition({
     action: 'create_invite',
     display_label: identity.displayLabel,
     age_band: identity.ageBand,
     profile_id: identity.profileId,
+    quran_range: quranRange,
   });
 }
 
@@ -112,11 +121,13 @@ export async function listPublicPlayers(
 export async function challengePublicPlayer(
   code: string,
   targetCode: string,
+  quranRange: QuranRangeId = DEFAULT_QURAN_RANGE,
 ): Promise<CompetitionState> {
   return invokeCompetition({
     action: 'challenge_player',
     code,
     target_code: targetCode,
+    quran_range: quranRange,
   });
 }
 
@@ -148,13 +159,14 @@ export async function fetchWeeklyLeaders(): Promise<{
 
 export function localizeCompetitionError(
   message: string,
-  t: (key: 'competition.notFound' | 'competition.expired' | 'competition.roomFull' | 'competition.ageMismatch' | 'competition.error') => string,
+  t: (key: 'competition.notFound' | 'competition.expired' | 'competition.roomFull' | 'competition.ageMismatch' | 'competition.error' | 'competition.rangeUnavailable') => string,
 ): string {
   if (message === 'not_found') return t('competition.notFound');
   if (message === 'expired') return t('competition.expired');
   if (message === 'full') return t('competition.roomFull');
   if (message === 'age_mismatch') return t('competition.ageMismatch');
   if (message === 'busy') return t('competition.roomFull');
+  if (message === 'range_unavailable') return t('competition.rangeUnavailable');
   if (message === 'not_member') return t('competition.error');
   return t('competition.error');
 }

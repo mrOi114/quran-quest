@@ -12,6 +12,7 @@ import {
   savePendingChallengeCode,
 } from '../services';
 import type { CompetitionPreview } from '../types';
+import { rangeLabelKey } from '../services/quranRange';
 
 export function ChallengeLandingScreen({ codeParam }: { codeParam: string }) {
   const router = useRouter();
@@ -72,6 +73,9 @@ export function ChallengeLandingScreen({ codeParam }: { codeParam: string }) {
         <Text className="text-base font-semibold text-brand-800">
           {t('competition.codeLabel', { code: code || '------' })}
         </Text>
+        {preview?.quran_range ? (
+          <Text className="mt-2 text-sm text-brand-700">{t(rangeLabelKey(preview.quran_range))}</Text>
+        ) : null}
         {preview?.is_full ? (
           <Text className="mt-2 text-sm font-semibold text-amber-700">{t('competition.full')}</Text>
         ) : null}

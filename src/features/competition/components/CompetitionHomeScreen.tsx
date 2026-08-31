@@ -8,7 +8,17 @@ import { useI18n } from '@/i18n';
 
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
 import { fetchWeeklyLeaders, resolveCompetitionAgeBand } from '../services';
+import { playGreetingOnce } from '../services/competitionVoice';
+import { motivationToneForLearner } from '../services/motivationClips';
+import { useMotivationSound } from '../services/voicePreference';
 import type { CompetitionPlayerRewards, CompetitionWeeklyLeader } from '../types';
+import { CompetitionSoundToggle } from './CompetitionSoundToggle';
+import { QuranRangePicker } from './QuranRangePicker';
+import {
+  DEFAULT_QURAN_RANGE,
+  isQuranRangePlayable,
+  type QuranRangeId,
+} from '../services/quranRange';
 
 function powerLevelLabel(
   key: CompetitionPlayerRewards['level_key'],
@@ -25,13 +35,18 @@ export function CompetitionHomeScreen() {
   const router = useRouter();
   const { t } = useI18n();
   const { activeLearner } = useAuth();
+  const { enabled: soundEnabled } = useMotivationSound();
+  const tone = motivationToneForLearner(activeLearner);
+  const playful = tone === 'playful';
   const { joinPublic, createInvite, joinCode, joining, error } = useCompetitionChallenge();
   const [code, setCode] = useState('');
+  const [quranRange, setQuranRange] = useState<QuranRangeId>(DEFAULT_QURAN_RANGE);
   const [leaders, setLeaders] = useState<CompetitionWeeklyLeader[]>([]);
   const [progress, setProgress] = useState<CompetitionPlayerRewards | null>(null);
 
   const ageBand = activeLearner ? resolveCompetitionAgeBand(activeLearner) : null;
   const guestName = activeLearner?.display_name?.trim() ?? '';
+  const rangeReady = isQuranRangePlayable(quranRange);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +87,10 @@ export function CompetitionHomeScreen() {
         </Text>
         <Text className="mt-2 text-3xl font-bold text-white">{t('competition.title')}</Text>
         <Text className="mt-2 text-base text-brand-100">{t('competition.subtitle')}</Text>
+        {playful ? (
+          <Text className="mt-2 text-base font-semibold text-white">{t('competition.playfulWelcome')}</Text>
+        ) : null}
+        <CompetitionSoundToggle />
         {guestName ? (
           <Text className="mt-3 text-base font-semibold text-white">
             {t('competition.playingAs', { name: guestName })}
@@ -79,13 +98,7 @@ export function CompetitionHomeScreen() {
         ) : null}
 
         <View className="mt-5 rounded-3xl bg-white px-5 py-5">
-          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            {t('competition.chooseRange')}
-          </Text>
-          <View className="mt-3 rounded-2xl border-2 border-brand-600 bg-brand-50 px-4 py-4">
-            <Text className="text-lg font-bold text-brand-800">{t('competition.rangeJuz30')}</Text>
-            <Text className="mt-1 text-sm text-brand-600">{t('competition.rangeJuz30Help')}</Text>
-          </View>
+          <QuranRangePicker value={quranRange} onChange={setQuranRange} />
         </View>
 
         {progress ? (
@@ -133,8 +146,11 @@ export function CompetitionHomeScreen() {
           <PrimaryButton
             label={t('competition.joinPublic')}
             loading={joining}
+            disabled={!rangeReady}
             onPress={() => {
-              void joinPublic().then((state) => go(state?.challenge.code));
+              if (!rangeReady) return;
+              playGreetingOnce({ enabled: soundEnabled, tone });
+              void joinPublic(quranRange).then((state) => go(state?.challenge.code));
             }}
           />
           <Text className="mb-4 text-sm leading-5 text-brand-600">
@@ -145,8 +161,11 @@ export function CompetitionHomeScreen() {
             label={t('competition.invite')}
             variant="secondary"
             loading={joining}
+            disabled={!rangeReady}
             onPress={() => {
-              void createInvite().then((state) => go(state?.challenge.code));
+              if (!rangeReady) return;
+              playGreetingOnce({ enabled: soundEnabled, tone });
+              void createInvite(quranRange).then((state) => go(state?.challenge.code));
             }}
           />
           <Text className="mb-4 text-sm leading-5 text-brand-600">
@@ -165,6 +184,7 @@ export function CompetitionHomeScreen() {
             accessibilityRole="button"
             disabled={joining}
             onPress={() => {
+              playGreetingOnce({ enabled: soundEnabled, tone });
               void joinCode(code).then((state) => go(state?.challenge.code));
             }}
             className="min-h-12 items-center justify-center rounded-xl border border-brand-600 px-4 py-3"

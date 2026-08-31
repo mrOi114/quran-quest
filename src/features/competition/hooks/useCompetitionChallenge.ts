@@ -21,6 +21,8 @@ import {
   submitChallengeAnswer,
 } from '../services';
 import type { CompetitionState } from '../types';
+import type { QuranRangeId } from '../services/quranRange';
+import { DEFAULT_QURAN_RANGE } from '../services/quranRange';
 
 function identityFromLearner(learner: ActiveLearner) {
   return {
@@ -57,12 +59,12 @@ export function useCompetitionChallenge(code?: string) {
     [t],
   );
 
-  const joinPublic = useCallback(async () => {
+  const joinPublic = useCallback(async (quranRange: QuranRangeId = DEFAULT_QURAN_RANGE) => {
     if (!activeLearner) return null;
     setJoining(true);
     setError(null);
     try {
-      const next = await joinPublicChallenge(identityFromLearner(activeLearner));
+      const next = await joinPublicChallenge(identityFromLearner(activeLearner), quranRange);
       apply(next);
       return next;
     } catch (caught) {
@@ -73,12 +75,12 @@ export function useCompetitionChallenge(code?: string) {
     }
   }, [activeLearner, apply, fail]);
 
-  const createInvite = useCallback(async () => {
+  const createInvite = useCallback(async (quranRange: QuranRangeId = DEFAULT_QURAN_RANGE) => {
     if (!activeLearner) return null;
     setJoining(true);
     setError(null);
     try {
-      const next = await createInviteChallenge(identityFromLearner(activeLearner));
+      const next = await createInviteChallenge(identityFromLearner(activeLearner), quranRange);
       apply(next);
       return next;
     } catch (caught) {
@@ -234,10 +236,10 @@ export function useCompetitionChallenge(code?: string) {
   }, [apply, fail, state]);
 
   const challengePlayer = useCallback(
-    async (targetCode: string) => {
+    async (targetCode: string, quranRange: QuranRangeId = DEFAULT_QURAN_RANGE) => {
       if (!state) return;
       try {
-        apply(await challengePublicPlayer(state.challenge.code, targetCode));
+        apply(await challengePublicPlayer(state.challenge.code, targetCode, quranRange));
       } catch (caught) {
         fail(caught);
       }

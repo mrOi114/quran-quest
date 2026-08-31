@@ -7,8 +7,12 @@ import {
   QUESTION_SECONDS,
   REVEAL_SECONDS,
   pickChallengeQuestions,
+  DEFAULT_QURAN_RANGE,
+  isQuranRangeId,
+  isQuranRangePlayable,
   type CompetitionAgeBand,
   type PublicQuestion,
+  type QuranRangeId,
 } from '../_shared/competitionQuestions.ts';
 
 type Action =
@@ -38,6 +42,7 @@ type Body = {
   choice_id?: string;
   target_code?: string;
   accept?: boolean;
+  quran_range?: string;
 };
 
 type ChallengeRow = {
@@ -60,6 +65,7 @@ type ChallengeRow = {
   created_at: string;
   expires_at: string;
   completed_at: string | null;
+  quran_range?: string;
 };
 
 type ParticipantRow = {
@@ -89,6 +95,10 @@ type PendingChallenge = {
   from_profile_id: string | null;
   from_age_band: CompetitionAgeBand;
   from_challenge_id: string;
+  quran_range: QuranRangeId;
+  tier: 1 | 2 | 3;
+  question_count: number;
+  question_seconds: number;
 };
 
 function asPending(value: Record<string, unknown> | null | undefined): PendingChallenge | null {
@@ -106,12 +116,20 @@ function asPending(value: Record<string, unknown> | null | undefined): PendingCh
   if (typeof pending.from_challenge_id !== 'string') {
     return null;
   }
+  const quranRange = isQuranRangeId(pending.quran_range)
+    ? pending.quran_range
+    : DEFAULT_QURAN_RANGE;
+  const tier = pending.tier === 2 || pending.tier === 3 ? pending.tier : 1;
   return {
     from_key_hash: pending.from_key_hash,
     from_label: pending.from_label,
     from_profile_id: typeof pending.from_profile_id === 'string' ? pending.from_profile_id : null,
     from_age_band: pending.from_age_band,
     from_challenge_id: pending.from_challenge_id,
+    quran_range: quranRange,
+    tier,
+    question_count: typeof pending.question_count === 'number' ? pending.question_count : 5,
+    question_seconds: typeof pending.question_seconds === 'number' ? pending.question_seconds : 60,
   };
 }
 
@@ -147,6 +165,20 @@ function sanitizeDisplayLabel(raw: string, seatIndex: number): string {
 
 function roomCap(): number {
   return MAX_PARTICIPANTS_V1;
+}
+
+function challengeRange(row: Pick<ChallengeRow, 'quran_range'> | null | undefined): QuranRangeId {
+  return isQuranRangeId(row?.quran_range) ? row.quran_range : DEFAULT_QURAN_RANGE;
+}
+
+function resolveRequestedRange(value: unknown): QuranRangeId | null {
+  if (value == null || value === '') {
+    return DEFAULT_QURAN_RANGE;
+  }
+  if (!isQuranRangeId(value) || !isQuranRangePlayable(value)) {
+    return null;
+  }
+  return value;
 }
 
 function awardPower(score: number, rank: number, playerCount: number, tier: number): number {
@@ -268,11 +300,16 @@ async function handleAction(
     if (!ageBand) {
       return { status: 400, body: { error: 'Missing age group' } };
     }
+    const quranRange = resolveRequestedRange(body.quran_range);
+    if (!quranRange) {
+      return { status: 400, body: { error: 'range_unavailable' } };
+    }
     const joined = await joinPublic(service, {
       keyHash,
       ageBand,
       displayName,
       profileId,
+      quranRange,
     });
     return { status: 200, body: await buildState(service, joined.challenge, joined.me) };
   }
@@ -301,6 +338,10 @@ async function handleAction(
     if (!ageBand) {
       return { status: 400, body: { error: 'Missing age group' } };
     }
+    const quranRange = resolveRequestedRange(body.quran_range);
+    if (!quranRange) {
+      return { status: 400, body: { error: 'range_unavailable' } };
+    }
     const created = await createChallenge(service, {
       visibility: 'invite',
       ageBand,
@@ -309,6 +350,7 @@ async function handleAction(
       displayName,
       profileId,
       ttlHours: 24,
+      quranRange,
     });
     return { status: 200, body: await buildState(service, created.challenge, created.me) };
   }
@@ -372,6 +414,10 @@ async function handleAction(
     if (asPending(target.last_round_result)) {
       return { status: 409, body: { error: 'busy' } };
     }
+    const quranRange = resolveRequestedRange(body.quran_range) ?? challengeRange(challenge.row);
+    if (!isQuranRangePlayable(quranRange)) {
+      return { status: 400, body: { error: 'range_unavailable' } };
+    }
     await service
       .from('competition_challenges')
       .update({
@@ -382,6 +428,10 @@ async function handleAction(
             from_profile_id: profileId,
             from_age_band: challenge.me.age_band,
             from_challenge_id: challenge.row.id,
+            quran_range: quranRange,
+            tier: challenge.row.tier,
+            question_count: QUESTION_COUNT_BY_TIER[challenge.row.tier] ?? 5,
+            question_seconds: QUESTION_SECONDS,
           },
         },
       })
@@ -407,6 +457,10 @@ async function handleAction(
       const next = await refetchChallenge(service, fresh.id);
       return { status: 200, body: await buildState(service, next ?? fresh, challenge.me) };
     }
+    if (!isQuranRangePlayable(pending.quran_range)) {
+      return { status: 400, body: { error: 'range_unavailable' } };
+    }
+    await applyLockedRange(service, fresh, pending.quran_range, pending.tier, fresh.age_band);
     const joined = await joinExisting(service, fresh, {
       keyHash: pending.from_key_hash,
       ageBand: pending.from_age_band,
@@ -558,6 +612,10 @@ async function handleAction(
       }
     }
     const usedIds = (fresh.questions_public ?? []).map((question) => question.id);
+    const rematchRange = challengeRange(fresh);
+    if (!isQuranRangePlayable(rematchRange)) {
+      return { status: 400, body: { error: 'range_unavailable' } };
+    }
     const created = await createChallenge(service, {
       visibility: 'invite',
       ageBand: fresh.age_band,
@@ -568,6 +626,7 @@ async function handleAction(
       ttlHours: 4,
       parentId: fresh.id,
       excludeIds: usedIds,
+      quranRange: challengeRange(fresh),
     });
     await service
       .from('competition_challenges')
@@ -614,6 +673,7 @@ async function joinPublic(
     ageBand: CompetitionAgeBand;
     displayName: string;
     profileId: string | null;
+    quranRange: QuranRangeId;
   },
 ) {
   const nowIso = new Date().toISOString();
@@ -635,6 +695,14 @@ async function joinPublic(
       const me = await refetchParticipant(service, seat.id);
       if (me) {
         await touchParticipant(service, me.id);
+        if (challengeRange(room) !== input.quranRange) {
+          const people = await fetchParticipants(service, room.id);
+          if (people.length <= 1) {
+            await applyLockedRange(service, room, input.quranRange, room.tier, room.age_band);
+            const updated = (await refetchChallenge(service, room.id)) ?? room;
+            return { challenge: updated, me };
+          }
+        }
         return { challenge: room, me };
       }
     }
@@ -648,6 +716,7 @@ async function joinPublic(
     displayName: input.displayName,
     profileId: input.profileId,
     ttlHours: 4,
+    quranRange: input.quranRange,
   });
 }
 
@@ -776,9 +845,16 @@ async function createChallenge(
     ttlHours: number;
     parentId?: string;
     excludeIds?: string[];
+    quranRange?: QuranRangeId;
   },
 ) {
-  const picked = pickChallengeQuestions(input.tier, input.ageBand, input.excludeIds ?? []);
+  const quranRange = input.quranRange && isQuranRangeId(input.quranRange)
+    ? input.quranRange
+    : DEFAULT_QURAN_RANGE;
+  if (!isQuranRangePlayable(quranRange)) {
+    throw new Error('range_unavailable');
+  }
+  const picked = pickChallengeQuestions(input.tier, input.ageBand, input.excludeIds ?? [], quranRange);
   let code = randomCode();
   for (let attempt = 0; attempt < 6; attempt += 1) {
     const { data: clash } = await service
@@ -803,6 +879,7 @@ async function createChallenge(
       current_index: 0,
       questions_public: picked.questions,
       parent_challenge_id: input.parentId ?? null,
+      quran_range: quranRange,
       expires_at: hoursFromNow(input.ttlHours),
     })
     .select('*')
@@ -836,6 +913,32 @@ async function createChallenge(
   }
 
   return { challenge: challenge as ChallengeRow, me: me as ParticipantRow };
+}
+
+async function applyLockedRange(
+  service: ReturnType<typeof createServiceClient>,
+  challenge: ChallengeRow,
+  quranRange: QuranRangeId,
+  tier: 1 | 2 | 3,
+  ageBand: CompetitionAgeBand,
+) {
+  const picked = pickChallengeQuestions(tier, ageBand, [], quranRange);
+  await service
+    .from('competition_challenges')
+    .update({
+      quran_range: quranRange,
+      questions_public: picked.questions,
+      question_count: picked.questions.length || QUESTION_COUNT_BY_TIER[tier],
+    })
+    .eq('id', challenge.id)
+    .eq('status', 'waiting');
+  await service.from('competition_question_keys').upsert(
+    {
+      challenge_id: challenge.id,
+      answer_key: picked.answerKey,
+    },
+    { onConflict: 'challenge_id' },
+  );
 }
 
 async function startQuestion(
@@ -1027,7 +1130,16 @@ async function buildState(
           is_you: person.id === mine.id,
         })),
       available_players,
-      pending_challenge: pending ? { label: pending.from_label } : null,
+      pending_challenge: pending
+        ? {
+            label: pending.from_label,
+            quran_range: pending.quran_range,
+            tier: pending.tier,
+            question_count: pending.question_count,
+            question_seconds: pending.question_seconds,
+          }
+        : null,
+      quran_range: challengeRange(fresh),
       rematch_code: fresh.rematch_code,
       expires_at: fresh.expires_at,
     },
@@ -1059,6 +1171,7 @@ function toPreview(challenge: ChallengeRow, participantCount: number) {
     tier: challenge.tier,
     question_count: challenge.question_count,
     visibility: challenge.visibility,
+    quran_range: challengeRange(challenge),
   };
 }
 
@@ -1104,6 +1217,7 @@ async function listAvailablePublic(
       participant_count: people.length,
       max_participants: roomCap(),
       is_ready: host.is_ready,
+      quran_range: challengeRange(room),
     });
   }
   return players;

@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/features/auth';
+import { PrimaryButton, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
+import { useCompetitionVoiceFeedback } from '../hooks/useCompetitionVoice';
 import {
   buildChallengeUrl,
   buildInviteMessage,
@@ -14,19 +15,20 @@ import {
   localizeCompetitionQuestion,
   shareChallengeInvite,
 } from '../services';
-import type { CompetitionPlayerRewards } from '../types';
+import { playGreetingOnce, playMotivationEvent } from '../services/competitionVoice';
+import { motivationToneForLearner } from '../services/motivationClips';
+import { useMotivationSound } from '../services/voicePreference';
+import { CompetitionSoundToggle } from './CompetitionSoundToggle';
 import { ListenToQuestionButton } from './ListenToQuestionButton';
-
-function powerLevelLabel(
-  key: CompetitionPlayerRewards['level_key'],
-  t: (key: 'competition.level.beginner' | 'competition.level.star' | 'competition.level.gold' | 'competition.level.diamond' | 'competition.level.champion') => string,
-) {
-  if (key === 'champion') return t('competition.level.champion');
-  if (key === 'diamond') return t('competition.level.diamond');
-  if (key === 'gold') return t('competition.level.gold');
-  if (key === 'star') return t('competition.level.star');
-  return t('competition.level.beginner');
-}
+import { QuranRangePicker } from './QuranRangePicker';
+import { CompetitionCelebration } from './CompetitionCelebration';
+import {
+  DEFAULT_QURAN_RANGE,
+  isQuranRangeId,
+  isQuranRangePlayable,
+  rangeLabelKey,
+  type QuranRangeId,
+} from '../services/quranRange';
 
 function useLiveRemaining(endsAt: string | null, active: boolean) {
   const [now, setNow] = useState(() => Date.now());
@@ -46,9 +48,14 @@ function useLiveRemaining(endsAt: string | null, active: boolean) {
 export function CompetitionMatchScreen({ code }: { code: string }) {
   const router = useRouter();
   const { t, language } = useI18n();
+  const { activeLearner } = useAuth();
+  const { enabled: soundEnabled } = useMotivationSound();
+  const tone = motivationToneForLearner(activeLearner);
+  const playful = tone === 'playful';
   const { state, loading, error, readyUp, submit, rematch, joining, challengePlayer, respondChallenge } =
     useCompetitionChallenge(code);
   const [shareNote, setShareNote] = useState<string | null>(null);
+  const [challengeRange, setChallengeRange] = useState<QuranRangeId>(DEFAULT_QURAN_RANGE);
 
   const remaining = useLiveRemaining(
     state?.challenge.question_ends_at ?? null,
@@ -64,12 +71,34 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
     }
   }, [code, router, state?.challenge.code]);
 
+  useEffect(() => {
+    if (isQuranRangeId(state?.challenge.quran_range)) {
+      setChallengeRange(state.challenge.quran_range);
+    }
+  }, [state?.challenge.quran_range]);
+
   const localized = useMemo(() => {
     if (!state?.challenge.question) {
       return null;
     }
     return localizeCompetitionQuestion(state.challenge.question, language);
   }, [language, state?.challenge.question]);
+
+  const revealingNow = state?.challenge.status === 'reveal';
+  const lastRound = state?.challenge.last_round_result;
+  const myRoundResult = lastRound?.players.find(
+    (player) => player.participant_id === state?.me.participant_id,
+  );
+
+  useCompetitionVoiceFeedback({
+    enabled: soundEnabled,
+    tone,
+    status: state?.challenge.status,
+    questionIndex: lastRound?.question_index ?? state?.challenge.current_index ?? 0,
+    questionCount: state?.challenge.question_count ?? 0,
+    myCorrect: revealingNow ? myRoundResult?.correct : undefined,
+    challengeCode: state?.challenge.code,
+  });
 
   async function onInvite() {
     if (!state) return;
@@ -122,10 +151,6 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
   const others = state.challenge.players.filter((player) => !player.is_you);
   const available = state.challenge.available_players ?? [];
   const pending = state.challenge.pending_challenge;
-  const ranked = [...state.challenge.players].sort((left, right) => {
-    if (right.score !== left.score) return right.score - left.score;
-    return left.seat_index - right.seat_index;
-  });
 
   const last = state.challenge.last_round_result;
   const myRound = last?.players.find((player) => player.participant_id === state.me.participant_id);
@@ -143,6 +168,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
         <Text className="mt-1 text-lg font-semibold text-white">
           {t('competition.tierLabel', { n: state.challenge.tier })}
         </Text>
+        <CompetitionSoundToggle />
 
         {waiting || readyCheck ? (
           <View className="mt-5 rounded-3xl bg-white px-5 py-5">
@@ -159,6 +185,9 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
               })}
               {state.challenge.is_full ? ` · ${t('competition.full')}` : ''}
             </Text>
+            <Text className="mt-2 text-sm font-semibold text-brand-700">
+              {t(rangeLabelKey(state.challenge.quran_range))}
+            </Text>
 
             {state.challenge.players.map((player) => (
               <Text key={player.participant_id} className="mt-2 text-base text-brand-800">
@@ -171,11 +200,30 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
             {pending ? (
               <View className="mt-4 rounded-2xl bg-brand-50 px-4 py-4">
                 <Text className="text-base font-semibold text-brand-800">
-                  {t('competition.someoneChallenging')}
+                  {t('competition.challengeRequest')}
                 </Text>
-                {pending.label ? (
-                  <Text className="mt-1 text-sm text-brand-600">{pending.label}</Text>
-                ) : null}
+                <Text className="mt-2 text-base text-brand-800">
+                  {t('competition.wantsToChallenge', { name: pending.label })}
+                </Text>
+                <Text className="mt-3 text-sm font-semibold text-brand-700">
+                  {t('competition.requestRange')}
+                </Text>
+                <Text className="text-base text-brand-800">
+                  {t(rangeLabelKey(pending.quran_range))}
+                </Text>
+                <Text className="mt-2 text-sm text-brand-700">
+                  {t('competition.tierLabel', { n: pending.tier ?? state.challenge.tier })}
+                </Text>
+                <Text className="text-sm text-brand-700">
+                  {t('competition.requestQuestions', {
+                    count: pending.question_count ?? state.challenge.question_count,
+                  })}
+                </Text>
+                <Text className="text-sm text-brand-700">
+                  {t('competition.requestSeconds', {
+                    seconds: pending.question_seconds ?? 60,
+                  })}
+                </Text>
                 <PrimaryButton
                   label={t('competition.accept')}
                   onPress={() => {
@@ -192,15 +240,28 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
               </View>
             ) : null}
 
+            {state.challenge.visibility === 'invite' || others.length > 0 ? (
+              <View className="mt-4">
+                <QuranRangePicker value={challengeRange} locked />
+              </View>
+            ) : null}
+
             {state.challenge.visibility === 'public' ? (
               <View className="mt-4">
+                {others.length === 0 ? (
+                  <View className="mb-3">
+                    <QuranRangePicker value={challengeRange} onChange={setChallengeRange} />
+                  </View>
+                ) : null}
                 <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
                   {t('competition.availableOnline')}
                 </Text>
                 {available.length === 0 ? (
                   <Text className="mt-2 text-sm text-brand-600">{t('competition.waiting')}</Text>
                 ) : (
-                  available.map((player) => (
+                  available.map((player) => {
+                    const canChallenge = others.length === 0 && isQuranRangePlayable(challengeRange);
+                    return (
                     <View
                       key={player.code}
                       className="mt-3 flex-row items-center justify-between rounded-2xl border border-brand-100 px-3 py-3"
@@ -210,7 +271,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                           {player.display_label}
                         </Text>
                         <Text className="text-sm text-brand-600">
-                          {t('competition.rangeJuz30')}
+                          {t(rangeLabelKey(player.quran_range))}
                         </Text>
                         <Text className="text-sm text-brand-600">
                           {t('competition.tierLabel', { n: player.tier })}
@@ -221,17 +282,23 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                       </View>
                       <Pressable
                         accessibilityRole="button"
+                        accessibilityState={{ disabled: !canChallenge }}
+                        disabled={!canChallenge}
                         onPress={() => {
-                          void challengePlayer(player.code);
+                          if (!canChallenge) return;
+                          void challengePlayer(player.code, challengeRange);
                         }}
-                        className="min-h-11 items-center justify-center rounded-xl bg-brand-600 px-3"
+                        className={`min-h-11 items-center justify-center rounded-xl px-3 ${
+                          canChallenge ? 'bg-brand-600' : 'bg-brand-200'
+                        }`}
                       >
                         <Text className="text-sm font-semibold text-white">
                           {t('competition.challengePlayer')}
                         </Text>
                       </Pressable>
                     </View>
-                  ))
+                    );
+                  })
                 )}
               </View>
             ) : null}
@@ -250,6 +317,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 <PrimaryButton
                   label={t('competition.ready')}
                   onPress={() => {
+                    playGreetingOnce({ enabled: soundEnabled, tone });
                     void readyUp();
                   }}
                 />
@@ -314,6 +382,11 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
 
             {revealing ? (
               <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-4">
+                {playful ? (
+                  <Text className="mb-2 text-lg font-bold text-brand-800">
+                    {myRound?.correct ? t('competition.cheerCorrect') : t('competition.cheerIncorrect')}
+                  </Text>
+                ) : null}
                 <Text className="text-base font-semibold text-brand-800">
                   {t('competition.correctAnswer', {
                     answer: correctChoice
@@ -330,67 +403,27 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
         ) : null}
 
         {complete ? (
-          <View className="mt-5 rounded-3xl bg-white px-5 py-5">
-            <Text className="text-2xl font-bold text-brand-800">{t('competition.complete')}</Text>
-            {ranked.map((player, index) => {
-              const total = state.challenge.question_count || 1;
-              const percent = Math.round((player.score / total) * 100);
-              const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-              return (
-                <Text
-                  key={player.participant_id}
-                  className={`mt-3 text-lg ${player.is_you ? 'font-bold text-brand-900' : 'text-brand-800'}`}
-                >
-                  {medal} {player.display_label}
-                  {player.is_you ? ` ${t('competition.youTag')}` : ''} — {player.score}/{total} — {percent}%
-                </Text>
-              );
-            })}
-            {state.me.rewards ? (
-              <View className="mt-4 rounded-2xl bg-brand-50 px-4 py-4">
-                <Text className="text-base font-semibold text-brand-800">
-                  {state.me.rewards.avatar_emoji} {t('competition.quranPower')}
-                </Text>
-                <Text className="mt-1 text-sm text-brand-700">
-                  {t('competition.powerTotal', { power: state.me.rewards.power })}
-                </Text>
-                {state.me.rewards.earned > 0 ? (
-                  <Text className="mt-1 text-sm text-brand-700">
-                    {t('competition.powerEarned', { power: state.me.rewards.earned })}
-                  </Text>
-                ) : null}
-                <Text className="mt-1 text-sm text-brand-600">
-                  {powerLevelLabel(state.me.rewards.level_key, t)}
-                </Text>
-              </View>
-            ) : null}
-            <Text className="mt-4 text-base leading-6 text-brand-600">
-              {t('competition.continueJourney')}
-            </Text>
-
-            {state.challenge.tier < 3 ? (
-              <PrimaryButton
-                label={t('competition.challengeAgain')}
-                loading={joining}
-                onPress={() => {
-                  void rematch().then((next) => {
-                    if (next) {
-                      router.replace({
-                        pathname: '/(app)/competition/[code]',
-                        params: { code: next.challenge.code },
-                      } as unknown as Href);
-                    }
-                  });
-                }}
-              />
-            ) : null}
-
-            <PrimaryButton
-              label={t('competition.backToCompetition')}
-              variant="secondary"
-              onPress={() => router.replace('/(app)/competition' as Href)}
-            />
-          </View>
+          <CompetitionCelebration
+            challengeId={state.challenge.id}
+            players={state.challenge.players}
+            questionCount={state.challenge.question_count}
+            rewards={state.me.rewards}
+            showChallengeAgain={state.challenge.tier < 3}
+            joining={joining}
+            playful={playful}
+            onChallengeAgain={() => {
+              void playMotivationEvent('next_challenge', { enabled: soundEnabled, tone });
+              void rematch().then((next) => {
+                if (next) {
+                  router.replace({
+                    pathname: '/(app)/competition/[code]',
+                    params: { code: next.challenge.code },
+                  } as unknown as Href);
+                }
+              });
+            }}
+            onBack={() => router.replace('/(app)/competition' as Href)}
+          />
         ) : null}
 
         {error ? <Text className="mt-4 text-sm text-red-100">{error}</Text> : null}
