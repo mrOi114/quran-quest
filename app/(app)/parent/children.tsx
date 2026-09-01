@@ -19,6 +19,7 @@ import {
   genderFromAvatarKey,
   genderLabel,
 } from '@/features/auth/utils/childGender';
+import { useI18n } from '@/i18n';
 
 export default function ManageChildrenScreen() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function ManageChildrenScreen() {
     canManageFamily,
     isGuest,
   } = useAuth();
+  const { t } = useI18n();
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,7 +81,7 @@ export default function ManageChildrenScreen() {
     });
 
     if (!parsed.success) {
-      setFormError(parsed.error.issues[0]?.message ?? 'Check the child details');
+      setFormError(parsed.error.issues[0]?.message ?? t('family.checkDetails'));
       return;
     }
 
@@ -92,10 +94,10 @@ export default function ManageChildrenScreen() {
         countryCode: parsed.data.countryCode,
         preferredLanguage: parsed.data.preferredLanguage,
       });
-      setSuccess('Child updated');
+      setSuccess(t('family.childUpdated'));
       setEditChildId(null);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Could not update child');
+      setFormError(error instanceof Error ? error.message : t('family.updateChildError'));
     } finally {
       setLoading(false);
     }
@@ -107,11 +109,11 @@ export default function ManageChildrenScreen() {
     setLoading(true);
     try {
       await deleteChild(childId);
-      setSuccess(`Removed ${name}`);
+      setSuccess(t('family.childRemoved', { name }));
       setEditChildId(null);
       setResetChildId(null);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Could not delete child');
+      setFormError(error instanceof Error ? error.message : t('family.deleteChildError'));
     } finally {
       setLoading(false);
     }
@@ -122,37 +124,36 @@ export default function ManageChildrenScreen() {
     setSuccess(null);
 
     if (!/^\d{4,6}$/.test(resetPin) || resetPin !== resetConfirmPin) {
-      setFormError('Enter a matching 4–6 digit PIN');
+      setFormError(t('family.pinMismatch'));
       return;
     }
 
     setLoading(true);
     try {
       await resetChildPin(childId, resetPin);
-      setSuccess('PIN updated');
+      setSuccess(t('family.pinUpdated'));
       setResetChildId(null);
       setResetPin('');
       setResetConfirmPin('');
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Could not reset PIN');
+      setFormError(error instanceof Error ? error.message : t('family.resetPinError'));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <AuthScreen
-      title="Manage children"
-      subtitle="Edit names, reset PINs, or add another child. Children never need email."
-    >
+    <AuthScreen title={t('family.manageChildren')} subtitle={t('family.manageChildrenHelp')}>
       <PrimaryButton
-        label="＋ Add Child"
+        label={t('family.addChild')}
         onPress={() => router.push('/(app)/parent/add-child' as never)}
       />
 
-      <Text className="mb-3 mt-2 text-base font-semibold text-brand-800">Your children</Text>
+      <Text className="mb-3 mt-2 text-base font-semibold text-brand-800">
+        {t('family.yourChildren')}
+      </Text>
       {children.length === 0 ? (
-        <Text className="mb-4 text-sm text-brand-600">No children yet.</Text>
+        <Text className="mb-4 text-sm text-brand-600">{t('family.noChildrenShort')}</Text>
       ) : (
         children.map((child) => (
           <View
@@ -163,25 +164,31 @@ export default function ManageChildrenScreen() {
               {child.display_name}
             </Text>
             <Text className="mt-1 text-sm text-brand-500">
-              Age {child.age}
-              {genderLabel(child.avatar_key) ? ` · ${genderLabel(child.avatar_key)}` : ''}
+              {t('family.ageLine', { age: child.age ?? '—' })}
+              {genderLabel(child.avatar_key) === 'Girl'
+                ? ` · ${t('gender.girl')}`
+                : genderLabel(child.avatar_key) === 'Boy'
+                  ? ` · ${t('gender.boy')}`
+                  : ''}
               {' · '}
               {child.country_code} · {child.preferred_language}
             </Text>
             <Text className="mt-2 text-sm text-brand-600">
-              Chat: {child.chat_enabled === false ? 'Off' : 'On'} · Calls:{' '}
-              {child.calls_enabled === false ? 'Off' : 'On'}
+              {t('family.chatStatus', {
+                chat: child.chat_enabled === false ? t('family.off') : t('family.on'),
+                calls: child.calls_enabled === false ? t('family.off') : t('family.on'),
+              })}
             </Text>
 
             {editChildId === child.id ? (
               <View className="mt-3">
                 <TextField
-                  label="Nickname"
+                  label={t('family.nickname')}
                   value={editDisplayName}
                   onChangeText={setEditDisplayName}
                 />
                 <TextField
-                  label="Age"
+                  label={t('family.age')}
                   keyboardType="number-pad"
                   value={editAge}
                   onChangeText={setEditAge}
@@ -193,41 +200,41 @@ export default function ManageChildrenScreen() {
                   onChange={setEditPreferredLanguage}
                 />
                 <PrimaryButton
-                  label="Save changes"
+                  label={t('family.saveChanges')}
                   onPress={() => void onSaveEdit(child.id)}
                   loading={loading}
                 />
                 <PrimaryButton
-                  label="Delete child"
+                  label={t('family.deleteChild')}
                   onPress={() => void onDeleteChild(child.id, child.display_name)}
                   loading={loading}
                   variant="secondary"
                 />
                 <Pressable onPress={() => setEditChildId(null)} className="py-2">
-                  <Text className="text-center text-sm text-brand-600">Cancel</Text>
+                  <Text className="text-center text-sm text-brand-600">{t('family.cancel')}</Text>
                 </Pressable>
               </View>
             ) : resetChildId === child.id ? (
               <View className="mt-3">
-                <PinInput label="New PIN" value={resetPin} onChangeText={setResetPin} />
+                <PinInput label={t('family.newPin')} value={resetPin} onChangeText={setResetPin} />
                 <PinInput
-                  label="Confirm new PIN"
+                  label={t('family.confirmNewPin')}
                   value={resetConfirmPin}
                   onChangeText={setResetConfirmPin}
                 />
                 <PrimaryButton
-                  label="Save PIN"
+                  label={t('family.savePin')}
                   onPress={() => void onResetPin(child.id)}
                   loading={loading}
                 />
                 <Pressable onPress={() => setResetChildId(null)} className="py-2">
-                  <Text className="text-center text-sm text-brand-600">Cancel</Text>
+                  <Text className="text-center text-sm text-brand-600">{t('family.cancel')}</Text>
                 </Pressable>
               </View>
             ) : (
               <View className="mt-2 flex-row flex-wrap gap-4">
                 <Pressable onPress={() => beginEdit(child.id)} className="py-1">
-                  <Text className="text-sm font-medium text-brand-600">Edit</Text>
+                  <Text className="text-sm font-medium text-brand-600">{t('family.edit')}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => {
@@ -236,7 +243,7 @@ export default function ManageChildrenScreen() {
                   }}
                   className="py-1"
                 >
-                  <Text className="text-sm font-medium text-brand-600">Reset PIN</Text>
+                  <Text className="text-sm font-medium text-brand-600">{t('family.resetPinAction')}</Text>
                 </Pressable>
                 <Pressable
                   onPress={() =>
@@ -248,7 +255,7 @@ export default function ManageChildrenScreen() {
                   className="py-1"
                 >
                   <Text className="text-sm font-medium text-brand-600">
-                    {child.chat_enabled === false ? 'Enable chat' : 'Pause chat'}
+                    {child.chat_enabled === false ? t('family.enableChat') : t('family.pauseChat')}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -261,7 +268,7 @@ export default function ManageChildrenScreen() {
                   className="py-1"
                 >
                   <Text className="text-sm font-medium text-brand-600">
-                    {child.calls_enabled === false ? 'Enable calls' : 'Pause calls'}
+                    {child.calls_enabled === false ? t('family.enableCalls') : t('family.pauseCalls')}
                   </Text>
                 </Pressable>
               </View>
@@ -274,7 +281,7 @@ export default function ManageChildrenScreen() {
       {success ? <Text className="mb-3 text-sm text-brand-600">{success}</Text> : null}
 
       <PrimaryButton
-        label="Back to My Family"
+        label={t('family.backToMyFamily')}
         onPress={() => router.replace('/(app)/parent/dashboard')}
         variant="secondary"
       />

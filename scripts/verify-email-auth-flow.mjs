@@ -88,9 +88,9 @@ assert(
   'Login must not block navigation on device registration',
 );
 assert(
-  welcome.includes('Continue as Guest') &&
-    welcome.includes('Create Account') &&
-    welcome.includes('Log In') &&
+  (welcome.includes('welcome.continueGuest') || welcome.includes('Continue as Guest')) &&
+    (welcome.includes('welcome.createAccount') || welcome.includes('Create Account')) &&
+    (welcome.includes('welcome.logIn') || welcome.includes('Log In')) &&
     welcome.includes('child-entry'),
   'Welcome must lead with Guest, Create Account, and Log In, with child family-code still reachable',
 );

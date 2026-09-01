@@ -89,7 +89,9 @@ assert(!landing.includes('ageGroup'), 'Landing must not ask for age');
 
 assert(onboarding.includes('consumePendingChallengeCode'), 'Guest onboarding can resume an invite');
 assert(
-  welcome.includes('Continue as Guest') || welcome.includes('Start with Guest Mode'),
+  welcome.includes('welcome.continueGuest') ||
+    welcome.includes('Continue as Guest') ||
+    welcome.includes('Start with Guest Mode'),
   'Guest Mode entry still exists',
 );
 
