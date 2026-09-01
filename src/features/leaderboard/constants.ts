@@ -53,6 +53,9 @@ export const COMMUNITY_PEERS: ReadonlyArray<{
 
 export const RANK_DELTA_STORAGE_KEY = 'qq.leaderboard.rank_snapshot.v1';
 
+/** Public All Students / Age / Juz boards show at most this many real learners. */
+export const LEADERBOARD_PUBLIC_LIMIT = 30;
+
 /** Days of inactivity before Current Power starts to ease. Lifetime XP is never touched. */
 export const CURRENT_POWER_GRACE_DAYS = 7;
 

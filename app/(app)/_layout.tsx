@@ -5,6 +5,7 @@ import { useAuth } from '@/features/auth';
 import { WebAppShell } from '@/components/ui/WebAppShell';
 import { FamilyCommsProvider } from '@/features/family-comms';
 import { CompetitionMembershipHost } from '@/features/competition/components/CompetitionMembershipHost';
+import { LeaderboardPresenceHost } from '@/features/leaderboard/components/LeaderboardPresenceHost';
 
 export default function AppLayout() {
   const {
@@ -40,6 +41,7 @@ export default function AppLayout() {
   return (
     <FamilyCommsProvider>
       <CompetitionMembershipHost />
+      <LeaderboardPresenceHost />
       <WebAppShell>
         <Stack screenOptions={{ headerShown: false }} />
       </WebAppShell>

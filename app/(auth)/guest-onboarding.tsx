@@ -7,6 +7,7 @@ import {
   AuthScreen,
   CountryPicker,
   guestOnboardingSchema,
+  isGuestNameCheckError,
   isGuestNameTakenError,
   LanguagePicker,
   PrimaryButton,
@@ -69,6 +70,8 @@ export default function GuestOnboardingScreen() {
     } catch (error) {
       if (isGuestNameTakenError(error)) {
         setFieldErrors({ displayName: t('guest.nameTaken') });
+      } else if (isGuestNameCheckError(error)) {
+        setFormError(t('guest.nameCheckFailed'));
       } else {
         setFormError(error instanceof Error ? error.message : t('guest.startError'));
       }

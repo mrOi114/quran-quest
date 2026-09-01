@@ -311,7 +311,9 @@ export const so = {
   'guest.startLearning': 'Bilow barashada',
   'guest.startError': 'Habka Martida lama bilaabi karin',
   'guest.nameTaken':
-    'Magacaas hore ayaa qof ku isticmaalay qalabkan. Dooro magac ama naanays kale si Horyaalku u caddnaado.',
+    'Magacaas qof ayaa hore u isticmaalay. Dooro magac ama naanays kale si Horyaalku uga caddnaado qalab kasta.',
+  'guest.nameCheckFailed':
+    'Magaca lama hubin karin. Ku xidh internetka oo mar kale isku day.',
 
   'circle.section': 'Goobta QuranFamily',
   'circle.titleWithSurah': 'Goobta {surah}',
@@ -749,7 +751,7 @@ export const so = {
   'leaderboard.juzActiveSubtitle': 'Isku eeg horumarka ardayda tartanka Juzâ€™ isku midka ah.',
   'leaderboard.juzUpcomingSubtitle':
     'Tartankan Juzâ€™ dhawaan buu furmayaa â€” sii xooji Juzâ€™ 30.',
-  'leaderboard.allSubtitle': 'Ardayda dhabta ah ee Qur’an Quest ee app-ku arki karo.',
+  'leaderboard.allSubtitle': 'Ardayda Guest Mode iyo ardayda diiwaangashan. 30 ugu sarreeya.',
   'leaderboard.juzChallenge': 'Tartanka Juzâ€™ {n}',
   'leaderboard.motivation.streak': 'ðŸ”¥ Waxaad ku jirtaa taxane barasho {count} maalmood ah!',
   'leaderboard.motivation.gap': 'ðŸš€ {points} dhibcood ayaad uga fog tahay ardayga xiga.',

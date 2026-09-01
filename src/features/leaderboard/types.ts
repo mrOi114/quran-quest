@@ -18,6 +18,33 @@ export type LeaderboardEntry = {
   isActiveNow: boolean;
 };
 
+export type PublicLeaderboardRow = {
+  id: string;
+  kind: 'guest' | 'profile';
+  displayName: string;
+  ageGroup: AgeGroupId;
+  countryCode: string;
+  avatarKey: string;
+  lifetimePoints: number;
+  juzPoints: number;
+  currentPower: number;
+  juzCurrentPower: number;
+  lastActiveAt: string;
+};
+
+export type PublicBoardSlice = {
+  entries: PublicLeaderboardRow[];
+  myRank: number;
+  total: number;
+};
+
+export type PublicLeaderboardSnapshot = {
+  all: PublicBoardSlice;
+  age: PublicBoardSlice;
+  juz: PublicBoardSlice;
+  learningNow: Array<{ id: string; displayName: string }>;
+};
+
 export type PersonalStanding = {
   rank: number;
   points: number;

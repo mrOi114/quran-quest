@@ -5,6 +5,7 @@ import type { LearningSnapshot } from '@/features/learning';
 
 import {
   JUZ_CHALLENGES,
+  LEADERBOARD_PUBLIC_LIMIT,
   type JuzChallengeNumber,
   type LeaderboardViewId,
 } from '../constants';
@@ -14,10 +15,14 @@ import type {
   LeaderboardModel,
   MotivationMessage,
   PersonalStanding,
+  PublicBoardSlice,
+  PublicLeaderboardRow,
+  PublicLeaderboardSnapshot,
 } from '../types';
 import { ageGroupLabel } from '../types';
 import { flagForCountryCode } from './countryFlag';
 import { computeCurrentPower, computeEffortBreakdown, latestLearningActivityAt } from './effortPoints';
+import { syncPublicLeaderboard } from './publicBoard';
 import {
   computePlacesMoved,
   loadRankSnapshot,
@@ -184,6 +189,84 @@ async function loadRealLearnerRow(learner: ActiveLearner): Promise<RealLearnerRo
   }
 }
 
+function toPublicEntry(
+  row: PublicLeaderboardRow | RealLearnerRow,
+  currentId: string,
+  points: number,
+  activeNow: boolean,
+  learningNowIds: Set<string>,
+): Omit<LeaderboardEntry, 'rank'> {
+  const id = 'learner' in row ? row.learner.id : row.id;
+  const displayName = 'learner' in row ? row.displayName : row.displayName;
+  const countryCode = 'learner' in row ? row.learner.country_code : row.countryCode;
+  const avatarKey = 'learner' in row ? row.learner.avatar_key : row.avatarKey;
+  const ageGroup = row.ageGroup;
+  const lifetimePoints = row.lifetimePoints;
+  const isMe = id === currentId;
+  return {
+    id,
+    displayName,
+    countryCode: isMe ? '' : countryCode,
+    flag: isMe ? '' : flagForCountryCode(countryCode),
+    avatarKey,
+    points,
+    lifetimePoints,
+    ageGroup,
+    isCurrentUser: isMe,
+    isActiveNow: isMe ? activeNow : learningNowIds.has(id),
+  };
+}
+
+function boardFromPublic(options: {
+  view: LeaderboardViewId;
+  title: string;
+  subtitle: string;
+  currentId: string;
+  slice: PublicBoardSlice;
+  local: RealLearnerRow;
+  pickPoints: (row: PublicLeaderboardRow | RealLearnerRow) => number;
+  effort: ReturnType<typeof computeEffortBreakdown>;
+  placesMoved: number | null;
+  juzNumber?: JuzChallengeNumber;
+  juzStatus?: 'active' | 'upcoming';
+  activeNow: boolean;
+  learningNowIds: Set<string>;
+}): LeaderboardBoard {
+  const entries = options.slice.entries.slice(0, LEADERBOARD_PUBLIC_LIMIT).map((row, index) => {
+    const isMe = row.id === options.currentId;
+    const source: PublicLeaderboardRow | RealLearnerRow = isMe ? options.local : row;
+    return {
+      ...toPublicEntry(
+        source,
+        options.currentId,
+        options.pickPoints(source),
+        options.activeNow,
+        options.learningNowIds,
+      ),
+      rank: index + 1,
+    };
+  });
+
+  const you: PersonalStanding = {
+    rank: options.slice.myRank,
+    points: options.pickPoints(options.local),
+    pointsBehindNext: personalStanding(entries, options.placesMoved).pointsBehindNext,
+    placesMoved: options.placesMoved,
+    totalInBoard: Math.max(options.slice.total, entries.length),
+  };
+
+  return {
+    view: options.view,
+    title: options.title,
+    subtitle: options.subtitle,
+    entries,
+    you,
+    motivations: buildMotivations(options.effort, you),
+    juzNumber: options.juzNumber,
+    juzStatus: options.juzStatus,
+  };
+}
+
 function toEntry(
   row: RealLearnerRow,
   currentId: string,
@@ -245,6 +328,7 @@ export async function buildLeaderboardModel(options: {
   isGuest: boolean;
   familyLearners: ActiveLearner[];
   selectedJuz?: JuzChallengeNumber;
+  publicSnapshot?: PublicLeaderboardSnapshot | null;
 }): Promise<LeaderboardModel> {
   const { activeLearner, snapshot, isGuest } = options;
   const ageGroup = resolveAgeGroup(activeLearner);
@@ -260,6 +344,116 @@ export async function buildLeaderboardModel(options: {
   const currentJuzNumber = options.selectedJuz ?? resolveCurrentJuz(snapshot);
   const juzMeta =
     JUZ_CHALLENGES.find((item) => item.juzNumber === currentJuzNumber) ?? JUZ_CHALLENGES[0];
+
+  const localRow: RealLearnerRow = {
+    learner: activeLearner,
+    displayName: activeLearner.display_name.trim() || 'You',
+    ageGroup,
+    lifetimePoints: effort.totalPoints,
+    currentPower,
+    juzPoints: effort.juz30VersePoints,
+    juzCurrentPower: computeCurrentPower(effort.juz30VersePoints, lastActivityAt),
+    effort,
+  };
+
+  const previous = await loadRankSnapshot();
+  const activeNow = true;
+  const publicSnapshot =
+    options.publicSnapshot !== undefined
+      ? options.publicSnapshot
+      : await syncPublicLeaderboard({
+          learner: activeLearner,
+          ageGroup,
+          lifetimePoints: localRow.lifetimePoints,
+          juzPoints: localRow.juzPoints,
+          currentPower: localRow.currentPower,
+          juzCurrentPower: localRow.juzCurrentPower,
+        });
+
+  if (publicSnapshot) {
+    const learningNowIds = new Set(publicSnapshot.learningNow.map((person) => person.id));
+    const ageBoard = boardFromPublic({
+      view: 'age',
+      title: ageGroupLabel(ageGroup),
+      subtitle: 'Fair competition with learners in your age group.',
+      currentId: activeLearner.id,
+      slice: publicSnapshot.age,
+      local: localRow,
+      pickPoints: (row) => row.lifetimePoints,
+      effort,
+      placesMoved: null,
+      activeNow,
+      learningNowIds,
+    });
+    ageBoard.you.placesMoved = computePlacesMoved(previous?.ranks.age, ageBoard.you.rank);
+    ageBoard.motivations = buildMotivations(effort, ageBoard.you);
+
+    const juzBoard = boardFromPublic({
+      view: 'juz',
+      title: juzMeta.label,
+      subtitle:
+        juzMeta.status === 'active'
+          ? 'Compare progress with students on the same Juz challenge.'
+          : 'This Juz challenge is opening soon — keep building Juz 30 strength.',
+      currentId: activeLearner.id,
+      slice: publicSnapshot.juz,
+      local: localRow,
+      pickPoints: (row) => row.juzCurrentPower,
+      effort,
+      placesMoved: null,
+      juzNumber: juzMeta.juzNumber,
+      juzStatus: juzMeta.status,
+      activeNow,
+      learningNowIds,
+    });
+    juzBoard.you.placesMoved = computePlacesMoved(previous?.ranks.juz, juzBoard.you.rank);
+    juzBoard.motivations = buildMotivations(effort, juzBoard.you);
+
+    const allBoard = boardFromPublic({
+      view: 'all',
+      title: '🌍 All Students',
+      subtitle: 'Real Guest Mode and registered students. Top 30.',
+      currentId: activeLearner.id,
+      slice: publicSnapshot.all,
+      local: localRow,
+      pickPoints: (row) => row.lifetimePoints,
+      effort,
+      placesMoved: null,
+      activeNow,
+      learningNowIds,
+    });
+    allBoard.you.placesMoved = computePlacesMoved(previous?.ranks.all, allBoard.you.rank);
+    allBoard.motivations = buildMotivations(effort, allBoard.you);
+
+    await saveRankSnapshot({
+      age: ageBoard.you.rank,
+      juz: juzBoard.you.rank,
+      all: allBoard.you.rank,
+    });
+
+    const currentName = localRow.displayName;
+    const learningNow = publicSnapshot.learningNow.length
+      ? publicSnapshot.learningNow
+      : [{ id: activeLearner.id, displayName: currentName }];
+
+    return {
+      displayName: currentName,
+      countryCode: '',
+      flag: '',
+      ageGroup,
+      ageGroupLabel: ageGroupLabel(ageGroup),
+      effort,
+      currentPower,
+      isGuest,
+      currentJuzNumber: juzMeta.juzNumber,
+      learningNow,
+      boards: {
+        age: ageBoard,
+        juz: juzBoard,
+        all: allBoard,
+      },
+    };
+  }
 
   const uniqueById = new Map<string, ActiveLearner>();
   uniqueById.set(activeLearner.id, activeLearner);
@@ -287,9 +481,6 @@ export async function buildLeaderboardModel(options: {
       rows.push(loaded);
     }
   }
-
-  const previous = await loadRankSnapshot();
-  const activeNow = true;
 
   const ageBoard = buildBoard({
     view: 'age',
@@ -329,7 +520,7 @@ export async function buildLeaderboardModel(options: {
   const allBoard = buildBoard({
     view: 'all',
     title: '🌍 All Students',
-    subtitle: 'Real Qur’an Quest learners this app can see.',
+    subtitle: 'Real Guest Mode and registered students. Top 30.',
     currentId: activeLearner.id,
     rows,
     pickPoints: (row) => row.lifetimePoints,

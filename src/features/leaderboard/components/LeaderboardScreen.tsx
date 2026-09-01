@@ -165,7 +165,7 @@ function motivationText(
 export function LeaderboardScreen() {
   const router = useRouter();
   const { t } = useI18n();
-  const [view, setView] = useState<LeaderboardViewId>('age');
+  const [view, setView] = useState<LeaderboardViewId>('all');
   const [selectedJuz, setSelectedJuz] = useState<(typeof JUZ_CHALLENGES)[number]['juzNumber']>(30);
   const [dismissGuestCard, setDismissGuestCard] = useState(false);
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');

@@ -1,11 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 
+import { getOrCreateParticipantKey } from '@/features/competition/services/participantKey';
+import { supabase } from '@/lib/supabase';
+
 import {
   GUEST_LIMIT_SURAHS,
   GUEST_MILESTONE_SURAHS,
   type AgeGroupId,
 } from '../constants';
+import { AuthFunctionError, assertFunctionOk } from './functionErrors';
 
 const GUEST_PROFILE_KEY = 'qq.guest.profile';
 const GUEST_PROGRESS_KEY = 'qq.guest.progress';
@@ -15,6 +19,7 @@ const GUEST_SESSION_KEY = 'qq.guest.session_active';
 /** Nicknames already used on this device — kept after Guest Mode ends. */
 const GUEST_USED_NAMES_KEY = 'qq.guest.used_names';
 export const GUEST_NAME_TAKEN = 'guest_name_taken';
+export const GUEST_NAME_CHECK_FAILED = 'guest_name_check_failed';
 const GUEST_MIGRATION_PREFIX = 'qq.migrated_progress.';
 /** Staged separately so Feature 005 reader merge does not race Feature 004 learning merge. */
 const GUEST_READER_MIGRATION_PREFIX = 'qq.migrated_reader.';
@@ -79,11 +84,46 @@ export class GuestNameTakenError extends Error {
   }
 }
 
+export class GuestNameCheckError extends Error {
+  readonly code = GUEST_NAME_CHECK_FAILED;
+
+  constructor() {
+    super(GUEST_NAME_CHECK_FAILED);
+    this.name = 'GuestNameCheckError';
+  }
+}
+
 export function isGuestNameTakenError(error: unknown): boolean {
   return (
     error instanceof GuestNameTakenError ||
     (error instanceof Error && error.message === GUEST_NAME_TAKEN)
   );
+}
+
+export function isGuestNameCheckError(error: unknown): boolean {
+  return (
+    error instanceof GuestNameCheckError ||
+    (error instanceof Error && error.message === GUEST_NAME_CHECK_FAILED)
+  );
+}
+
+async function claimGuestDisplayNameGlobally(displayName: string): Promise<void> {
+  const participant_key = await getOrCreateParticipantKey();
+  try {
+    await assertFunctionOk(
+      await supabase.functions.invoke('guest-name', {
+        body: { display_name: displayName, participant_key },
+      }),
+    );
+  } catch (error) {
+    if (
+      error instanceof AuthFunctionError &&
+      (error.message === 'name_taken' || error.status === 409)
+    ) {
+      throw new GuestNameTakenError();
+    }
+    throw new GuestNameCheckError();
+  }
 }
 
 async function loadReservedGuestNames(): Promise<string[]> {
@@ -208,6 +248,8 @@ export async function saveGuestProfile(
   ) {
     throw new GuestNameTakenError();
   }
+
+  await claimGuestDisplayNameGlobally(input.displayName.trim());
 
   const profile: GuestProfile = {
     id: input.id ?? Crypto.randomUUID(),

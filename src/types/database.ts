@@ -400,6 +400,13 @@ export type CompetitionAnswer = {
   is_correct: boolean | null;
 };
 
+export type GuestDisplayName = {
+  normalized_name: string;
+  display_name: string;
+  participant_key_hash: string;
+  created_at: string;
+};
+
 type TableDef<Row, Insert, Update> = {
   Row: Row;
   Insert: Insert;
@@ -862,9 +869,23 @@ export type Database = {
         },
         Partial<CompetitionAnswer>
       >;
+      guest_display_names: TableDef<
+        GuestDisplayName,
+        {
+          normalized_name: string;
+          display_name: string;
+          participant_key_hash: string;
+          created_at?: string;
+        },
+        Partial<GuestDisplayName>
+      >;
     };
     Views: Record<string, never>;
     Functions: {
+      claim_guest_display_name: {
+        Args: { p_normalized: string; p_display: string; p_hash: string };
+        Returns: Json;
+      };
       set_child_pin_hash: {
         Args: { p_child_id: string; p_pin_hash: string };
         Returns: undefined;

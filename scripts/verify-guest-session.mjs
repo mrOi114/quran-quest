@@ -111,4 +111,20 @@ assert(
   'The same guest may keep their own name',
 );
 
+assert(guestService.includes("functions.invoke('guest-name'"), 'Guest names are claimed on the server');
+assert(guestService.includes('claimGuestDisplayNameGlobally'), 'Guest start claims the name globally');
+
+const guestNameFn = readFileSync(join(ROOT, 'supabase/functions/guest-name/index.ts'), 'utf8');
+const guestNameMigration = readFileSync(
+  join(ROOT, 'supabase/migrations/20260901020000_guest_display_names.sql'),
+  'utf8',
+);
+const config = readFileSync(join(ROOT, 'supabase/config.toml'), 'utf8');
+assert(guestNameFn.includes("rpc('claim_guest_display_name'"), 'Edge function claims via SQL');
+assert(guestNameMigration.includes('create table public.guest_display_names'), 'Global name table exists');
+assert(guestNameMigration.includes('competition_participants'), 'Existing competition names stay unique');
+assert(guestNameMigration.includes('from public.profiles'), 'Registered profile names stay unique');
+assert(config.includes('[functions.guest-name]'), 'guest-name function is registered');
+assert(config.includes('verify_jwt = false'), 'Guests can claim a name without email login');
+
 console.log('Guest Mode persistence checks passed.');

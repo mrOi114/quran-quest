@@ -299,7 +299,9 @@ export const en = {
   'guest.startLearning': 'Start learning',
   'guest.startError': 'Could not start Guest Mode',
   'guest.nameTaken':
-    'That name is already used on this device. Choose a different first name or nickname so the Leaderboard stays clear.',
+    'That name is already used. Choose a different first name or nickname so the Leaderboard stays clear on every device.',
+  'guest.nameCheckFailed':
+    'Could not check that name. Connect to the internet and try again.',
 
   'circle.section': 'QuranFamily Circle',
   'circle.titleWithSurah': '{surah} Circle',
@@ -734,7 +736,7 @@ export const en = {
     'Compare progress with students on the same Juz challenge.',
   'leaderboard.juzUpcomingSubtitle':
     'This Juz challenge is opening soon — keep building Juz 30 strength.',
-  'leaderboard.allSubtitle': 'Real Qur’an Quest learners this app can see.',
+  'leaderboard.allSubtitle': 'Real Guest Mode and registered students. Top 30.',
   'leaderboard.juzChallenge': 'Juz {n} Challenge',
   'leaderboard.motivation.streak': "🔥 You're on a {count}-day learning streak!",
   'leaderboard.motivation.gap': "🚀 You're {points} points away from the next student.",
