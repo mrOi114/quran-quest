@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '@/features/auth';
+import { RtlProvider } from '@/i18n';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -31,8 +32,10 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false }} />
+          <RtlProvider>
+            <StatusBar style="light" />
+            <Stack screenOptions={{ headerShown: false }} />
+          </RtlProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

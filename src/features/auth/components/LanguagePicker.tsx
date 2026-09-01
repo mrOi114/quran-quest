@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { useI18n } from '@/i18n';
+import { applyUiDirection, normalizeUiLanguage, useI18n } from '@/i18n';
 
 import { LANGUAGE_OPTIONS } from '../constants';
 
@@ -10,8 +11,28 @@ type LanguagePickerProps = {
   error?: string;
 };
 
+function languageLabel(
+  language: (typeof LANGUAGE_OPTIONS)[number],
+  t: ReturnType<typeof useI18n>['t'],
+): string {
+  if (language.code === 'ar') {
+    return `${language.flag} ${t('language.arabic')}`;
+  }
+  if (language.code === 'so') {
+    return `${language.flag} ${t('language.somali')}`;
+  }
+  if (language.code === 'en') {
+    return `${language.flag} ${t('language.english')}`;
+  }
+  return `${language.flag} ${language.label}`;
+}
+
 export function LanguagePicker({ value, onChange, error }: LanguagePickerProps) {
   const { t } = useI18n(value);
+
+  useEffect(() => {
+    applyUiDirection(normalizeUiLanguage(value));
+  }, [value]);
 
   return (
     <View className="mb-4">
@@ -19,8 +40,7 @@ export function LanguagePicker({ value, onChange, error }: LanguagePickerProps) 
       <View className="flex-row flex-wrap gap-2">
         {LANGUAGE_OPTIONS.map((language) => {
           const selected = value === language.code;
-          const label =
-            language.code === 'so' ? t('language.somali') : `${language.flag} ${language.label}`;
+          const label = languageLabel(language, t);
           return (
             <Pressable
               key={language.code}
@@ -35,7 +55,7 @@ export function LanguagePicker({ value, onChange, error }: LanguagePickerProps) 
               <Text
                 className={`text-sm font-medium ${selected ? 'text-brand-700' : 'text-brand-500'}`}
               >
-                {language.code === 'so' ? `🇸🇴 ${t('language.somali')}` : label}
+                {label}
               </Text>
             </Pressable>
           );

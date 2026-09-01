@@ -78,7 +78,7 @@ export function LearningModeChooser({
 
       {isSomali ? (
         <View className="mt-4 flex-row items-center justify-between rounded-2xl bg-brand-50 px-4 py-3">
-          <View className="flex-1 pr-3">
+          <View className="flex-1 pe-3">
             <Text className="text-sm font-semibold text-brand-800">{t('tafsir.toggleLabel')}</Text>
             <Text className="mt-1 text-xs text-brand-600">{t('tafsir.toggleHelp')}</Text>
           </View>

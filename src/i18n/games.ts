@@ -1,8 +1,9 @@
 import type { GameAchievementId, GameDefinition, GameQuestion } from '@/features/games/types';
 
 import type { MessageKey } from './en';
+import { GAME_QUESTION_AR } from './gameQuestions.ar';
 import { GAME_QUESTION_SO } from './gameQuestions.so';
-import { t } from './translate';
+import { normalizeUiLanguage, t } from './translate';
 
 export type LocalizedGameQuestion = GameQuestion;
 
@@ -31,11 +32,9 @@ export function localizeGameQuestion(
   question: GameQuestion,
   language: string | null | undefined,
 ): LocalizedGameQuestion {
-  const code = (language ?? 'en').trim().toLowerCase();
-  if (code !== 'so' && !code.startsWith('so-')) {
-    return question;
-  }
-  const overlay = GAME_QUESTION_SO[question.id];
+  const ui = normalizeUiLanguage(language);
+  const overlay =
+    ui === 'so' ? GAME_QUESTION_SO[question.id] : ui === 'ar' ? GAME_QUESTION_AR[question.id] : null;
   if (!overlay) {
     return question;
   }

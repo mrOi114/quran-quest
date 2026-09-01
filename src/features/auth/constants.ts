@@ -35,7 +35,7 @@ export { COUNTRY_OPTIONS, findSelectableCountry, type CountryOption } from './da
 
 export const LANGUAGE_OPTIONS = [
   { code: 'en', flag: '🇬🇧', label: 'English' },
-  { code: 'ar', flag: '🇸🇦', label: 'Arabic' },
+  { code: 'ar', flag: '🇸🇦', label: 'العربية' },
   { code: 'so', flag: '🇸🇴', label: 'Somali / Af-Soomaali' },
   { code: 'fr', flag: '🇫🇷', label: 'French' },
   { code: 'ur', flag: '🇵🇰', label: 'Urdu' },

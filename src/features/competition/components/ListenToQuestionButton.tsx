@@ -39,7 +39,7 @@ export function ListenToQuestionButton({ englishText }: { englishText: string })
           setSpeaking(false);
         });
       }}
-      className="ml-2 min-h-12 min-w-12 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 px-2"
+      className="ms-2 min-h-12 min-w-12 items-center justify-center rounded-xl border border-brand-200 bg-brand-50 px-2"
     >
       <Text className="text-xl">🔊</Text>
     </Pressable>

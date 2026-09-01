@@ -21,3 +21,9 @@ body {
 	margin: 0;
 	background-color: #0f3d2e;
 }
+
+html[dir='rtl'],
+html[dir='rtl'] body,
+html[dir='rtl'] #root {
+	direction: rtl;
+}
