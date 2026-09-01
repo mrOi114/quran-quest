@@ -1081,4 +1081,5 @@ export const ar = {
   'family.pinOnce':
     'اكتب الرقم السري الآن. لن نعرضه مرة أخرى. لا يحتاج طفلك بريدًا أو كلمة مرور.',
   'family.createChildError': 'تعذّر إنشاء ملف الطفل',
+  'family.notStarted': 'لم يبدأ بعد',
 } satisfies Record<MessageKey, string>;

@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, Text } from 'react-native';
 
 import { AuthScreen, PrimaryButton } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 /**
  * Flip to true when email authentication is reliable again.
@@ -12,20 +13,21 @@ const SHOW_EMAIL_AUTH_ENTRY = false;
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { t } = useI18n();
 
   return (
-    <AuthScreen showBrand={false} title="Welcome to QuranFamily 🌙">
+    <AuthScreen showBrand={false} title={t('welcome.title')}>
       <PrimaryButton
-        label="Continue as Guest"
+        label={t('welcome.continueGuest')}
         onPress={() => router.push('/(auth)/guest-onboarding')}
       />
       <Text className="mb-4 text-center text-sm leading-5 text-brand-600">
-        No account needed — open Qur’an Quest and start learning, reading, and listening right away.
+        {t('welcome.guestHelp')}
       </Text>
       {SHOW_EMAIL_AUTH_ENTRY ? (
         <>
           <PrimaryButton
-            label="Create Account"
+            label={t('welcome.createAccount')}
             onPress={() =>
               router.push({
                 pathname: '/(auth)/register',
@@ -34,7 +36,7 @@ export default function WelcomeScreen() {
             }
           />
           <PrimaryButton
-            label="Log In"
+            label={t('welcome.logIn')}
             onPress={() =>
               router.push({ pathname: '/(auth)/login', params: { role: 'parent' } })
             }
@@ -44,13 +46,11 @@ export default function WelcomeScreen() {
       ) : null}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Child or learner family code entry"
+        accessibilityLabel={t('welcome.childEntryA11y')}
         onPress={() => router.push('/(auth)/child-entry')}
         className="mt-2 py-3"
       >
-        <Text className="text-center text-sm text-brand-600">
-          Child / Learner? Enter family code
-        </Text>
+        <Text className="text-center text-sm text-brand-600">{t('welcome.childEntry')}</Text>
       </Pressable>
     </AuthScreen>
   );

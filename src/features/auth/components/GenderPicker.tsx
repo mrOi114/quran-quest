@@ -1,5 +1,7 @@
 import { Pressable, Text } from 'react-native';
 
+import { useI18n } from '@/i18n';
+
 type Gender = 'girl' | 'boy';
 
 type GenderPickerProps = {
@@ -9,17 +11,17 @@ type GenderPickerProps = {
 };
 
 export function GenderPicker({ value, onChange, error }: GenderPickerProps) {
+  const { t } = useI18n();
+
   return (
     <>
-      <Text className="mb-2 text-sm font-medium text-brand-700">Girl or Boy</Text>
+      <Text className="mb-2 text-sm font-medium text-brand-700">{t('gender.girlOrBoy')}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ selected: value === 'girl' }}
         onPress={() => onChange('girl')}
         className={`mb-2 min-h-12 items-center justify-center rounded-xl border px-4 py-3 ${
-          value === 'girl'
-            ? 'border-brand-600 bg-brand-50'
-            : 'border-brand-100 bg-white'
+          value === 'girl' ? 'border-brand-600 bg-brand-50' : 'border-brand-100 bg-white'
         }`}
       >
         <Text
@@ -27,7 +29,7 @@ export function GenderPicker({ value, onChange, error }: GenderPickerProps) {
             value === 'girl' ? 'text-brand-800' : 'text-brand-600'
           }`}
         >
-          Girl
+          {t('gender.girl')}
         </Text>
       </Pressable>
       <Pressable
@@ -35,9 +37,7 @@ export function GenderPicker({ value, onChange, error }: GenderPickerProps) {
         accessibilityState={{ selected: value === 'boy' }}
         onPress={() => onChange('boy')}
         className={`mb-3 min-h-12 items-center justify-center rounded-xl border px-4 py-3 ${
-          value === 'boy'
-            ? 'border-brand-600 bg-brand-50'
-            : 'border-brand-100 bg-white'
+          value === 'boy' ? 'border-brand-600 bg-brand-50' : 'border-brand-100 bg-white'
         }`}
       >
         <Text
@@ -45,7 +45,7 @@ export function GenderPicker({ value, onChange, error }: GenderPickerProps) {
             value === 'boy' ? 'text-brand-800' : 'text-brand-600'
           }`}
         >
-          Boy
+          {t('gender.boy')}
         </Text>
       </Pressable>
       {error ? <Text className="mb-3 text-sm text-red-600">{error}</Text> : null}

@@ -1106,5 +1106,6 @@ export const so = {
   'family.pinOnce':
     'PIN-ka hadda qor. Mar dambe lama tusi doono. Ilmahu iimayl ama furaha uma baahna.',
   'family.createChildError': 'Ilmaha lama abuurin',
+  'family.notStarted': 'Weli lama bilaabin',
 } satisfies Record<MessageKey, string>;
 

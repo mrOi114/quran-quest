@@ -9,9 +9,11 @@ import {
   resolveFamilyCode,
   type FamilyCodeChild,
 } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 export default function ChildEntryScreen() {
   const router = useRouter();
+  const { t } = useI18n();
   const [familyCode, setFamilyCode] = useState('');
   const [children, setChildren] = useState<FamilyCodeChild[]>([]);
   const [familyName, setFamilyName] = useState<string | null>(null);
@@ -28,13 +30,13 @@ export default function ChildEntryScreen() {
       setFamilyName(resolved.familyName);
       setResolvedCode(resolved.familyCode);
       if (resolved.children.length === 0) {
-        setError('No children in this family yet. Ask a parent to add your profile.');
+        setError(t('childEntry.noChildren'));
       }
     } catch (err) {
       setChildren([]);
       setFamilyName(null);
       setResolvedCode(null);
-      setError(err instanceof Error ? err.message : 'Family code not found');
+      setError(err instanceof Error ? err.message : t('childEntry.codeNotFound'));
     } finally {
       setLoading(false);
     }
@@ -55,21 +57,20 @@ export default function ChildEntryScreen() {
   }
 
   return (
-    <AuthScreen
-      title="Child / Learner"
-      subtitle="Enter your family code, choose your name, then your PIN. No parent password needed."
-    >
+    <AuthScreen title={t('childEntry.title')} subtitle={t('childEntry.subtitle')}>
       <View className="mb-4 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-4">
-        <Text className="text-base font-semibold text-brand-800">How it works</Text>
+        <Text className="text-base font-semibold text-brand-800">{t('childEntry.howItWorks')}</Text>
         <Text className="mt-3 text-sm leading-5 text-brand-700">
-          1. Ask a parent for the family code from their Family dashboard{'\n'}
-          2. Enter the code and choose your name{'\n'}
-          3. Enter your PIN → open your QuranFamily home
+          {t('childEntry.step1')}
+          {'\n'}
+          {t('childEntry.step2')}
+          {'\n'}
+          {t('childEntry.step3')}
         </Text>
       </View>
 
       <TextField
-        label="Family code"
+        label={t('childEntry.familyCode')}
         autoCapitalize="characters"
         autoCorrect={false}
         value={familyCode}
@@ -77,14 +78,14 @@ export default function ChildEntryScreen() {
         error={error && children.length === 0 ? error : undefined}
       />
       <PrimaryButton
-        label="Find my family"
+        label={t('childEntry.findFamily')}
         onPress={() => void onResolveCode()}
         loading={loading}
       />
 
       {resolvedCode && familyName ? (
         <Text className="mb-3 text-sm text-brand-600">
-          Family of {familyName} · code {resolvedCode}
+          {t('childEntry.familyOf', { name: familyName, code: resolvedCode })}
         </Text>
       ) : null}
 
@@ -95,11 +96,9 @@ export default function ChildEntryScreen() {
           onPress={() => chooseChild(child)}
           className="mb-3 min-h-14 rounded-2xl border border-brand-100 bg-white px-4 py-4"
         >
-          <Text className="text-lg font-semibold text-brand-800">
-            {child.display_name}
-          </Text>
+          <Text className="text-lg font-semibold text-brand-800">{child.display_name}</Text>
           <Text className="mt-1 text-sm text-brand-500">
-            Age {child.age ?? '—'} · enter PIN
+            {t('childEntry.agePin', { age: child.age ?? '—' })}
           </Text>
         </Pressable>
       ))}
@@ -109,12 +108,12 @@ export default function ChildEntryScreen() {
       ) : null}
 
       <PrimaryButton
-        label="Parent connecting this device instead?"
+        label={t('childEntry.parentInstead')}
         onPress={() => router.push('/(auth)/login')}
         variant="secondary"
       />
       <PrimaryButton
-        label="Back"
+        label={t('common.back')}
         onPress={() => router.replace('/(auth)/welcome')}
         variant="secondary"
       />

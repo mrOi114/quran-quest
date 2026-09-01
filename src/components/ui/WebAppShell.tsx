@@ -237,7 +237,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
     endGuestSession,
     endChildFamilySession,
   } = useAuth();
-  const { t } = useI18n();
+  const { t, isRtl } = useI18n();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { guestExitVisible, requestGuestExit, keepLearning, confirmLeave } =
     useGuestExitWarning();
@@ -358,7 +358,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
   return (
     <View className="flex-1 flex-row bg-brand-600">
       {isDesktop ? (
-        <View className="w-80 border-r border-white/10 bg-brand-900/90">
+        <View className="w-80 border-e border-white/10 bg-brand-900/90">
           <SafeAreaView className="flex-1">
             <View className="px-6 pt-6">
               <Text className="text-3xl font-bold text-white">QuranFamily</Text>
@@ -427,7 +427,10 @@ export function WebAppShell({ children }: WebAppShellProps) {
       <Modal animationType="fade" transparent visible={!isDesktop && drawerOpen} onRequestClose={() => setDrawerOpen(false)}>
         <View className="flex-1 bg-black/40">
           <Pressable className="flex-1" onPress={() => setDrawerOpen(false)} />
-          <SafeAreaView className="absolute bottom-0 top-0 w-80 max-w-[88%] bg-brand-900 shadow-2xl">
+          <SafeAreaView
+            className="absolute bottom-0 top-0 w-80 max-w-[88%] bg-brand-900 shadow-2xl"
+            style={isRtl ? { right: 0 } : { left: 0 }}
+          >
             <View className="flex-1">
               <View className="border-b border-white/10 px-5 py-5">
                 <Text className="text-2xl font-bold text-white">QuranFamily</Text>

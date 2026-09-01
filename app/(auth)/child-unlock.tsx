@@ -9,10 +9,12 @@ import {
   PrimaryButton,
   useAuth,
 } from '@/features/auth';
+import { useI18n } from '@/i18n';
 
 /** Family-code child PIN unlock (no parent email session required). */
 export default function ChildUnlockScreen() {
   const router = useRouter();
+  const { t } = useI18n();
   const params = useLocalSearchParams<{
     childId?: string;
     familyCode?: string;
@@ -29,16 +31,13 @@ export default function ChildUnlockScreen() {
   const childName =
     typeof params.childName === 'string' && params.childName.trim()
       ? params.childName.trim()
-      : 'friend';
+      : t('common.friend');
 
   if (!childId || !familyCode) {
     return (
-      <AuthScreen
-        title="Start again"
-        subtitle="Enter your family code and choose your name first."
-      >
+      <AuthScreen title={t('childUnlock.startAgain')} subtitle={t('childUnlock.startAgainHelp')}>
         <PrimaryButton
-          label="Enter family code"
+          label={t('childUnlock.enterCode')}
           onPress={() => router.replace('/(auth)/child-entry')}
         />
       </AuthScreen>
@@ -49,7 +48,7 @@ export default function ChildUnlockScreen() {
     setError(null);
     const parsed = childPinSchema.safeParse({ pin });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Invalid PIN');
+      setError(parsed.error.issues[0]?.message ?? t('childUnlock.invalidPin'));
       return;
     }
 
@@ -58,30 +57,27 @@ export default function ChildUnlockScreen() {
       await unlockChildByFamilyCode(familyCode, childId, parsed.data.pin);
       router.replace('/(app)/home');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Incorrect PIN');
+      setError(err instanceof Error ? err.message : t('childUnlock.incorrectPin'));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <AuthScreen
-      title={`Hi ${childName}`}
-      subtitle="Enter your PIN to open your QuranFamily home."
-    >
+    <AuthScreen title={t('childUnlock.hi', { name: childName })} subtitle={t('childUnlock.pinHelp')}>
       <PinInput
-        label="Your PIN"
+        label={t('childUnlock.yourPin')}
         value={pin}
         onChangeText={setPin}
         error={error ?? undefined}
       />
       <PrimaryButton
-        label="Start learning"
+        label={t('guest.startLearning')}
         onPress={() => void onSubmit()}
         loading={loading}
       />
       <Pressable onPress={() => router.replace('/(auth)/child-entry')} className="py-2">
-        <Text className="text-center text-sm font-medium text-brand-600">Back</Text>
+        <Text className="text-center text-sm font-medium text-brand-600">{t('common.back')}</Text>
       </Pressable>
     </AuthScreen>
   );

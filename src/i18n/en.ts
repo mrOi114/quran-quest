@@ -1084,6 +1084,7 @@ export const en = {
   'family.pinOnce':
     'Write the PIN down now. We will not show it again. Your child does not need an email or password.',
   'family.createChildError': 'Could not create child',
+  'family.notStarted': 'Not started',
 } as const;
 
 export type MessageKey = keyof typeof en;
