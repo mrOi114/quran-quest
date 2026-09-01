@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePathname, useRouter } from 'expo-router';
 
 import { GuestExitWarning, useAuth, useGuestExitWarning } from '@/features/auth';
+import { peekActiveChallengeCode } from '@/features/competition/services/activeRoom';
 import { useI18n, type MessageKey } from '@/i18n';
 
 type NavId =
@@ -283,8 +284,21 @@ export function WebAppShell({ children }: WebAppShellProps) {
     return activeItem ? t(NAV_LABEL_KEY[activeItem.id]) : 'QuranFamily';
   }, [mainNavItems, pathname, t]);
 
-  function navigate(href: string) {
+  function navigate(href: string, navId?: NavId) {
     setDrawerOpen(false);
+    if (navId === 'competition') {
+      void peekActiveChallengeCode().then((code) => {
+        if (code) {
+          router.push({
+            pathname: '/(app)/competition/[code]',
+            params: { code },
+          } as never);
+          return;
+        }
+        router.push(href as never);
+      });
+      return;
+    }
     router.push(href as never);
   }
 
@@ -326,7 +340,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
           item={item}
           label={t(NAV_LABEL_KEY[item.id])}
           active={isActiveNavItem(item, pathname)}
-          onPress={() => navigate(item.href)}
+          onPress={() => navigate(item.href, item.id)}
         />
       ))}
 
@@ -416,7 +430,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
                   item={item}
                   label={t(NAV_LABEL_KEY[item.id])}
                   active={isActiveNavItem(item, pathname)}
-                  onPress={() => navigate(item.href)}
+                  onPress={() => navigate(item.href, item.id)}
                 />
               ))}
             </View>

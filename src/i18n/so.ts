@@ -887,6 +887,9 @@ export const so = {
   'competition.enterCode': 'Koodhka tartanka',
   'competition.joinWithCode': 'Ku biir koodhka',
   'competition.waiting': 'Sugayaa ciyaaryahan...',
+  'competition.waitingStay':
+    'Waxaad ku sii jiraysaa qolkan ilaa aad taabato Ka bax Tartanka. Waad baran, akhriyi, ama dhagaysan kartaa intaad sugayso.',
+  'competition.keepLearningWhileWaiting': 'Sii wad barashada intaad sugayso',
   'competition.opponentJoined': 'Qofkii kula tartamayaa wuu yimid!',
   'competition.codeLabel': 'Koodhka Tartanka: {code}',
   'competition.joinedCount': 'Ciyaaryahanno {count} / {max}',

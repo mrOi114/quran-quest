@@ -100,13 +100,17 @@ assert(invite.includes('PRODUCTION_WEB_ORIGIN') || invite.includes('/challenge/'
 assert(!invite.includes('email') || true, 'invite helper exists');
 
 assert(matchScreen.includes('leaveCompetition'), 'Leave Competition is on the match screen');
+assert(matchScreen.includes('keepLearningWhileWaiting'), 'Waiting players can keep learning');
+assert(matchScreen.includes('waitingStay'), 'Waiting copy says membership survives navigation');
 assert(homeScreen.includes('resumeActiveChallenge'), 'Home restores an active room');
 assert(service.includes("action: 'leave'"), 'Leave room action exists');
 assert(service.includes("action: 'resume'"), 'Resume room action exists');
 assert(edge.includes("action === 'leave'"), 'Server leave removes the seat');
 assert(edge.includes("action === 'resume'"), 'Server resume restores membership');
 assert(edge.includes('pruneStaleWaitingSeats'), 'Stale waiting players are cleaned up');
+assert(edge.includes('keepParticipantId'), 'Heartbeat must not prune the current player');
 assert(edge.includes('STALE_WAITING_MS'), 'Waiting presence uses a heartbeat timeout');
+assert(read('src/components/ui/WebAppShell.tsx').includes('peekActiveChallengeCode'), 'Competition nav returns to the live room');
 assert(read('src/features/competition/constants.ts').includes('ACTIVE_CHALLENGE_STORAGE'), 'Active room code is persisted');
 assert(
   read('app/(app)/_layout.tsx').includes('CompetitionMembershipHost'),

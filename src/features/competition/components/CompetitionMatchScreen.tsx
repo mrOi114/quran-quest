@@ -188,6 +188,14 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
             <Text className="mt-2 text-sm font-semibold text-brand-700">
               {t(rangeLabelKey(state.challenge.quran_range))}
             </Text>
+            <Text className="mt-3 text-sm leading-5 text-brand-600">
+              {t('competition.waitingStay')}
+            </Text>
+            <PrimaryButton
+              label={t('competition.keepLearningWhileWaiting')}
+              variant="secondary"
+              onPress={() => router.push('/(app)/home' as Href)}
+            />
 
             {state.challenge.players.map((player) => (
               <Text key={player.participant_id} className="mt-2 text-base text-brand-800">

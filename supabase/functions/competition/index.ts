@@ -393,7 +393,7 @@ async function handleAction(
   }
 
   if (action === 'get_state') {
-    await pruneStaleWaitingSeats(service, challenge.row);
+    await pruneStaleWaitingSeats(service, challenge.row, challenge.me.id);
     const stillHere = await refetchParticipant(service, challenge.me.id);
     if (!stillHere) {
       return { status: 403, body: { error: 'not_member' } };
@@ -1401,12 +1401,13 @@ async function maybeExpire(
   }
 }
 
-const STALE_WAITING_MS = 5 * 60 * 1000;
+const STALE_WAITING_MS = 45 * 60 * 1000;
 const LIVE_ROOM_STATUSES = new Set(['waiting', 'ready_check', 'question', 'reveal']);
 
 async function pruneStaleWaitingSeats(
   service: ReturnType<typeof createServiceClient>,
   challenge: ChallengeRow,
+  keepParticipantId?: string,
 ) {
   if (challenge.status !== 'waiting' && challenge.status !== 'ready_check') {
     return;
@@ -1414,6 +1415,9 @@ async function pruneStaleWaitingSeats(
   const cutoff = Date.now() - STALE_WAITING_MS;
   const people = await fetchParticipants(service, challenge.id);
   for (const person of people) {
+    if (keepParticipantId && person.id === keepParticipantId) {
+      continue;
+    }
     if (Date.parse(person.last_seen_at) >= cutoff) {
       continue;
     }
@@ -1445,7 +1449,7 @@ async function resumeActiveSeat(
     if (!room || isExpired(room) || !LIVE_ROOM_STATUSES.has(room.status)) {
       continue;
     }
-    await pruneStaleWaitingSeats(service, room);
+    await pruneStaleWaitingSeats(service, room, seat.id);
     const me = await refetchParticipant(service, seat.id);
     if (!me) {
       continue;

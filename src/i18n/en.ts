@@ -866,6 +866,9 @@ export const en = {
   'competition.enterCode': 'Challenge code',
   'competition.joinWithCode': 'Join with code',
   'competition.waiting': 'Waiting for a player...',
+  'competition.waitingStay':
+    'You stay in this room until you tap Leave Competition. You can learn, read, or listen while you wait.',
+  'competition.keepLearningWhileWaiting': 'Keep learning while you wait',
   'competition.opponentJoined': 'Opponent joined!',
   'competition.codeLabel': 'Challenge Code: {code}',
   'competition.joinedCount': 'Players {count} / {max}',

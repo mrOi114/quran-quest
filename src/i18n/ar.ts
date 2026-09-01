@@ -862,6 +862,9 @@ export const ar = {
   'competition.enterCode': 'رمز التحدّي',
   'competition.joinWithCode': 'انضم بالرمز',
   'competition.waiting': 'بانتظار لاعب...',
+  'competition.waitingStay':
+    'تبقى في هذه الغرفة حتى تضغط «غادر المسابقة». يمكنك التعلّم والقراءة والاستماع أثناء الانتظار.',
+  'competition.keepLearningWhileWaiting': 'تابع التعلّم أثناء الانتظار',
   'competition.opponentJoined': 'انضم الخصم!',
   'competition.codeLabel': 'رمز التحدّي: {code}',
   'competition.joinedCount': 'اللاعبون {count} / {max}',
