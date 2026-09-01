@@ -314,6 +314,8 @@ export const so = {
   'guest.startError': 'Habka Martida lama bilaabi karin',
   'guest.nameTaken':
     'Magacaas qof ayaa hore u isticmaalay. Dooro magac ama naanays kale si Horyaalku uga caddnaado qalab kasta.',
+  'guest.nicknameTaken': 'Naanaystan qof ayaa hore u qaatay.',
+  'guest.accessCode': 'Koodhka gelitaanka',
   'guest.nameCheckFailed':
     'Magaca lama hubin karin. Ku xidh internetka oo mar kale isku day.',
 

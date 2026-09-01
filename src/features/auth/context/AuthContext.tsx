@@ -736,6 +736,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         ageGroup: input.ageGroup,
         countryCode: input.countryCode,
         preferredLanguage: input.preferredLanguage,
+        accessCode: input.accessCode,
         id: existing?.id,
         createdAt: existing?.createdAt,
       });

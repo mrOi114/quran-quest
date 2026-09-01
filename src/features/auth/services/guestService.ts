@@ -51,8 +51,8 @@ function emptyProgress(): GuestProgress {
   };
 }
 
-export function normalizeGuestDisplayName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+export function isReservedFounderNickname(name: string): boolean {
+  return normalizeGuestDisplayName(name) === 'founder';
 }
 
 export function guestDisplayNameConflicts(options: {
@@ -107,12 +107,19 @@ export function isGuestNameCheckError(error: unknown): boolean {
   );
 }
 
-async function claimGuestDisplayNameGlobally(displayName: string): Promise<void> {
+async function claimGuestDisplayNameGlobally(
+  displayName: string,
+  accessCode?: string,
+): Promise<void> {
   const participant_key = await getOrCreateParticipantKey();
   try {
     await assertFunctionOk(
       await supabase.functions.invoke('guest-name', {
-        body: { display_name: displayName, participant_key },
+        body: {
+          display_name: displayName,
+          participant_key,
+          ...(accessCode ? { access_code: accessCode } : {}),
+        },
       }),
     );
   } catch (error) {
@@ -232,12 +239,17 @@ export async function updateGuestPreferredLanguage(
 }
 
 export async function saveGuestProfile(
-  input: Omit<GuestProfile, 'id' | 'createdAt'> & { id?: string; createdAt?: string },
+  input: Omit<GuestProfile, 'id' | 'createdAt'> & {
+    id?: string;
+    createdAt?: string;
+    accessCode?: string;
+  },
 ): Promise<GuestProfile> {
   const current = await getGuestProfile();
   const normalizedName = normalizeGuestDisplayName(input.displayName);
   const reservedNames = await loadReservedGuestNames();
   if (
+    !isReservedFounderNickname(input.displayName) &&
     guestDisplayNameConflicts({
       normalizedName,
       reservedNames,
@@ -249,7 +261,11 @@ export async function saveGuestProfile(
     throw new GuestNameTakenError();
   }
 
-  await claimGuestDisplayNameGlobally(input.displayName.trim());
+  const nameChanged =
+    !current || normalizeGuestDisplayName(current.displayName) !== normalizedName;
+  if (nameChanged) {
+    await claimGuestDisplayNameGlobally(input.displayName.trim(), input.accessCode);
+  }
 
   const profile: GuestProfile = {
     id: input.id ?? Crypto.randomUUID(),

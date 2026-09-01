@@ -302,6 +302,8 @@ export const en = {
   'guest.startError': 'Could not start Guest Mode',
   'guest.nameTaken':
     'That name is already used. Choose a different first name or nickname so the Leaderboard stays clear on every device.',
+  'guest.nicknameTaken': 'This nickname is already taken.',
+  'guest.accessCode': 'Access code',
   'guest.nameCheckFailed':
     'Could not check that name. Connect to the internet and try again.',
 

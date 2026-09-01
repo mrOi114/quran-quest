@@ -18,6 +18,7 @@ export const guestOnboardingSchema = z.object({
     .length(2, 'Use a 2-letter country code')
     .transform((value) => value.toUpperCase()),
   preferredLanguage: z.string().trim().min(2).max(10),
+  accessCode: z.string().max(16).optional(),
 });
 
 export const registerSchema = z

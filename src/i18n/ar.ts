@@ -300,6 +300,8 @@ export const ar = {
   'guest.startError': 'تعذّر بدء وضع الضيف',
   'guest.nameTaken':
     'هذا الاسم مستخدم. اختر اسمًا أو لقبًا آخر حتى يبقى جدول المتصدرين واضحًا على كل جهاز.',
+  'guest.nicknameTaken': 'هذا اللقب مستخدم بالفعل.',
+  'guest.accessCode': 'رمز الدخول',
   'guest.nameCheckFailed': 'تعذّر التحقّق من الاسم. اتصل بالإنترنت ثم حاول مرة أخرى.',
 
   'circle.section': 'حلقة QuranFamily',

@@ -9,6 +9,7 @@ import {
   guestOnboardingSchema,
   isGuestNameCheckError,
   isGuestNameTakenError,
+  isReservedFounderNickname,
   LanguagePicker,
   PrimaryButton,
   TextField,
@@ -22,6 +23,7 @@ export default function GuestOnboardingScreen() {
   const router = useRouter();
   const { startGuest, isGuest, activeLearner } = useAuth();
   const [displayName, setDisplayName] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [ageGroup, setAgeGroup] = useState<AgeGroupId>('child_7_10');
   const [countryCode, setCountryCode] = useState('US');
   const [preferredLanguage, setPreferredLanguage] = useState('en');
@@ -43,6 +45,7 @@ export default function GuestOnboardingScreen() {
       ageGroup,
       countryCode,
       preferredLanguage,
+      accessCode: isReservedFounderNickname(displayName) ? accessCode : undefined,
     });
 
     if (!parsed.success) {
@@ -69,7 +72,11 @@ export default function GuestOnboardingScreen() {
       }
     } catch (error) {
       if (isGuestNameTakenError(error)) {
-        setFieldErrors({ displayName: t('guest.nameTaken') });
+        setFieldErrors({
+          displayName: isReservedFounderNickname(displayName)
+            ? t('guest.nicknameTaken')
+            : t('guest.nameTaken'),
+        });
       } else if (isGuestNameCheckError(error)) {
         setFormError(t('guest.nameCheckFailed'));
       } else {
@@ -91,6 +98,17 @@ export default function GuestOnboardingScreen() {
         onChangeText={setDisplayName}
         error={fieldErrors.displayName}
       />
+      {isReservedFounderNickname(displayName) ? (
+        <TextField
+          label={t('guest.accessCode')}
+          value={accessCode}
+          onChangeText={setAccessCode}
+          secureTextEntry
+          autoComplete="off"
+          textContentType="oneTimeCode"
+          keyboardType="number-pad"
+        />
+      ) : null}
 
       <Text className="mb-2 text-sm font-medium text-brand-700">{t('guest.ageGroup')}</Text>
       <View className="mb-4 flex-row flex-wrap gap-2">
