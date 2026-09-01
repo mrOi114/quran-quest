@@ -51,6 +51,10 @@ function emptyProgress(): GuestProgress {
   };
 }
 
+export function normalizeGuestDisplayName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 export function isReservedFounderNickname(name: string): boolean {
   return normalizeGuestDisplayName(name) === 'founder';
 }

@@ -67,6 +67,8 @@ assert(resolveGuestSessionActive(null, true) === true, 'legacy profile restores 
 assert(resolveGuestSessionActive(null, false) === false, 'no flag and no profile is not Guest Mode');
 
 assert(guestService.includes("const GUEST_USED_NAMES_KEY = 'qq.guest.used_names'"), 'Used guest names are persisted');
+assert(guestService.includes('export function normalizeGuestDisplayName'), 'Guest names compare case-insensitively');
+assert(guestService.includes('export function isReservedFounderNickname'), 'Founder nickname helper exists');
 assert(guestService.includes('guestDisplayNameConflicts'), 'Guest name conflict helper exists');
 assert(guestService.includes('GuestNameTakenError'), 'Taken guest names throw a dedicated error');
 assert(!/GUEST_USED_NAMES_KEY/.test(guestService.slice(guestService.indexOf('export async function clearGuestProfile'))), 'Ending Guest Mode must keep reserved names');
