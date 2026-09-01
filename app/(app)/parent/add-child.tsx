@@ -15,6 +15,7 @@ import {
   type ChildGender,
 } from '@/features/auth';
 import { avatarKeyFromGender } from '@/features/auth/utils/childGender';
+import { useI18n } from '@/i18n';
 
 type ConfirmState = {
   displayName: string;
@@ -32,6 +33,7 @@ export default function AddChildScreen() {
     familyCode,
     ensureFamilyCode,
   } = useAuth();
+  const { t } = useI18n();
   const [displayName, setDisplayName] = useState('');
   const [age, setAge] = useState('8');
   const [gender, setGender] = useState<ChildGender>('girl');
@@ -96,7 +98,7 @@ export default function AddChildScreen() {
         familyCode: code,
       });
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'Could not create child');
+      setFormError(error instanceof Error ? error.message : t('family.createChildError'));
     } finally {
       setLoading(false);
     }
@@ -105,48 +107,50 @@ export default function AddChildScreen() {
   if (confirmation) {
     return (
       <AuthScreen
-        title={`${confirmation.displayName} is ready`}
-        subtitle="Share this login info with your child. Keep the PIN private."
+        title={t('family.childReady', { name: confirmation.displayName })}
+        subtitle={t('family.shareLoginHelp')}
       >
         <View className="mb-4 rounded-2xl border border-brand-100 bg-brand-50 px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            How they log in
+            {t('family.howTheyLogIn')}
           </Text>
           <Text className="mt-3 text-sm leading-6 text-brand-700">
-            1. Open QuranFamily{'\n'}
-            2. Tap Child / Learner{'\n'}
-            3. Enter family code{'\n'}
-            4. Choose {confirmation.displayName}
+            {t('family.loginStep1')}
             {'\n'}
-            5. Enter PIN
+            {t('family.loginStep2')}
+            {'\n'}
+            {t('family.loginStep3')}
+            {'\n'}
+            {t('family.loginStep4', { name: confirmation.displayName })}
+            {'\n'}
+            {t('family.loginStep5')}
           </Text>
         </View>
 
         <View className="mb-4 rounded-2xl border border-brand-100 bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-            Login / access info
+            {t('family.loginInfo')}
           </Text>
           <Text className="mt-3 text-base text-brand-800">
-            Name: {confirmation.displayName}
+            {t('family.loginName', { name: confirmation.displayName })}
           </Text>
           <Text className="mt-2 text-base text-brand-800">
-            Family code: {confirmation.familyCode || 'Ask My Family after it appears'}
+            {t('family.loginFamilyCode', {
+              code: confirmation.familyCode || t('family.askFamilyCode'),
+            })}
           </Text>
           <Text className="mt-2 text-base text-brand-800">
-            PIN: {confirmation.pin}
+            {t('family.loginPin', { pin: confirmation.pin })}
           </Text>
-          <Text className="mt-3 text-sm leading-5 text-brand-600">
-            Write the PIN down now. We will not show it again. Your child does not need
-            an email or password.
-          </Text>
+          <Text className="mt-3 text-sm leading-5 text-brand-600">{t('family.pinOnce')}</Text>
         </View>
 
         <PrimaryButton
-          label="Back to My Family"
+          label={t('family.backToMyFamily')}
           onPress={() => router.replace('/(app)/parent/dashboard')}
         />
         <PrimaryButton
-          label="Add another child"
+          label={t('family.addAnother')}
           onPress={() => {
             setConfirmation(null);
             setDisplayName('');
@@ -164,27 +168,29 @@ export default function AddChildScreen() {
   }
 
   return (
-    <AuthScreen
-      title="Add a child"
-      subtitle="Nickname, age, Girl/Boy, and a PIN. You stay in control — no child email."
-    >
+    <AuthScreen title={t('family.addChildTitle')} subtitle={t('family.addChildSubtitle')}>
       <TextField
-        label="Nickname"
+        label={t('family.nickname')}
         value={displayName}
         onChangeText={setDisplayName}
         error={fieldErrors.displayName}
       />
       <TextField
-        label="Age"
+        label={t('family.age')}
         keyboardType="number-pad"
         value={age}
         onChangeText={setAge}
         error={fieldErrors.age}
       />
       <GenderPicker value={gender} onChange={setGender} error={fieldErrors.gender} />
-      <PinInput label="Child PIN" value={pin} onChangeText={setPin} error={fieldErrors.pin} />
       <PinInput
-        label="Confirm PIN"
+        label={t('family.childPin')}
+        value={pin}
+        onChangeText={setPin}
+        error={fieldErrors.pin}
+      />
+      <PinInput
+        label={t('family.confirmPin')}
         value={confirmPin}
         onChangeText={setConfirmPin}
         error={fieldErrors.confirmPin}
@@ -192,7 +198,7 @@ export default function AddChildScreen() {
 
       <Pressable onPress={() => setShowAdvanced((value) => !value)} className="mb-3 py-1">
         <Text className="text-sm font-medium text-brand-600">
-          {showAdvanced ? 'Hide country & language' : 'Country & language (optional)'}
+          {showAdvanced ? t('family.hideCountryLanguage') : t('family.showCountryLanguage')}
         </Text>
       </Pressable>
 
@@ -214,12 +220,12 @@ export default function AddChildScreen() {
       {formError ? <Text className="mb-3 text-sm text-red-600">{formError}</Text> : null}
 
       <PrimaryButton
-        label="Create child profile"
+        label={t('family.createChild')}
         onPress={() => void onCreateChild()}
         loading={loading}
       />
       <PrimaryButton
-        label="Back to My Family"
+        label={t('family.backToMyFamily')}
         onPress={() => router.replace('/(app)/parent/dashboard')}
         variant="secondary"
       />

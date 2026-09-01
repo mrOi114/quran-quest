@@ -80,12 +80,8 @@ export default function FamilyLearnersScreen() {
 
   return (
     <AuthScreen
-      title="Who is learning?"
-      subtitle={
-        parentSignedIn
-          ? 'Tap your name. Children enter a PIN. Parents can continue without a PIN.'
-          : 'Continue as yourself to learn.'
-      }
+      title={t('familyGroup.whoIsLearning')}
+      subtitle={parentSignedIn ? t('family.whoParentHelp') : t('family.whoSelfHelp')}
     >
       {profile && profile.role !== 'child' ? (
         <Pressable
