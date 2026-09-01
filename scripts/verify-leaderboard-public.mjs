@@ -29,6 +29,8 @@ const en = read('src/i18n/en.ts');
 
 assert(constants.includes('LEADERBOARD_PUBLIC_LIMIT = 30'), 'Top 30 cap exists');
 assert(edge.includes('const LIMIT = 30'), 'Server list is capped at 30');
+assert(!edge.includes('const LIMIT = 70'), 'Server list is not capped at 70');
+assert(edge.includes("fetchOrdered(service, 'current_power')"), 'All Students ranks by Current Power');
 assert(edge.includes("action !== 'publish'"), 'Guests can publish without a JWT');
 assert(migration.includes('leaderboard_public_entries'), 'Public projection table exists');
 assert(migration.includes('revoke all on public.leaderboard_public_entries'), 'Clients cannot query the table directly');

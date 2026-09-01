@@ -43,7 +43,14 @@ type RealLearnerRow = {
 function sortAndRank(
   rows: Array<Omit<LeaderboardEntry, 'rank'>>,
 ): LeaderboardEntry[] {
-  const sorted = [...rows].sort((a, b) => {
+  const unique = new Map<string, Omit<LeaderboardEntry, 'rank'>>();
+  for (const row of rows) {
+    if (!row.id || unique.has(row.id)) {
+      continue;
+    }
+    unique.set(row.id, row);
+  }
+  const sorted = [...unique.values()].sort((a, b) => {
     if (b.points !== a.points) {
       return b.points - a.points;
     }
@@ -303,12 +310,13 @@ function buildBoard(options: {
   activeNow: boolean;
 }): LeaderboardBoard {
   const selected = options.rows.filter(options.include);
-  const entries = sortAndRank(
+  const ranked = sortAndRank(
     selected.map((row) =>
       toEntry(row, options.currentId, options.pickPoints(row), options.activeNow),
     ),
   );
-  const you = personalStanding(entries, options.placesMoved);
+  const you = personalStanding(ranked, options.placesMoved);
+  const entries = ranked.slice(0, LEADERBOARD_PUBLIC_LIMIT);
 
   return {
     view: options.view,
@@ -379,7 +387,7 @@ export async function buildLeaderboardModel(options: {
       currentId: activeLearner.id,
       slice: publicSnapshot.age,
       local: localRow,
-      pickPoints: (row) => row.lifetimePoints,
+      pickPoints: (row) => row.currentPower,
       effort,
       placesMoved: null,
       activeNow,
@@ -416,7 +424,7 @@ export async function buildLeaderboardModel(options: {
       currentId: activeLearner.id,
       slice: publicSnapshot.all,
       local: localRow,
-      pickPoints: (row) => row.lifetimePoints,
+      pickPoints: (row) => row.currentPower,
       effort,
       placesMoved: null,
       activeNow,
@@ -488,7 +496,7 @@ export async function buildLeaderboardModel(options: {
     subtitle: 'Fair competition with learners in your age group.',
     currentId: activeLearner.id,
     rows,
-    pickPoints: (row) => row.lifetimePoints,
+    pickPoints: (row) => row.currentPower,
     include: (row) => row.learner.id === activeLearner.id || row.ageGroup === ageGroup,
     effort,
     placesMoved: null,
@@ -523,7 +531,7 @@ export async function buildLeaderboardModel(options: {
     subtitle: 'Real Guest Mode and registered students. Top 30.',
     currentId: activeLearner.id,
     rows,
-    pickPoints: (row) => row.lifetimePoints,
+    pickPoints: (row) => row.currentPower,
     include: () => true,
     effort,
     placesMoved: null,

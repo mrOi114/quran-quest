@@ -85,8 +85,15 @@ function normalizeSnapshot(raw: PublicLeaderboardSnapshot): PublicLeaderboardSna
 }
 
 function normalizeSlice(slice: PublicLeaderboardSnapshot['all'] | undefined) {
+  const seen = new Set<string>();
   const entries = (slice?.entries ?? [])
-    .filter((row) => row?.id && row.displayName && isAgeGroup(row.ageGroup))
+    .filter((row) => {
+      if (!row?.id || !row.displayName || !isAgeGroup(row.ageGroup) || seen.has(row.id)) {
+        return false;
+      }
+      seen.add(row.id);
+      return true;
+    })
     .slice(0, LEADERBOARD_PUBLIC_LIMIT)
     .map((row) => ({
       ...row,

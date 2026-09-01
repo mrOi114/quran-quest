@@ -235,7 +235,7 @@ function toPublic(row: EntryRow) {
 
 async function fetchOrdered(
   service: ReturnType<typeof createServiceClient>,
-  column: 'lifetime_points' | 'juz_current_power',
+  column: 'current_power' | 'juz_current_power',
   ageGroup?: string,
 ) {
   let query = service
@@ -250,12 +250,19 @@ async function fetchOrdered(
     query = query.eq('age_group', ageGroup);
   }
   const { data } = await query;
-  return ((data ?? []) as EntryRow[]).map(toPublic);
+  const unique = new Map<string, EntryRow>();
+  for (const row of (data ?? []) as EntryRow[]) {
+    if (!row.subject_key || unique.has(row.subject_key)) {
+      continue;
+    }
+    unique.set(row.subject_key, row);
+  }
+  return [...unique.values()].slice(0, LIMIT).map(toPublic);
 }
 
 async function rankOf(
   service: ReturnType<typeof createServiceClient>,
-  column: 'lifetime_points' | 'juz_current_power',
+  column: 'current_power' | 'juz_current_power',
   points: number,
   subjectKey: string,
   ageGroup?: string,
@@ -300,14 +307,14 @@ async function buildSnapshot(
     ? ((
         await service
           .from('leaderboard_public_entries')
-          .select('subject_key, age_group, lifetime_points, juz_current_power, updated_at')
+          .select('subject_key, age_group, current_power, juz_current_power, updated_at')
           .eq('subject_key', learnerId)
           .order('updated_at', { ascending: false })
           .limit(1)
       ).data as Array<{
         subject_key: string;
         age_group: string;
-        lifetime_points: number;
+        current_power: number;
         juz_current_power: number;
       }> | null)
     : null;
@@ -316,8 +323,8 @@ async function buildSnapshot(
   const age = ageGroup ?? me?.age_group ?? null;
   const [allEntries, ageEntries, juzEntries, learningNowRows, totalAll, totalAge, totalJuz] =
     await Promise.all([
-      fetchOrdered(service, 'lifetime_points'),
-      age ? fetchOrdered(service, 'lifetime_points', age) : Promise.resolve([]),
+      fetchOrdered(service, 'current_power'),
+      age ? fetchOrdered(service, 'current_power', age) : Promise.resolve([]),
       fetchOrdered(service, 'juz_current_power'),
       service
         .from('leaderboard_public_entries')
@@ -331,11 +338,11 @@ async function buildSnapshot(
     ]);
 
   const myRankAll = me
-    ? await rankOf(service, 'lifetime_points', me.lifetime_points, me.subject_key)
+    ? await rankOf(service, 'current_power', me.current_power, me.subject_key)
     : totalAll + 1;
   const myRankAge =
     me && age
-      ? await rankOf(service, 'lifetime_points', me.lifetime_points, me.subject_key, age)
+      ? await rankOf(service, 'current_power', me.current_power, me.subject_key, age)
       : totalAge + 1;
   const myRankJuz = me
     ? await rankOf(service, 'juz_current_power', me.juz_current_power, me.subject_key)
