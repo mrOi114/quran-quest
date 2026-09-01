@@ -1,13 +1,15 @@
+import { ar } from './ar';
 import { en, type MessageKey } from './en';
 import { so } from './so';
 
 export type { MessageKey };
 
-export type UiLanguage = 'en' | 'so';
+export type UiLanguage = 'en' | 'so' | 'ar';
 
 const catalogs: Record<UiLanguage, Record<MessageKey, string>> = {
   en,
   so,
+  ar,
 };
 
 const missingKeys = new Set<string>();
@@ -17,11 +19,22 @@ export function normalizeUiLanguage(code: string | null | undefined): UiLanguage
   if (value === 'so' || value.startsWith('so-')) {
     return 'so';
   }
+  if (value === 'ar' || value.startsWith('ar-')) {
+    return 'ar';
+  }
   return 'en';
 }
 
 export function isSomaliUi(code: string | null | undefined): boolean {
   return normalizeUiLanguage(code) === 'so';
+}
+
+export function isArabicUi(code: string | null | undefined): boolean {
+  return normalizeUiLanguage(code) === 'ar';
+}
+
+export function isRtlUi(code: string | null | undefined): boolean {
+  return isArabicUi(code);
 }
 
 export type TranslateVars = Record<string, string | number>;

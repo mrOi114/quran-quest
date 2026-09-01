@@ -39,6 +39,8 @@ export function useI18n(languageOverride?: string | null) {
   return {
     language,
     isSomali: language === 'so',
+    isArabic: language === 'ar',
+    isRtl: language === 'ar',
     t: translate,
     lessonLabel: (index: number) => translateLessonLabel(index, language),
     ayahRange: (start: number, end: number) => translateAyahRange(start, end, language),

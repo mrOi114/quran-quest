@@ -1,7 +1,12 @@
+export { ar } from './ar';
 export { en, type MessageKey } from './en';
 export { so } from './so';
+export { RtlProvider } from './RtlProvider';
+export { applyUiDirection } from './rtl';
 export {
   getMissingTranslationKeys,
+  isArabicUi,
+  isRtlUi,
   isSomaliUi,
   normalizeUiLanguage,
   t,
