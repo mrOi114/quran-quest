@@ -28,3 +28,7 @@ verify_jwt = false
 # Guests have no auth JWT. Public top-30 student board uses the device participant key.
 [functions.leaderboard]
 verify_jwt = false
+
+# Guests and students send feedback without an email JWT. Founder reads it from the app.
+[functions.student-feedback]
+verify_jwt = false

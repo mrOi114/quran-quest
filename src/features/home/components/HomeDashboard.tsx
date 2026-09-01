@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { GuestExitWarning, MilestonePrompt, useAuth, useGuestExitWarning } from '@/features/auth';
+import { GuestExitWarning, MilestonePrompt, isReservedFounderNickname, useAuth, useGuestExitWarning } from '@/features/auth';
 import { FamilyCommsEntry } from '@/features/family-comms';
 import { CircleEntry } from '@/features/circles';
 import { CompetitionEntry } from '@/features/competition';
@@ -80,6 +80,21 @@ export function HomeDashboard() {
           encouragement={dashboard.encouragement}
           isGuest={isGuest}
         />
+
+        {isReservedFounderNickname(activeLearner?.display_name ?? '') ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('feedback.inboxTitle')}
+            onPress={() => router.push('/(app)/feedback' as never)}
+            className="mb-4 rounded-3xl bg-white px-4 py-4"
+          >
+            <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
+              {t('feedback.inboxEyebrow')}
+            </Text>
+            <Text className="mt-2 text-xl font-bold text-brand-800">{t('feedback.inboxTitle')}</Text>
+            <Text className="mt-1 text-sm text-brand-600">{t('feedback.inboxHelp')}</Text>
+          </Pressable>
+        ) : null}
 
         <View className="mb-4 rounded-3xl bg-white px-4 py-4">
           <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">

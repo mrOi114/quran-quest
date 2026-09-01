@@ -3,8 +3,9 @@ import { Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePathname, useRouter } from 'expo-router';
 
-import { GuestExitWarning, useAuth, useGuestExitWarning } from '@/features/auth';
+import { GuestExitWarning, isReservedFounderNickname, useAuth, useGuestExitWarning } from '@/features/auth';
 import { peekActiveChallengeCode } from '@/features/competition/services/activeRoom';
+import { StudentFeedbackModal } from '@/features/feedback';
 import { useI18n, type MessageKey } from '@/i18n';
 
 type NavId =
@@ -240,6 +241,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
   } = useAuth();
   const { t, isRtl } = useI18n();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { guestExitVisible, requestGuestExit, keepLearning, confirmLeave } =
     useGuestExitWarning();
 
@@ -278,6 +280,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
     activeLearner?.display_name ||
     profile?.display_name ||
     (isGuest ? t('nav.guestLearner') : 'QuranFamily');
+  const isFounder = isReservedFounderNickname(activeLearner?.display_name ?? '');
 
   const currentSectionLabel = useMemo(() => {
     const activeItem = mainNavItems.find((item) => isActiveNavItem(item, pathname));
@@ -359,9 +362,33 @@ export function WebAppShell({ children }: WebAppShellProps) {
         </Text>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={t('feedback.title')}
+          onPress={() => {
+            setDrawerOpen(false);
+            setFeedbackOpen(true);
+          }}
+          className="mt-4 min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-3"
+        >
+          <Text className="text-sm font-semibold text-white">💬 {t('feedback.title')}</Text>
+        </Pressable>
+        {isFounder ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('feedback.inboxTitle')}
+            onPress={() => {
+              setDrawerOpen(false);
+              navigate('/(app)/feedback');
+            }}
+            className="mt-2 min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-3"
+          >
+            <Text className="text-sm font-semibold text-white">📥 {t('feedback.inboxTitle')}</Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
           accessibilityLabel={signOutLabel}
           onPress={handleSignOut}
-          className="mt-4 min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-3"
+          className="mt-2 min-h-11 items-center justify-center rounded-xl border border-white/15 bg-white/5 px-4 py-3"
         >
           <Text className="text-sm font-semibold text-white">🚪 {signOutLabel}</Text>
         </Pressable>
@@ -460,6 +487,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
         onKeepLearning={keepLearning}
         onLeaveGuestMode={confirmLeave}
       />
+      <StudentFeedbackModal visible={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </View>
   );
 }
