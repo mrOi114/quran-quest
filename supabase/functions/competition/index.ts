@@ -10,6 +10,8 @@ import {
   DEFAULT_QURAN_RANGE,
   isQuranRangeId,
   isQuranRangePlayable,
+  normalizeQuranRange,
+  juzNumberFromRange,
   type CompetitionAgeBand,
   type PublicQuestion,
   type QuranRangeId,
@@ -118,9 +120,7 @@ function asPending(value: Record<string, unknown> | null | undefined): PendingCh
   if (typeof pending.from_challenge_id !== 'string') {
     return null;
   }
-  const quranRange = isQuranRangeId(pending.quran_range)
-    ? pending.quran_range
-    : DEFAULT_QURAN_RANGE;
+  const quranRange = normalizeQuranRange(pending.quran_range);
   const tier = pending.tier === 2 || pending.tier === 3 ? pending.tier : 1;
   return {
     from_key_hash: pending.from_key_hash,
@@ -170,17 +170,21 @@ function roomCap(): number {
 }
 
 function challengeRange(row: Pick<ChallengeRow, 'quran_range'> | null | undefined): QuranRangeId {
-  return isQuranRangeId(row?.quran_range) ? row.quran_range : DEFAULT_QURAN_RANGE;
+  return normalizeQuranRange(row?.quran_range);
 }
 
 function resolveRequestedRange(value: unknown): QuranRangeId | null {
   if (value == null || value === '') {
     return DEFAULT_QURAN_RANGE;
   }
-  if (!isQuranRangeId(value) || !isQuranRangePlayable(value)) {
+  if (!isQuranRangeId(value)) {
     return null;
   }
-  return value;
+  const normalized = normalizeQuranRange(value);
+  if (!isQuranRangePlayable(normalized)) {
+    return null;
+  }
+  return normalized;
 }
 
 function awardPower(score: number, rank: number, playerCount: number, tier: number): number {
@@ -299,16 +303,13 @@ async function handleAction(
     typeof body.profile_id === 'string' && body.profile_id.length > 0 ? body.profile_id : null;
 
   if (action === 'join_public') {
-    if (!ageBand) {
-      return { status: 400, body: { error: 'Missing age group' } };
-    }
     const quranRange = resolveRequestedRange(body.quran_range);
     if (!quranRange) {
       return { status: 400, body: { error: 'range_unavailable' } };
     }
     const joined = await joinPublic(service, {
       keyHash,
-      ageBand,
+      ageBand: ageBand ?? 'adult',
       displayName,
       profileId,
       quranRange,
@@ -327,19 +328,21 @@ async function handleAction(
         },
       };
     }
-    if (!ageBand) {
-      return { status: 400, body: { error: 'Missing age group' } };
-    }
     return {
       status: 200,
-      body: { ok: true, players: await listAvailablePublic(service, ageBand, null, keyHash) },
+      body: {
+        ok: true,
+        players: await listAvailablePublic(
+          service,
+          resolveRequestedRange(body.quran_range) ?? DEFAULT_QURAN_RANGE,
+          null,
+          keyHash,
+        ),
+      },
     };
   }
 
   if (action === 'create_invite') {
-    if (!ageBand) {
-      return { status: 400, body: { error: 'Missing age group' } };
-    }
     const quranRange = resolveRequestedRange(body.quran_range);
     if (!quranRange) {
       return { status: 400, body: { error: 'range_unavailable' } };
@@ -350,7 +353,7 @@ async function handleAction(
     }
     const created = await createChallenge(service, {
       visibility: 'invite',
-      ageBand,
+      ageBand: ageBand ?? 'adult',
       tier: 1,
       keyHash,
       displayName,
@@ -366,13 +369,10 @@ async function handleAction(
     if (code.length < 4) {
       return { status: 400, body: { error: 'Enter a valid challenge code' } };
     }
-    if (!ageBand) {
-      return { status: 400, body: { error: 'Missing age group' } };
-    }
     const joined = await joinByCode(service, {
       code,
       keyHash,
-      ageBand,
+      ageBand: ageBand ?? 'adult',
       displayName,
       profileId,
     });
@@ -439,7 +439,7 @@ async function handleAction(
     if (asPending(target.last_round_result)) {
       return { status: 409, body: { error: 'busy' } };
     }
-    const quranRange = resolveRequestedRange(body.quran_range) ?? challengeRange(challenge.row);
+    const quranRange = challengeRange(target);
     if (!isQuranRangePlayable(quranRange)) {
       return { status: 400, body: { error: 'range_unavailable' } };
     }
@@ -493,6 +493,10 @@ async function handleAction(
       profileId: pending.from_profile_id,
     });
     if (joined.errorStatus) {
+      await service
+        .from('competition_challenges')
+        .update({ last_round_result: null })
+        .eq('id', fresh.id);
       return { status: joined.errorStatus, body: joined.body };
     }
     await service
@@ -504,7 +508,18 @@ async function handleAction(
       .update({ status: 'cancelled', rematch_code: fresh.code })
       .eq('id', pending.from_challenge_id)
       .eq('status', 'waiting');
-    const next = await refetchChallenge(service, fresh.id);
+    let next = await refetchChallenge(service, fresh.id);
+    const people = (await fetchParticipants(service, fresh.id)).filter(
+      (person) => !isFakeLabel(person.display_label),
+    );
+    if (next && next.status === 'waiting' && people.length >= 2) {
+      await service
+        .from('competition_participants')
+        .update({ is_ready: true, last_seen_at: new Date().toISOString() })
+        .eq('challenge_id', next.id);
+      await startQuestion(service, next, 0, 'waiting');
+      next = (await refetchChallenge(service, fresh.id)) ?? next;
+    }
     const me = await refetchParticipant(service, challenge.me.id);
     return { status: 200, body: await buildState(service, next ?? fresh, me ?? challenge.me) };
   }
@@ -707,7 +722,6 @@ async function joinPublic(
     if (
       room.visibility === 'public' &&
       room.status === 'waiting' &&
-      room.age_band === input.ageBand &&
       challengeRange(room) !== input.quranRange
     ) {
       const people = await fetchParticipants(service, room.id);
@@ -720,6 +734,14 @@ async function joinPublic(
     return { challenge: room, me: live.me };
   }
 
+  const sameJuzRoom = await findSameJuzWaitingRoom(service, input.quranRange, input.keyHash);
+  if (sameJuzRoom) {
+    const joined = await joinExisting(service, sameJuzRoom, input);
+    if (joined.challenge && joined.me && !joined.errorStatus) {
+      return { challenge: joined.challenge, me: joined.me };
+    }
+  }
+
   return createChallenge(service, {
     visibility: 'public',
     ageBand: input.ageBand,
@@ -730,6 +752,40 @@ async function joinPublic(
     ttlHours: 4,
     quranRange: input.quranRange,
   });
+}
+
+async function findSameJuzWaitingRoom(
+  service: ReturnType<typeof createServiceClient>,
+  quranRange: QuranRangeId,
+  excludeKeyHash: string,
+) {
+  const nowIso = new Date().toISOString();
+  const { data: rooms } = await service
+    .from('competition_challenges')
+    .select('*')
+    .eq('visibility', 'public')
+    .eq('status', 'waiting')
+    .gt('expires_at', nowIso)
+    .order('created_at', { ascending: true })
+    .limit(40);
+
+  for (const room of (rooms ?? []) as ChallengeRow[]) {
+    if (challengeRange(room) !== quranRange) {
+      continue;
+    }
+    await pruneStaleWaitingSeats(service, room);
+    const people = (await fetchParticipants(service, room.id)).filter(
+      (person) => !isFakeLabel(person.display_label),
+    );
+    if (people.length === 0 || people.length >= roomCap()) {
+      continue;
+    }
+    if (people.some((person) => person.participant_key_hash === excludeKeyHash)) {
+      continue;
+    }
+    return (await refetchChallenge(service, room.id)) ?? room;
+  }
+  return null;
 }
 
 async function joinByCode(
@@ -773,10 +829,6 @@ async function joinExisting(
   if (isExpired(challenge) || challenge.status === 'cancelled' || challenge.status === 'expired') {
     return { errorStatus: 410, body: { error: 'expired' } };
   }
-  if (challenge.age_band !== input.ageBand) {
-    return { errorStatus: 403, body: { error: 'age_mismatch' } };
-  }
-
   const existing = await fetchParticipants(service, challenge.id);
   const already = existing.find((person) => person.participant_key_hash === input.keyHash);
   if (already) {
@@ -866,9 +918,7 @@ async function createChallenge(
     quranRange?: QuranRangeId;
   },
 ) {
-  const quranRange = input.quranRange && isQuranRangeId(input.quranRange)
-    ? input.quranRange
-    : DEFAULT_QURAN_RANGE;
+  const quranRange = normalizeQuranRange(input.quranRange);
   if (!isQuranRangePlayable(quranRange)) {
     throw new Error('range_unavailable');
   }
@@ -1088,7 +1138,7 @@ async function buildState(
   }
 
   const hideChoices = fresh.status === 'question';
-  const pending = asPending(fresh.last_round_result);
+  const pending = await sanitizePendingChallenge(service, fresh);
   const lastRound = hideChoices || pending
     ? null
     : (fresh.last_round_result as {
@@ -1105,7 +1155,7 @@ async function buildState(
   const humans = participants.filter((person) => !isFakeLabel(person.display_label));
   const available_players =
     (fresh.status === 'waiting' || fresh.status === 'ready_check') && fresh.visibility === 'public'
-      ? await listAvailablePublic(service, fresh.age_band, fresh.id, mine.participant_key_hash)
+      ? await listAvailablePublic(service, challengeRange(fresh), fresh.id, mine.participant_key_hash)
       : [];
 
   return {
@@ -1195,7 +1245,7 @@ function toPreview(challenge: ChallengeRow, participantCount: number) {
 
 async function listAvailablePublic(
   service: ReturnType<typeof createServiceClient>,
-  ageBand: CompetitionAgeBand,
+  preferredRange: QuranRangeId,
   excludeChallengeId: string | null,
   excludeKeyHash: string,
 ) {
@@ -1204,11 +1254,10 @@ async function listAvailablePublic(
     .from('competition_challenges')
     .select('*')
     .eq('visibility', 'public')
-    .eq('age_band', ageBand)
     .eq('status', 'waiting')
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: true })
-    .limit(20);
+    .limit(40);
 
   const players = [];
   for (const room of (rooms ?? []) as ChallengeRow[]) {
@@ -1229,6 +1278,7 @@ async function listAvailablePublic(
       continue;
     }
     const host = people.find((person) => Date.now() - Date.parse(person.last_seen_at) < STALE_WAITING_MS) ?? people[0]!;
+    const quranRange = challengeRange(room);
     players.push({
       code: room.code,
       display_label: host.display_label,
@@ -1236,9 +1286,12 @@ async function listAvailablePublic(
       participant_count: people.length,
       max_participants: roomCap(),
       is_ready: host.is_ready,
-      quran_range: challengeRange(room),
+      quran_range: quranRange,
+      juz: juzNumberFromRange(quranRange),
+      same_juz: quranRange === preferredRange,
     });
   }
+  players.sort((left, right) => Number(right.same_juz) - Number(left.same_juz));
   return players;
 }
 
@@ -1470,6 +1523,7 @@ async function leaveChallengeSeat(
   me: ParticipantRow,
 ) {
   await service.from('competition_participants').delete().eq('id', me.id);
+  await clearPendingFromPlayer(service, me.participant_key_hash, challenge.id);
   if (challenge.status === 'waiting' || challenge.status === 'ready_check') {
     const remaining = (await fetchParticipants(service, challenge.id)).filter(
       (person) => !isFakeLabel(person.display_label),
@@ -1477,9 +1531,67 @@ async function leaveChallengeSeat(
     if (remaining.length === 0) {
       await service
         .from('competition_challenges')
-        .update({ status: 'cancelled' })
+        .update({ status: 'cancelled', last_round_result: null })
         .eq('id', challenge.id)
         .in('status', ['waiting', 'ready_check']);
+    } else if (asPending(challenge.last_round_result)) {
+      await service
+        .from('competition_challenges')
+        .update({ last_round_result: null })
+        .eq('id', challenge.id)
+        .eq('status', 'waiting');
     }
   }
+}
+
+async function clearPendingFromPlayer(
+  service: ReturnType<typeof createServiceClient>,
+  keyHash: string,
+  fromChallengeId: string,
+) {
+  const nowIso = new Date().toISOString();
+  const { data: rooms } = await service
+    .from('competition_challenges')
+    .select('id, last_round_result')
+    .eq('status', 'waiting')
+    .gt('expires_at', nowIso)
+    .limit(40);
+  for (const room of rooms ?? []) {
+    const pending = asPending(room.last_round_result as Record<string, unknown> | null);
+    if (!pending) continue;
+    if (pending.from_key_hash !== keyHash && pending.from_challenge_id !== fromChallengeId) {
+      continue;
+    }
+    await service
+      .from('competition_challenges')
+      .update({ last_round_result: null })
+      .eq('id', room.id)
+      .eq('status', 'waiting');
+  }
+}
+
+async function sanitizePendingChallenge(
+  service: ReturnType<typeof createServiceClient>,
+  challenge: ChallengeRow,
+) {
+  const pending = asPending(challenge.last_round_result);
+  if (!pending) {
+    return null;
+  }
+  const origin = await refetchChallenge(service, pending.from_challenge_id);
+  const originPeople = origin ? await fetchParticipants(service, origin.id) : [];
+  const stillWaiting =
+    Boolean(origin) &&
+    !isExpired(origin!) &&
+    origin!.status === 'waiting' &&
+    originPeople.some((person) => person.participant_key_hash === pending.from_key_hash);
+  if (stillWaiting) {
+    return pending;
+  }
+  await service
+    .from('competition_challenges')
+    .update({ last_round_result: null })
+    .eq('id', challenge.id)
+    .eq('status', 'waiting');
+  return null;
 }

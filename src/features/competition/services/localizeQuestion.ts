@@ -6,14 +6,34 @@ export function localizeCompetitionQuestion(
   question: CompetitionQuestionView,
   language: UiLanguage,
 ) {
-  const somali = language === 'so';
+  const prompt =
+    language === 'ar'
+      ? question.prompt_ar || question.prompt_en
+      : language === 'so'
+        ? question.prompt_so
+        : question.prompt_en;
+
   return {
-    prompt: somali ? question.prompt_so : question.prompt_en,
-    choices: question.choices.map((choice) => ({
-      id: choice.id,
-      letter: choice.id.toUpperCase(),
-      label: somali ? choice.label_so : choice.label_en,
-    })),
+    prompt,
+    promptArabic: question.prompt_arabic?.trim() ? question.prompt_arabic : null,
+    kind: question.kind,
+    choices: question.choices.map((choice) => {
+      const arabic = Boolean(choice.is_arabic);
+      const label =
+        arabic
+          ? choice.label_ar || choice.label_en
+          : language === 'ar'
+            ? choice.label_ar || choice.label_en
+            : language === 'so'
+              ? choice.label_so
+              : choice.label_en;
+      return {
+        id: choice.id,
+        letter: choice.id.toUpperCase(),
+        label,
+        isArabic: arabic || (language === 'ar' && Boolean(choice.label_ar)),
+      };
+    }),
   };
 }
 

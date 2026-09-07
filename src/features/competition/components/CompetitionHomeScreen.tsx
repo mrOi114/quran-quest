@@ -7,7 +7,7 @@ import { PrimaryButton, TextField, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
-import { fetchWeeklyLeaders, resolveCompetitionAgeBand, resumeActiveChallenge } from '../services';
+import { fetchWeeklyLeaders, resumeActiveChallenge } from '../services';
 import { rememberLiveChallenge } from '../services/activeRoom';
 import { playGreetingOnce } from '../services/competitionVoice';
 import { motivationToneForLearner } from '../services/motivationClips';
@@ -46,7 +46,6 @@ export function CompetitionHomeScreen() {
   const [progress, setProgress] = useState<CompetitionPlayerRewards | null>(null);
   const [restoring, setRestoring] = useState(true);
 
-  const ageBand = activeLearner ? resolveCompetitionAgeBand(activeLearner) : null;
   const guestName = activeLearner?.display_name?.trim() ?? '';
   const rangeReady = isQuranRangePlayable(quranRange);
 
@@ -168,21 +167,8 @@ export function CompetitionHomeScreen() {
         </View>
 
         <View className="mt-5 rounded-3xl bg-white px-5 py-5">
-          {ageBand ? (
-            <Text className="mb-4 text-sm text-brand-600">
-              {t('competition.matchedGroup', {
-                group:
-                  ageBand === 'child'
-                    ? t('competition.groupChild')
-                    : ageBand === 'teen'
-                      ? t('competition.groupTeen')
-                      : t('competition.groupAdult'),
-              })}
-            </Text>
-          ) : null}
-
           <PrimaryButton
-            label={t('competition.joinPublic')}
+            label={t('competition.startChallenge')}
             loading={joining}
             disabled={!rangeReady}
             onPress={() => {
@@ -191,7 +177,7 @@ export function CompetitionHomeScreen() {
               void joinPublic(quranRange).then((state) => go(state?.challenge.code));
             }}
           />
-          <Text className="mb-4 text-sm leading-5 text-brand-600">
+          <Text className="mb-4 mt-2 text-sm leading-5 text-brand-600">
             {t('competition.publicHelp')}
           </Text>
 

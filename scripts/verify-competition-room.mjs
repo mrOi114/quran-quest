@@ -53,16 +53,18 @@ assert(home.includes('CompetitionEntry'), 'Home shows Competition Room');
 assert(home.includes('CircleEntry'), 'Circle entry remains on home');
 assert(home.includes('!isGuest'), 'Circle home cards are hidden for guests');
 
-assert(homeScreen.includes('QuranRangePicker'), 'Home screen has Qur’an range picker');
-assert(read('src/features/competition/services/quranRange.ts').includes('rangeJuz30'), 'Juz 30 range is shown');
+assert(homeScreen.includes('QuranRangePicker'), 'Home screen has Qur’an Juz picker');
+assert(homeScreen.includes('startChallenge'), 'Home screen starts a challenge after Juz is chosen');
+assert(read('src/features/competition/services/quranRange.ts').includes('juz_1'), 'Juz 1 is selectable');
+assert(read('src/features/competition/services/quranRange.ts').includes('juz_30'), 'Juz 30 is selectable');
 assert(homeScreen.includes('playingAs'), 'Guest display name is reused');
 assert(homeScreen.includes('weeklyLeaders'), 'Weekly leaders are on the home screen');
-assert(matchScreen.includes('availableOnline'), 'Available Online list exists');
+assert(matchScreen.includes('waitingPlayers'), 'Waiting players list exists');
 assert(matchScreen.includes('challengeRequest'), 'Incoming challenge request exists');
-assert(matchScreen.includes('wantsToChallenge'), 'Challenge request shows challenger name');
-assert(matchScreen.includes('requestRange'), 'Challenge request shows Qur’an range');
-assert(landing.includes('rangeLabelKey'), 'Invite landing shows Qur’an range');
-assert(read('src/features/competition/components/QuranRangePicker.tsx').includes('comingSoon'), 'Unsupported ranges show Coming Soon');
+assert(matchScreen.includes('areYouReady'), 'Challenge request asks Are you ready');
+assert(matchScreen.includes('juzLabel'), 'Challenge request shows Juz');
+assert(landing.includes('juzNumberFromRange'), 'Invite landing shows Qur’an Juz');
+assert(read('src/features/competition/components/QuranRangePicker.tsx').includes('chooseJuz'), 'Players choose a Juz');
 assert(matchScreen.includes('CompetitionCelebration'), 'Finish celebration is shown after complete');
 assert(read('src/features/competition/components/CompetitionCelebration.tsx').includes('challengeAgain'), 'Challenge Again exists after celebration');
 assert(read('src/features/competition/components/CompetitionCelebration.tsx').includes('backToCompetition'), 'Back to Competition exists after celebration');
@@ -131,10 +133,12 @@ assert(questions.includes('1: 5'), 'Challenge 1 has 5 questions');
 assert(questions.includes('2: 5'), 'Challenge 2 has 5 questions');
 assert(questions.includes('3: 5'), 'Challenge 3 has 5 questions');
 assert(read('src/features/competition/constants.ts').includes('3: 5'), 'Client Challenge 3 is 5');
-assert(questions.includes("ageBands: ['child'"), 'Child-safe questions exist');
-assert(questions.includes("ageBands: ['adult']") || questions.includes("'adult'"), 'Adult questions exist');
+assert(questions.includes('COMPETITION_MEMORIZATION'), 'Competition uses the memorization bank');
+assert(read('supabase/functions/_shared/competitionMemorization.ts').includes('MemorizationItem'), 'Memorization items exist');
 
-assert(edge.includes("error: 'age_mismatch'"), 'Server rejects cross-age matching');
+assert(!edge.includes("error: 'age_mismatch'"), 'Server must not reject matches by age');
+assert(!edge.includes(".eq('age_band'"), 'Public waiting list is not filtered by age');
+assert(edge.includes('findSameJuzWaitingRoom'), 'Public join prefers the same Juz');
 assert(edge.includes("error: 'full'"), 'Server rejects full rooms');
 assert(edge.includes('participant_key_hash'), 'Duplicate seats use the participant key');
 assert(edge.includes('MAX_PARTICIPANTS_V1'), 'Room capacity constant exists');
@@ -152,7 +156,7 @@ assert(questions.includes('questionFitsRange'), 'Questions are filtered by Qur�
 assert(questions.includes('isQuranRangePlayable'), 'Playable ranges require verified bank items');
 assert(questions.includes('quranRange'), 'Question picker receives the locked range');
 assert(!/openai|chatgpt|generateQuestion/i.test(questions), 'Bank does not generate fake questions');
-assert(read('src/features/competition/services/quranRange.ts').includes("id: 'all_30'"), 'All Qur’an range is listed');
+assert(read('src/features/competition/services/quranRange.ts').includes("juz_30"), 'Juz 30 exists as a selectable range');
 assert(read('supabase/migrations/20260901010000_competition_quran_range.sql').includes('quran_range'), 'Range is stored on the challenge');
 assert(edge.includes('available_players'), 'Available online list is server-backed');
 assert(edge.includes('weekly_leaders'), 'Weekly leaders are real completed players');
@@ -169,6 +173,17 @@ assert(config.includes('[functions.competition]'), 'Competition function is regi
 assert(config.includes('verify_jwt = false'), 'Guests can call the competition function');
 
 assert(matchScreen.includes('ListenToQuestionButton'), 'English questions have a listen button');
+assert(matchScreen.includes("writingDirection: 'rtl'"), 'Arabic ayah text uses RTL');
+assert(en.includes("'competition.startChallenge'"), 'English has Start Challenge');
+assert(so.includes("'competition.startChallenge'"), 'Somali has Start Challenge');
+assert(read('src/i18n/ar.ts').includes("'competition.startChallenge'"), 'Arabic has Start Challenge');
+assert(en.includes("'competition.areYouReady'"), 'English has Are you ready');
+assert(so.includes("'competition.areYouReady'"), 'Somali has Are you ready');
+assert(read('src/i18n/ar.ts').includes("'competition.areYouReady'"), 'Arabic has Are you ready');
+assert(en.includes("'competition.leaveCompetition'"), 'English has Leave Competition');
+assert(so.includes("'competition.leaveCompetition'"), 'Somali has Leave Competition');
+assert(read('src/i18n/ar.ts').includes("'competition.leaveCompetition'"), 'Arabic has Leave Competition');
+assert(read('src/i18n/RtlProvider.tsx').includes('isRtl'), 'Arabic uses the existing RTL provider');
 assert(read('src/features/competition/services/speakEnglishQuestion.ts').includes("language: 'en-US'"), 'TTS uses English');
 assert(!/Speech\.speak\(/.test(matchScreen), 'Question audio is tap-to-play only');
 

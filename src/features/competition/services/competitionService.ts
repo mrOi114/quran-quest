@@ -131,11 +131,11 @@ export async function requestHarderChallenge(code: string): Promise<CompetitionS
 }
 
 export async function listPublicPlayers(
-  ageBand: CompetitionAgeBand,
+  quranRange: QuranRangeId = DEFAULT_QURAN_RANGE,
 ): Promise<CompetitionLobbyPlayer[]> {
   const participant_key = await getOrCreateParticipantKey();
   const result = await supabase.functions.invoke('competition', {
-    body: { action: 'list_public', participant_key, age_band: ageBand },
+    body: { action: 'list_public', participant_key, quran_range: quranRange },
   });
   const data = await assertFunctionOk<{ ok: true; players: CompetitionLobbyPlayer[] }>(result);
   return data.players ?? [];

@@ -15,12 +15,17 @@ export type CompetitionChoice = {
   id: string;
   label_en: string;
   label_so: string;
+  label_ar?: string;
+  is_arabic?: boolean;
 };
 
 export type CompetitionQuestionView = {
   id: string;
+  kind?: string;
   prompt_en: string;
   prompt_so: string;
+  prompt_ar?: string;
+  prompt_arabic?: string;
   choices: CompetitionChoice[];
 };
 
@@ -41,6 +46,8 @@ export type CompetitionLobbyPlayer = {
   max_participants: number;
   is_ready: boolean;
   quran_range?: string;
+  juz?: number;
+  same_juz?: boolean;
 };
 
 export type CompetitionPendingChallenge = {

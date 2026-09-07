@@ -24,9 +24,8 @@ import { QuranRangePicker } from './QuranRangePicker';
 import { CompetitionCelebration } from './CompetitionCelebration';
 import {
   DEFAULT_QURAN_RANGE,
-  isQuranRangeId,
-  isQuranRangePlayable,
-  rangeLabelKey,
+  juzNumberFromRange,
+  normalizeQuranRange,
   type QuranRangeId,
 } from '../services/quranRange';
 
@@ -72,8 +71,8 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
   }, [code, router, state?.challenge.code]);
 
   useEffect(() => {
-    if (isQuranRangeId(state?.challenge.quran_range)) {
-      setChallengeRange(state.challenge.quran_range);
+    if (state?.challenge.quran_range) {
+      setChallengeRange(normalizeQuranRange(state.challenge.quran_range));
     }
   }, [state?.challenge.quran_range]);
 
@@ -192,7 +191,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
               {state.challenge.is_full ? ` · ${t('competition.full')}` : ''}
             </Text>
             <Text className="mt-2 text-sm font-semibold text-brand-700">
-              {t(rangeLabelKey(state.challenge.quran_range))}
+              {t('competition.juzLabel', { n: juzNumberFromRange(state.challenge.quran_range) })}
             </Text>
             <Text className="mt-3 text-sm leading-5 text-brand-600">
               {t('competition.waitingStay')}
@@ -216,19 +215,19 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 <Text className="text-base font-semibold text-brand-800">
                   {t('competition.challengeRequest')}
                 </Text>
-                <Text className="mt-2 text-base text-brand-800">
-                  {t('competition.wantsToChallenge', { name: pending.label })}
+                <Text className="mt-2 text-lg font-bold text-brand-900">
+                  {t('competition.areYouReady', {
+                    name: pending.label,
+                    juz: juzNumberFromRange(pending.quran_range),
+                  })}
                 </Text>
                 <Text className="mt-3 text-sm font-semibold text-brand-700">
                   {t('competition.requestRange')}
                 </Text>
                 <Text className="text-base text-brand-800">
-                  {t(rangeLabelKey(pending.quran_range))}
+                  {t('competition.juzLabel', { n: juzNumberFromRange(pending.quran_range) })}
                 </Text>
                 <Text className="mt-2 text-sm text-brand-700">
-                  {t('competition.tierLabel', { n: pending.tier ?? state.challenge.tier })}
-                </Text>
-                <Text className="text-sm text-brand-700">
                   {t('competition.requestQuestions', {
                     count: pending.question_count ?? state.challenge.question_count,
                   })}
@@ -254,27 +253,22 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
               </View>
             ) : null}
 
-            {state.challenge.visibility === 'invite' || others.length > 0 ? (
-              <View className="mt-4">
-                <QuranRangePicker value={challengeRange} locked />
-              </View>
-            ) : null}
+            <View className="mt-4">
+              <QuranRangePicker value={challengeRange} locked />
+            </View>
 
             {state.challenge.visibility === 'public' ? (
               <View className="mt-4">
-                {others.length === 0 ? (
-                  <View className="mb-3">
-                    <QuranRangePicker value={challengeRange} onChange={setChallengeRange} />
-                  </View>
-                ) : null}
                 <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-                  {t('competition.availableOnline')}
+                  {t('competition.waitingPlayers')}
                 </Text>
+                <Text className="mt-1 text-sm text-brand-600">{t('competition.automaticMatch')}</Text>
                 {available.length === 0 ? (
-                  <Text className="mt-2 text-sm text-brand-600">{t('competition.waiting')}</Text>
+                  <Text className="mt-2 text-sm text-brand-600">{t('competition.noWaitingPlayers')}</Text>
                 ) : (
                   available.map((player) => {
-                    const canChallenge = others.length === 0 && isQuranRangePlayable(challengeRange);
+                    const canChallenge = others.length === 0;
+                    const juz = juzNumberFromRange(player.quran_range);
                     return (
                     <View
                       key={player.code}
@@ -283,13 +277,14 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                       <View className="flex-1 pr-3">
                         <Text className="text-base font-semibold text-brand-800">
                           {player.display_label}
+                          {' — '}
+                          {t('competition.juzLabel', { n: juz })}
                         </Text>
-                        <Text className="text-sm text-brand-600">
-                          {t(rangeLabelKey(player.quran_range))}
-                        </Text>
-                        <Text className="text-sm text-brand-600">
-                          {t('competition.tierLabel', { n: player.tier })}
-                        </Text>
+                        {player.same_juz ? (
+                          <Text className="text-sm font-semibold text-emerald-700">
+                            {t('competition.sameJuz')}
+                          </Text>
+                        ) : null}
                         <Text className="text-sm text-brand-600">
                           {player.is_ready ? t('competition.playerReady') : t('competition.waiting')}
                         </Text>
@@ -372,6 +367,14 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 <ListenToQuestionButton englishText={state.challenge.question.prompt_en} />
               ) : null}
             </View>
+            {localized.promptArabic ? (
+              <Text
+                className="mt-3 text-center text-2xl leading-10 text-brand-900"
+                style={{ writingDirection: 'rtl' }}
+              >
+                {localized.promptArabic}
+              </Text>
+            ) : null}
 
             <View className="mt-4 gap-3">
               {localized.choices.map((choice) => {
@@ -394,7 +397,12 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                           : 'border-brand-200 bg-brand-50'
                     }`}
                   >
-                    <Text className="text-base font-semibold text-brand-800">
+                    <Text
+                      className={`text-base font-semibold text-brand-800 ${
+                        choice.isArabic ? 'text-xl' : ''
+                      }`}
+                      style={choice.isArabic ? { writingDirection: 'rtl' } : undefined}
+                    >
                       {choice.letter}. {choice.label}
                     </Text>
                   </Pressable>
