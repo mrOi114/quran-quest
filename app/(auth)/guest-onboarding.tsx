@@ -40,12 +40,13 @@ export default function GuestOnboardingScreen() {
     setFormError(null);
     setFieldErrors({});
 
+    const founder = isReservedFounderNickname(displayName);
     const parsed = guestOnboardingSchema.safeParse({
       displayName,
       ageGroup,
-      countryCode,
+      countryCode: founder ? 'US' : countryCode,
       preferredLanguage,
-      accessCode: isReservedFounderNickname(displayName) ? accessCode : undefined,
+      accessCode: founder ? accessCode : undefined,
     });
 
     if (!parsed.success) {
@@ -60,7 +61,10 @@ export default function GuestOnboardingScreen() {
 
     setLoading(true);
     try {
-      await startGuest(parsed.data);
+      await startGuest({
+        ...parsed.data,
+        countryCode: founder ? '' : parsed.data.countryCode,
+      });
       const pendingCode = await consumePendingChallengeCode();
       if (pendingCode) {
         router.replace({
@@ -137,11 +141,15 @@ export default function GuestOnboardingScreen() {
         <Text className="mb-3 text-sm text-red-600">{fieldErrors.ageGroup}</Text>
       ) : null}
 
-      <CountryPicker
-        value={countryCode}
-        onChange={setCountryCode}
-        error={fieldErrors.countryCode}
-      />
+      {isReservedFounderNickname(displayName) ? (
+        <Text className="mb-4 text-base text-brand-700">{t('guest.worldPrivate')}</Text>
+      ) : (
+        <CountryPicker
+          value={countryCode}
+          onChange={setCountryCode}
+          error={fieldErrors.countryCode}
+        />
+      )}
       <LanguagePicker
         value={preferredLanguage}
         onChange={setPreferredLanguage}

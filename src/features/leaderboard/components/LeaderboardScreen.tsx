@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/features/auth';
+import { PrimaryButton, isReservedFounderNickname } from '@/features/auth';
 import { useI18n, type MessageKey } from '@/i18n';
 
 import { JUZ_CHALLENGES, LEADERBOARD_VIEWS, type LeaderboardViewId } from '../constants';
@@ -28,6 +28,8 @@ function medalForRank(rank: number): string {
 function RankRow({ entry }: { entry: LeaderboardEntry }) {
   const { t } = useI18n();
   const initial = entry.displayName.trim().slice(0, 1).toUpperCase() || '•';
+  const founder = isReservedFounderNickname(entry.displayName);
+  const flag = founder ? '🌍' : entry.flag;
   return (
     <View
       className={`rounded-2xl px-4 py-4 ${
@@ -44,26 +46,36 @@ function RankRow({ entry }: { entry: LeaderboardEntry }) {
           </View>
           <View className="flex-1">
             <Text className="text-base font-semibold text-brand-800">
-              {entry.flag ? `${entry.flag} ` : ''}
+              {flag ? `${flag} ` : ''}
               {entry.displayName}
               {entry.isCurrentUser ? t('leaderboard.youSuffix') : ''}
             </Text>
             <Text className="mt-1 text-xs text-brand-500">
-              {entry.flag
-                ? t('leaderboard.rankCountry', { rank: entry.rank })
-                : t('leaderboard.rankOnly', { rank: entry.rank })}
+              {founder
+                ? t('leaderboard.rankWorld', { rank: entry.rank })
+                : flag
+                  ? t('leaderboard.rankCountry', { rank: entry.rank })
+                  : t('leaderboard.rankOnly', { rank: entry.rank })}
             </Text>
           </View>
         </View>
-        <Text className="text-base font-bold text-brand-700">
-          {t('leaderboard.pts', { points: entry.points.toLocaleString() })}
-        </Text>
+        {founder ? null : (
+          <Text className="text-base font-bold text-brand-700">
+            {t('leaderboard.pts', { points: entry.points.toLocaleString() })}
+          </Text>
+        )}
       </View>
     </View>
   );
 }
 
-function YourPositionCard({ board }: { board: LeaderboardBoard }) {
+function YourPositionCard({
+  board,
+  hidePublicStats,
+}: {
+  board: LeaderboardBoard;
+  hidePublicStats: boolean;
+}) {
   const { t } = useI18n();
   const { you } = board;
   return (
@@ -73,12 +85,14 @@ function YourPositionCard({ board }: { board: LeaderboardBoard }) {
       </Text>
       <Text className="mt-2 text-3xl font-bold text-brand-800">#{you.rank}</Text>
       <Text className="mt-1 text-base text-brand-600">
-        {t('leaderboard.pointsStudents', {
-          points: you.points.toLocaleString(),
-          total: you.totalInBoard,
-        })}
+        {hidePublicStats
+          ? t('leaderboard.studentsOnly', { total: you.totalInBoard })
+          : t('leaderboard.pointsStudents', {
+              points: you.points.toLocaleString(),
+              total: you.totalInBoard,
+            })}
       </Text>
-      {you.pointsBehindNext != null && you.pointsBehindNext > 0 ? (
+      {!hidePublicStats && you.pointsBehindNext != null && you.pointsBehindNext > 0 ? (
         <Text className="mt-3 text-sm font-semibold text-brand-700">
           {t('leaderboard.behind', {
             points: you.pointsBehindNext,
@@ -215,6 +229,8 @@ export function LeaderboardScreen() {
     );
   }
 
+  const hidePublicStats = isReservedFounderNickname(model.displayName);
+
   return (
     <SafeAreaView className="flex-1 bg-brand-600">
       <ScrollView
@@ -229,13 +245,21 @@ export function LeaderboardScreen() {
           <Text className="mt-2 text-3xl font-bold text-brand-800">
             {model.displayName}
           </Text>
-          <Text className="mt-2 text-base text-brand-600">{t('leaderboard.effortCounts')}</Text>
-          <Text className="mt-3 text-sm font-semibold text-brand-700">
-            {t('leaderboard.ptsAge', {
-              points: model.effort.totalPoints.toLocaleString(),
-              age: t(`age.${model.ageGroup}` as MessageKey),
-            })}
-          </Text>
+          {hidePublicStats ? (
+            <Text className="mt-3 text-sm font-semibold text-brand-700">
+              {t('leaderboard.worldAge', { age: t(`age.${model.ageGroup}` as MessageKey) })}
+            </Text>
+          ) : (
+            <>
+              <Text className="mt-2 text-base text-brand-600">{t('leaderboard.effortCounts')}</Text>
+              <Text className="mt-3 text-sm font-semibold text-brand-700">
+                {t('leaderboard.ptsAge', {
+                  points: model.effort.totalPoints.toLocaleString(),
+                  age: t(`age.${model.ageGroup}` as MessageKey),
+                })}
+              </Text>
+            </>
+          )}
         </View>
 
         <View className="mb-4 rounded-2xl bg-white px-2 py-2">
@@ -311,20 +335,22 @@ export function LeaderboardScreen() {
           )}
         </View>
 
-        <YourPositionCard board={board} />
+        <YourPositionCard board={board} hidePublicStats={hidePublicStats} />
 
-        <View className="mb-4 rounded-3xl bg-white/10 px-4 py-4">
-          <Text className="text-sm font-semibold uppercase tracking-wide text-brand-200">
-            {t('leaderboard.challenge')}
-          </Text>
-          {board.motivations.map((message) => (
-            <Text key={message.id} className="mt-2 text-base text-white">
-              {motivationText(message.id, board, model, t, message.text)}
+        {hidePublicStats ? null : (
+          <View className="mb-4 rounded-3xl bg-white/10 px-4 py-4">
+            <Text className="text-sm font-semibold uppercase tracking-wide text-brand-200">
+              {t('leaderboard.challenge')}
             </Text>
-          ))}
-        </View>
+            {board.motivations.map((message) => (
+              <Text key={message.id} className="mt-2 text-base text-white">
+                {motivationText(message.id, board, model, t, message.text)}
+              </Text>
+            ))}
+          </View>
+        )}
 
-        {model.isGuest && !dismissGuestCard ? (
+        {model.isGuest && !hidePublicStats && !dismissGuestCard ? (
           <KeepJourneyCard
             points={model.effort.totalPoints}
             variant="banner"

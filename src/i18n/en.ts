@@ -321,6 +321,7 @@ export const en = {
     'That name is already used. Choose a different first name or nickname so the Leaderboard stays clear on every device.',
   'guest.nicknameTaken': 'This nickname is already taken.',
   'guest.accessCode': 'Access code',
+  'guest.worldPrivate': '🌍 World — country stays private.',
   'guest.nameCheckFailed':
     'Could not check that name. Connect to the internet and try again.',
 
@@ -748,6 +749,9 @@ export const en = {
   'leaderboard.rankCountry': 'Rank {rank} · Country shown only',
   'leaderboard.rankOnly': 'Rank {rank}',
   'leaderboard.pts': '{points} pts',
+  'leaderboard.worldAge': '🌍 World · {age}',
+  'leaderboard.rankWorld': 'Rank {rank} · World',
+  'leaderboard.studentsOnly': '{total} students on this board',
   'leaderboard.viewAge': 'Age Group',
   'leaderboard.viewJuz': 'Juz Challenge',
   'leaderboard.viewAll': '🌍 All Students',
@@ -884,6 +888,7 @@ export const en = {
     'Create a private code and share the link outside Qur’an Quest. Up to 5 players.',
   'competition.enterCode': 'Challenge code',
   'competition.joinWithCode': 'Join with code',
+  'competition.waitingEnterCode': 'Got a challenge code while you wait? Enter it here.',
   'competition.waiting': 'Waiting...',
   'competition.waitingStay':
     'You stay in this room until you tap Leave Competition. You can learn, read, or listen while you wait.',

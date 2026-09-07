@@ -140,6 +140,10 @@ function isFakeLabel(label: string): boolean {
   return value.includes('ai opponent') || value.includes('🤖');
 }
 
+function isFounderLabel(label: string): boolean {
+  return label.trim().replace(/\s+/g, ' ').toLowerCase() === 'founder';
+}
+
 function randomCode(): string {
   let code = '';
   for (let i = 0; i < 6; i += 1) {
@@ -369,6 +373,7 @@ async function handleAction(
     if (code.length < 4) {
       return { status: 400, body: { error: 'Enter a valid challenge code' } };
     }
+    const live = await resumeActiveSeat(service, keyHash);
     const joined = await joinByCode(service, {
       code,
       keyHash,
@@ -376,6 +381,14 @@ async function handleAction(
       displayName,
       profileId,
     });
+    if (
+      joined.challenge &&
+      live &&
+      live.challenge.id !== joined.challenge.id &&
+      (live.challenge.status === 'waiting' || live.challenge.status === 'ready_check')
+    ) {
+      await leaveChallengeSeat(service, live.challenge, live.me);
+    }
     return { status: joined.errorStatus ?? 200, body: joined.body };
   }
 
@@ -1386,7 +1399,8 @@ async function weeklyLeaders(service: ReturnType<typeof createServiceClient>) {
   }
   return [...totals.values()]
     .sort((left, right) => right.score - left.score || left.display_label.localeCompare(right.display_label))
-    .slice(0, 3);
+    .slice(0, 3)
+    .map((row) => (isFounderLabel(row.display_label) ? { ...row, score: 0 } : row));
 }
 
 async function fetchChallengeByCode(

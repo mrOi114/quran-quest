@@ -333,6 +333,7 @@ export const so = {
     'Magacaas qof ayaa hore u isticmaalay. Dooro magac ama naanays kale si Horyaalku uga caddnaado qalab kasta.',
   'guest.nicknameTaken': 'Naanaystan qof ayaa hore u qaatay.',
   'guest.accessCode': 'Koodhka gelitaanka',
+  'guest.worldPrivate': '🌍 Adduunka — dalka waa qarsoodi.',
   'guest.nameCheckFailed':
     'Magaca lama hubin karin. Ku xidh internetka oo mar kale isku day.',
 
@@ -764,6 +765,9 @@ export const so = {
   'leaderboard.rankCountry': 'Darajo {rank} · Dalka oo keliya ayaa la muujiyaa',
   'leaderboard.rankOnly': 'Darajo {rank}',
   'leaderboard.pts': '{points} dhibcood',
+  'leaderboard.worldAge': '🌍 Adduunka · {age}',
+  'leaderboard.rankWorld': 'Darajo {rank} · Adduunka',
+  'leaderboard.studentsOnly': '{total} arday ayaa ku jira horyaalkan',
   'leaderboard.viewAge': 'Daâ€™da',
   'leaderboard.viewJuz': 'Tartanka Juzâ€™',
   'leaderboard.viewAll': 'ðŸŒ Dhammaan ardayda',
@@ -904,6 +908,7 @@ export const so = {
     'Samee koodh iyo xiriir, kadib dibadda uga dir. Ilaa 5 ciyaaryahan.',
   'competition.enterCode': 'Koodhka tartanka',
   'competition.joinWithCode': 'Ku biir koodhka',
+  'competition.waitingEnterCode': 'Koodh tartan ayaad heshay intaad sugayso? Halkan geli.',
   'competition.waiting': 'Sugayaa...',
   'competition.waitingStay':
     'Waxaad ku sii jiraysaa qolkan ilaa aad taabato Ka bax Tartanka. Waad baran, akhriyi, ama dhagaysan kartaa intaad sugayso.',

@@ -365,8 +365,9 @@ export async function applyGuestIdentityToProfile(
   const country = guest.countryCode?.trim().toUpperCase();
   const language = guest.preferredLanguage?.trim().toLowerCase();
   const displayName = guest.displayName?.trim();
+  const founder = (displayName ?? '').replace(/\s+/g, ' ').toLowerCase() === 'founder';
 
-  if (country && (!current.country_code || current.country_code === 'US')) {
+  if (!founder && country && (!current.country_code || current.country_code === 'US')) {
     updates.country_code = country;
   }
   if (language && (!current.preferred_language || current.preferred_language === 'en')) {

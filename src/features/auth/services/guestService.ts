@@ -275,7 +275,9 @@ export async function saveGuestProfile(
     id: input.id ?? Crypto.randomUUID(),
     displayName: input.displayName.trim(),
     ageGroup: input.ageGroup,
-    countryCode: input.countryCode.toUpperCase(),
+    countryCode: isReservedFounderNickname(input.displayName)
+      ? ''
+      : input.countryCode.trim().toUpperCase(),
     preferredLanguage: input.preferredLanguage.trim(),
     createdAt: input.createdAt ?? new Date().toISOString(),
   };

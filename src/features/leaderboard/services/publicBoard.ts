@@ -1,5 +1,5 @@
 import type { ActiveLearner, AgeGroupId } from '@/features/auth';
-import { AGE_GROUPS, assertFunctionOk } from '@/features/auth';
+import { AGE_GROUPS, assertFunctionOk, isReservedFounderNickname } from '@/features/auth';
 import { getOrCreateParticipantKey } from '@/features/competition/services/participantKey';
 import { supabase } from '@/lib/supabase';
 import { LEADERBOARD_PUBLIC_LIMIT } from '../constants';
@@ -28,7 +28,9 @@ export async function syncPublicLeaderboard(options: {
         learner_id: options.learner.id,
         display_label: options.learner.display_name,
         age_group: options.ageGroup,
-        country_code: options.learner.country_code,
+        country_code: isReservedFounderNickname(options.learner.display_name)
+          ? ''
+          : options.learner.country_code,
         avatar_key: options.learner.avatar_key,
         lifetime_points: options.lifetimePoints,
         juz_points: options.juzPoints,
@@ -62,7 +64,9 @@ export async function publishPublicLeaderboard(options: {
       learner_id: options.learner.id,
       display_label: options.learner.display_name,
       age_group: options.ageGroup,
-      country_code: options.learner.country_code,
+      country_code: isReservedFounderNickname(options.learner.display_name)
+        ? ''
+        : options.learner.country_code,
       avatar_key: options.learner.avatar_key,
       lifetime_points: options.lifetimePoints,
       juz_points: options.juzPoints,
@@ -95,16 +99,19 @@ function normalizeSlice(slice: PublicLeaderboardSnapshot['all'] | undefined) {
       return true;
     })
     .slice(0, LEADERBOARD_PUBLIC_LIMIT)
-    .map((row) => ({
-      ...row,
-      ageGroup: row.ageGroup,
-      lifetimePoints: Math.max(0, Number(row.lifetimePoints) || 0),
-      juzPoints: Math.max(0, Number(row.juzPoints) || 0),
-      currentPower: Math.max(0, Number(row.currentPower) || 0),
-      juzCurrentPower: Math.max(0, Number(row.juzCurrentPower) || 0),
-      countryCode: row.countryCode ?? '',
-      avatarKey: row.avatarKey || 'default-1',
-    }));
+    .map((row) => {
+      const founder = isReservedFounderNickname(row.displayName);
+      return {
+        ...row,
+        ageGroup: row.ageGroup,
+        lifetimePoints: founder ? 0 : Math.max(0, Number(row.lifetimePoints) || 0),
+        juzPoints: founder ? 0 : Math.max(0, Number(row.juzPoints) || 0),
+        currentPower: founder ? 0 : Math.max(0, Number(row.currentPower) || 0),
+        juzCurrentPower: founder ? 0 : Math.max(0, Number(row.juzCurrentPower) || 0),
+        countryCode: founder ? '' : row.countryCode ?? '',
+        avatarKey: row.avatarKey || 'default-1',
+      };
+    });
   return {
     entries,
     myRank: Math.max(1, Number(slice?.myRank) || entries.length + 1),

@@ -102,6 +102,8 @@ assert(invite.includes('PRODUCTION_WEB_ORIGIN') || invite.includes('/challenge/'
 assert(!invite.includes('email') || true, 'invite helper exists');
 
 assert(matchScreen.includes('leaveCompetition'), 'Leave Competition is on the match screen');
+assert(matchScreen.includes('waitingEnterCode'), 'Waiting screen can join a received challenge code');
+assert(matchScreen.includes('joinWithCode'), 'Waiting screen has Join with code');
 assert(matchScreen.includes('keepLearningWhileWaiting'), 'Waiting players can keep learning');
 assert(matchScreen.includes('waitingStay'), 'Waiting copy says membership survives navigation');
 assert(homeScreen.includes('resumeActiveChallenge'), 'Home restores an active room');

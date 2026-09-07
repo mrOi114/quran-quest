@@ -1,4 +1,5 @@
 import type { ActiveLearner, AgeGroupId } from '@/features/auth';
+import { isReservedFounderNickname } from '@/features/auth';
 import { computeGameBonusPoints, loadGameProgress } from '@/features/games';
 import { loadLearningSnapshot, resolveAgeGroup } from '@/features/learning';
 import type { LearningSnapshot } from '@/features/learning';
@@ -210,11 +211,12 @@ function toPublicEntry(
   const ageGroup = row.ageGroup;
   const lifetimePoints = row.lifetimePoints;
   const isMe = id === currentId;
+  const founder = isReservedFounderNickname(displayName);
   return {
     id,
     displayName,
-    countryCode: isMe ? '' : countryCode,
-    flag: isMe ? '' : flagForCountryCode(countryCode),
+    countryCode: founder || isMe ? '' : countryCode,
+    flag: founder ? '🌍' : isMe ? '' : flagForCountryCode(countryCode),
     avatarKey,
     points,
     lifetimePoints,
@@ -281,11 +283,12 @@ function toEntry(
   activeNow: boolean,
 ): Omit<LeaderboardEntry, 'rank'> {
   const isMe = row.learner.id === currentId;
+  const founder = isReservedFounderNickname(row.displayName);
   return {
     id: row.learner.id,
     displayName: row.displayName,
-    countryCode: isMe ? '' : row.learner.country_code,
-    flag: isMe ? '' : flagForCountryCode(row.learner.country_code),
+    countryCode: founder || isMe ? '' : row.learner.country_code,
+    flag: founder ? '🌍' : isMe ? '' : flagForCountryCode(row.learner.country_code),
     avatarKey: row.learner.avatar_key,
     points,
     lifetimePoints: row.lifetimePoints,

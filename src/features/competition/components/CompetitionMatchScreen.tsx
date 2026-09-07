@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton, useAuth } from '@/features/auth';
+import { PrimaryButton, TextField, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
@@ -51,10 +51,11 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
   const { enabled: soundEnabled } = useMotivationSound();
   const tone = motivationToneForLearner(activeLearner);
   const playful = tone === 'playful';
-  const { state, loading, error, readyUp, submit, rematch, joining, challengePlayer, respondChallenge, leaveRoom } =
+  const { state, loading, error, readyUp, submit, rematch, joining, joinCode, challengePlayer, respondChallenge, leaveRoom } =
     useCompetitionChallenge(code);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [challengeRange, setChallengeRange] = useState<QuranRangeId>(DEFAULT_QURAN_RANGE);
+  const [receivedCode, setReceivedCode] = useState('');
 
   const remaining = useLiveRemaining(
     state?.challenge.question_ends_at ?? null,
@@ -317,6 +318,48 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 <PrimaryButton label={t('competition.invite')} onPress={() => void onInvite()} />
                 {shareNote ? <Text className="mb-3 text-sm text-brand-600">{shareNote}</Text> : null}
               </>
+            ) : null}
+
+            {waiting && others.length === 0 ? (
+              <View className="mt-4">
+                <Text className="mb-2 text-sm leading-5 text-brand-600">
+                  {t('competition.waitingEnterCode')}
+                </Text>
+                <TextField
+                  label={t('competition.enterCode')}
+                  value={receivedCode}
+                  onChangeText={(value) => setReceivedCode(value.toUpperCase())}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  accessibilityLabel={t('competition.enterCode')}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={joining || receivedCode.trim().length < 4}
+                  onPress={() => {
+                    const nextCode = receivedCode.trim().toUpperCase();
+                    if (nextCode.length < 4 || nextCode === state.challenge.code) return;
+                    playGreetingOnce({ enabled: soundEnabled, tone });
+                    void joinCode(nextCode).then((next) => {
+                      if (next?.challenge.code) {
+                        router.replace({
+                          pathname: '/(app)/competition/[code]',
+                          params: { code: next.challenge.code },
+                        } as unknown as Href);
+                      }
+                    });
+                  }}
+                  className={`min-h-12 items-center justify-center rounded-xl border px-4 py-3 ${
+                    joining || receivedCode.trim().length < 4
+                      ? 'border-brand-200'
+                      : 'border-brand-600'
+                  }`}
+                >
+                  <Text className="text-sm font-semibold text-brand-700">
+                    {t('competition.joinWithCode')}
+                  </Text>
+                </Pressable>
+              </View>
             ) : null}
 
             {others.length > 0 ? (

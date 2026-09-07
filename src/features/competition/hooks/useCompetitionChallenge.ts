@@ -114,7 +114,7 @@ export function useCompetitionChallenge(code?: string) {
   );
 
   const refresh = useCallback(async () => {
-    const currentCode = codeRef.current ?? state?.challenge.code;
+    const currentCode = state?.challenge.code ?? codeRef.current;
     if (!currentCode || busyRef.current) {
       return;
     }

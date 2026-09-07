@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton, TextField, useAuth } from '@/features/auth';
+import { PrimaryButton, TextField, isReservedFounderNickname, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
@@ -159,8 +159,12 @@ export function CompetitionHomeScreen() {
           ) : (
             leaders.map((leader, index) => (
               <Text key={`${leader.display_label}-${index}`} className="mt-2 text-base text-brand-800">
-                {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {leader.display_label}
-                {leader.score > 0 ? ` · ${leader.score}` : ''}
+                {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}{' '}
+                {isReservedFounderNickname(leader.display_label) ? '🌍 ' : ''}
+                {leader.display_label}
+                {!isReservedFounderNickname(leader.display_label) && leader.score > 0
+                  ? ` · ${leader.score}`
+                  : ''}
               </Text>
             ))
           )}

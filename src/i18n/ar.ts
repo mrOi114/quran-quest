@@ -319,6 +319,7 @@ export const ar = {
     'هذا الاسم مستخدم. اختر اسمًا أو لقبًا آخر حتى يبقى جدول المتصدرين واضحًا على كل جهاز.',
   'guest.nicknameTaken': 'هذا اللقب مستخدم بالفعل.',
   'guest.accessCode': 'رمز الدخول',
+  'guest.worldPrivate': '🌍 العالم — البلد يبقى خاصًا.',
   'guest.nameCheckFailed': 'تعذّر التحقّق من الاسم. اتصل بالإنترنت ثم حاول مرة أخرى.',
 
   'circle.section': 'حلقة QuranFamily',
@@ -744,6 +745,9 @@ export const ar = {
   'leaderboard.rankCountry': 'الترتيب {rank} · يظهر البلد فقط',
   'leaderboard.rankOnly': 'الترتيب {rank}',
   'leaderboard.pts': '{points} نقطة',
+  'leaderboard.worldAge': '🌍 العالم · {age}',
+  'leaderboard.rankWorld': 'الترتيب {rank} · العالم',
+  'leaderboard.studentsOnly': '{total} طلاب في هذا المجلس',
   'leaderboard.viewAge': 'الفئة العمرية',
   'leaderboard.viewJuz': 'تحدّي الجزء',
   'leaderboard.viewAll': '🌍 جميع الطلاب',
@@ -879,6 +883,7 @@ export const ar = {
     'أنشئ رمزًا خاصًا وشارك الرابط خارج قرآن كويست. حتى 5 لاعبين.',
   'competition.enterCode': 'رمز التحدّي',
   'competition.joinWithCode': 'انضم بالرمز',
+  'competition.waitingEnterCode': 'هل وصلك رمز تحدٍّ أثناء الانتظار؟ أدخله هنا.',
   'competition.waiting': 'بانتظار...',
   'competition.waitingStay':
     'تبقى في هذه الغرفة حتى تضغط «غادر المسابقة». يمكنك التعلّم والقراءة والاستماع أثناء الانتظار.',

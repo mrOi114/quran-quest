@@ -115,6 +115,10 @@ function sanitizeDisplayLabel(raw: string): string {
   return cleaned;
 }
 
+function isFounderLabel(label: string): boolean {
+  return label.trim().replace(/\s+/g, ' ').toLowerCase() === 'founder';
+}
+
 async function readJwtUserId(request: Request): Promise<string | null> {
   const header = request.headers.get('Authorization') ?? '';
   if (!header.toLowerCase().startsWith('bearer ')) {
@@ -175,7 +179,9 @@ async function publishEntry(
     participant_key_hash: hash,
     display_label: display,
     age_group: ageGroup,
-    country_code: (body.country_code ?? '').trim().toUpperCase().slice(0, 2),
+    country_code: isFounderLabel(display)
+      ? ''
+      : (body.country_code ?? '').trim().toUpperCase().slice(0, 2),
     avatar_key: (body.avatar_key ?? 'default-1').trim().slice(0, 32) || 'default-1',
     lifetime_points: clampPoints(body.lifetime_points),
     juz_points: clampPoints(body.juz_points),
@@ -218,17 +224,18 @@ async function publishEntry(
 }
 
 function toPublic(row: EntryRow) {
+  const founder = isFounderLabel(row.display_label);
   return {
     id: row.subject_key,
     kind: row.subject_kind,
     displayName: row.display_label,
     ageGroup: row.age_group,
-    countryCode: row.country_code,
+    countryCode: founder ? '' : row.country_code,
     avatarKey: row.avatar_key,
-    lifetimePoints: row.lifetime_points,
-    juzPoints: row.juz_points,
-    currentPower: row.current_power,
-    juzCurrentPower: row.juz_current_power,
+    lifetimePoints: founder ? 0 : row.lifetime_points,
+    juzPoints: founder ? 0 : row.juz_points,
+    currentPower: founder ? 0 : row.current_power,
+    juzCurrentPower: founder ? 0 : row.juz_current_power,
     lastActiveAt: row.last_active_at,
   };
 }
