@@ -156,11 +156,17 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
   const myRound = last?.players.find((player) => player.participant_id === state.me.participant_id);
   const correctChoice = localized?.choices.find((choice) => choice.id === last?.correct_choice_id);
 
+  function onLeaveRoom() {
+    void leaveRoom().then(() => {
+      router.replace('/(app)/competition' as Href);
+    });
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-brand-600">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: complete ? 40 : 24 }}
       >
         <Text className="text-sm font-semibold uppercase tracking-wide text-brand-100">
           {t('competition.title')}
@@ -334,6 +340,14 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
             {others.length > 0 && others.some((player) => !player.is_ready) ? (
               <Text className="mt-2 text-sm text-brand-600">{t('competition.waitingReady')}</Text>
             ) : null}
+
+            <View className="mt-4">
+              <PrimaryButton
+                label={t('competition.leaveCompetition')}
+                variant="secondary"
+                onPress={onLeaveRoom}
+              />
+            </View>
           </View>
         ) : null}
 
@@ -435,21 +449,21 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
         ) : null}
 
         {error ? <Text className="mt-4 text-sm text-red-100">{error}</Text> : null}
-
-        {!complete ? (
-          <View className="mt-5">
-            <PrimaryButton
-              label={t('competition.leaveCompetition')}
-              variant="secondary"
-              onPress={() => {
-                void leaveRoom().then(() => {
-                  router.replace('/(app)/competition' as Href);
-                });
-              }}
-            />
-          </View>
-        ) : null}
       </ScrollView>
+      {!complete ? (
+        <View className="border-t border-white/20 bg-brand-800 px-5 pt-3 pb-4">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('competition.leaveCompetition')}
+            onPress={onLeaveRoom}
+            className="mb-1 min-h-12 items-center justify-center rounded-xl bg-white px-4 py-3.5"
+          >
+            <Text className="text-base font-semibold text-brand-800">
+              {t('competition.leaveCompetition')}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
