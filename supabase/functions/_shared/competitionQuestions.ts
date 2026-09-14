@@ -881,6 +881,9 @@ export function shuffle<T>(items: T[]): T[] {
 }
 
 export type QuranRangeId =
+  | 'all_30'
+  | 'first_10'
+  | 'first_20'
   | 'juz_1'
   | 'juz_2'
   | 'juz_3'
@@ -913,21 +916,30 @@ export type QuranRangeId =
   | 'juz_30';
 
 export const DEFAULT_QURAN_RANGE: QuranRangeId = 'juz_30';
-export const QURAN_RANGE_IDS: QuranRangeId[] = Array.from(
-  { length: 30 },
-  (_, index) => `juz_${index + 1}` as QuranRangeId,
-);
+export const BUNDLE_RANGE_IDS: QuranRangeId[] = ['all_30', 'first_10', 'first_20'];
+export const QURAN_RANGE_IDS: QuranRangeId[] = [
+  ...BUNDLE_RANGE_IDS,
+  ...Array.from({ length: 30 }, (_, index) => `juz_${index + 1}` as QuranRangeId),
+];
 const MIN_RANGE_QUESTIONS = 5;
 
 const LEGACY_RANGE_MAP: Record<string, QuranRangeId> = {
-  juz_30: 'juz_30',
   first_5: 'juz_1',
-  first_10: 'juz_1',
   first_15: 'juz_1',
-  first_20: 'juz_1',
   first_25: 'juz_1',
-  all_30: 'juz_30',
 };
+
+function rangeList(from: number, to: number): number[] {
+  return Array.from({ length: to - from + 1 }, (_, index) => from + index);
+}
+
+export function juzNumbersForRange(range: string | null | undefined): number[] {
+  const id = normalizeQuranRange(range);
+  if (id === 'first_10') return rangeList(1, 10);
+  if (id === 'first_20') return rangeList(1, 20);
+  if (id === 'all_30') return rangeList(1, 30);
+  return [juzNumberFromRange(id)];
+}
 
 export function juzNumberFromRange(range: string | null | undefined): number {
   const normalized = normalizeQuranRange(range);
@@ -964,12 +976,12 @@ export function questionFitsRange(
   question: Pick<MemorizationItem, 'juz'>,
   range: QuranRangeId,
 ): boolean {
-  return question.juz === juzNumberFromRange(range);
+  return juzNumbersForRange(range).includes(question.juz);
 }
 
 export function isQuranRangePlayable(range: QuranRangeId): boolean {
-  const juz = juzNumberFromRange(range);
-  return COMPETITION_MEMORIZATION.filter((item) => item.juz === juz).length >= MIN_RANGE_QUESTIONS;
+  return COMPETITION_MEMORIZATION.filter((item) => questionFitsRange(item, range)).length >=
+    MIN_RANGE_QUESTIONS;
 }
 
 export type PublicQuestion = {
@@ -995,12 +1007,15 @@ export function pickChallengeQuestions(
   quranRange: QuranRangeId = DEFAULT_QURAN_RANGE,
 ): { questions: PublicQuestion[]; answerKey: Record<string, string> } {
   const count = QUESTION_COUNT_BY_TIER[_tier] ?? 5;
-  const juz = juzNumberFromRange(quranRange);
+  const allowed = new Set(juzNumbersForRange(quranRange));
   const exclude = new Set(excludeIds);
   const pool = COMPETITION_MEMORIZATION.filter(
-    (item) => item.juz === juz && !exclude.has(item.id),
+    (item) => allowed.has(item.juz) && !exclude.has(item.id),
   );
-  const source = pool.length >= count ? pool : COMPETITION_MEMORIZATION.filter((item) => item.juz === juz);
+  const source =
+    pool.length >= count
+      ? pool
+      : COMPETITION_MEMORIZATION.filter((item) => allowed.has(item.juz));
   const selected = shuffle(source).slice(0, Math.min(count, source.length));
 
   const questions: PublicQuestion[] = [];

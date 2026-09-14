@@ -50,6 +50,7 @@ export {
   isQuranRangePlayable,
   juzNumberFromRange,
   normalizeQuranRange,
+  rangeLabelArgs,
   rangeLabelKey,
 } from './quranRange';
 export type { QuranRangeId } from './quranRange';

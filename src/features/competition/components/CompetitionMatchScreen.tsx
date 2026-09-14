@@ -24,8 +24,8 @@ import { QuranRangePicker } from './QuranRangePicker';
 import { CompetitionCelebration } from './CompetitionCelebration';
 import {
   DEFAULT_QURAN_RANGE,
-  juzNumberFromRange,
   normalizeQuranRange,
+  rangeLabelArgs,
   type QuranRangeId,
 } from '../services/quranRange';
 
@@ -47,6 +47,10 @@ function useLiveRemaining(endsAt: string | null, active: boolean) {
 export function CompetitionMatchScreen({ code }: { code: string }) {
   const router = useRouter();
   const { t, language } = useI18n();
+  const rangeText = (range: string | null | undefined) => {
+    const args = rangeLabelArgs(range);
+    return t(args.key, args.vars);
+  };
   const { activeLearner } = useAuth();
   const { enabled: soundEnabled } = useMotivationSound();
   const tone = motivationToneForLearner(activeLearner);
@@ -192,7 +196,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
               {state.challenge.is_full ? ` · ${t('competition.full')}` : ''}
             </Text>
             <Text className="mt-2 text-sm font-semibold text-brand-700">
-              {t('competition.juzLabel', { n: juzNumberFromRange(state.challenge.quran_range) })}
+              {rangeText(state.challenge.quran_range)}
             </Text>
             <Text className="mt-3 text-sm leading-5 text-brand-600">
               {t('competition.waitingStay')}
@@ -219,14 +223,14 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 <Text className="mt-2 text-lg font-bold text-brand-900">
                   {t('competition.areYouReady', {
                     name: pending.label,
-                    juz: juzNumberFromRange(pending.quran_range),
+                    range: rangeText(pending.quran_range),
                   })}
                 </Text>
                 <Text className="mt-3 text-sm font-semibold text-brand-700">
                   {t('competition.requestRange')}
                 </Text>
                 <Text className="text-base text-brand-800">
-                  {t('competition.juzLabel', { n: juzNumberFromRange(pending.quran_range) })}
+                  {rangeText(pending.quran_range)}
                 </Text>
                 <Text className="mt-2 text-sm text-brand-700">
                   {t('competition.requestQuestions', {
@@ -269,7 +273,6 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 ) : (
                   available.map((player) => {
                     const canChallenge = others.length === 0;
-                    const juz = juzNumberFromRange(player.quran_range);
                     return (
                     <View
                       key={player.code}
@@ -279,7 +282,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                         <Text className="text-base font-semibold text-brand-800">
                           {player.display_label}
                           {' — '}
-                          {t('competition.juzLabel', { n: juz })}
+                          {rangeText(player.quran_range)}
                         </Text>
                         {player.same_juz ? (
                           <Text className="text-sm font-semibold text-emerald-700">

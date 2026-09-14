@@ -1,6 +1,9 @@
 import type { MessageKey } from '@/i18n';
 
 export type QuranRangeId =
+  | 'all_30'
+  | 'first_10'
+  | 'first_20'
   | 'juz_1'
   | 'juz_2'
   | 'juz_3'
@@ -34,30 +37,52 @@ export type QuranRangeId =
 
 export const DEFAULT_QURAN_RANGE: QuranRangeId = 'juz_30';
 
-const LEGACY_RANGE_MAP: Record<string, QuranRangeId> = {
-  juz_30: 'juz_30',
-  first_5: 'juz_1',
-  first_10: 'juz_1',
-  first_15: 'juz_1',
-  first_20: 'juz_1',
-  first_25: 'juz_1',
-  all_30: 'juz_30',
-};
+export const BUNDLE_RANGE_IDS: QuranRangeId[] = ['all_30', 'first_10', 'first_20'];
 
-export const QURAN_RANGE_IDS: QuranRangeId[] = Array.from(
+const SINGLE_JUZ_RANGE_IDS: QuranRangeId[] = Array.from(
   { length: 30 },
   (_, index) => `juz_${index + 1}` as QuranRangeId,
 );
+
+const LEGACY_RANGE_MAP: Record<string, QuranRangeId> = {
+  first_5: 'juz_1',
+  first_15: 'juz_1',
+  first_25: 'juz_1',
+};
+
+export const QURAN_RANGE_IDS: QuranRangeId[] = [...BUNDLE_RANGE_IDS, ...SINGLE_JUZ_RANGE_IDS];
+
+function rangeList(from: number, to: number): number[] {
+  return Array.from({ length: to - from + 1 }, (_, index) => from + index);
+}
+
+export function juzNumbersForRange(range: string | null | undefined): number[] {
+  const id = normalizeQuranRange(range);
+  if (id === 'first_10') return rangeList(1, 10);
+  if (id === 'first_20') return rangeList(1, 20);
+  if (id === 'all_30') return rangeList(1, 30);
+  return [juzNumberFromRange(id)];
+}
 
 export const QURAN_RANGE_OPTIONS: Array<{
   id: QuranRangeId;
   labelKey: MessageKey;
   playable: boolean;
-}> = QURAN_RANGE_IDS.map((id) => ({
-  id,
-  labelKey: 'competition.juzLabel',
-  playable: true,
-}));
+  bundle: boolean;
+}> = [
+  ...BUNDLE_RANGE_IDS.map((id) => ({
+    id,
+    labelKey: rangeLabelKey(id),
+    playable: true,
+    bundle: true,
+  })),
+  ...SINGLE_JUZ_RANGE_IDS.map((id) => ({
+    id,
+    labelKey: 'competition.juzLabel' as MessageKey,
+    playable: true,
+    bundle: false,
+  })),
+];
 
 export function juzNumberFromRange(range: string | null | undefined): number {
   const normalized = normalizeQuranRange(range);
@@ -91,10 +116,25 @@ export function isQuranRangeId(value: unknown): value is QuranRangeId {
 }
 
 export function isQuranRangePlayable(range: QuranRangeId): boolean {
-  const juz = juzNumberFromRange(range);
-  return juz >= 1 && juz <= 30;
+  return (QURAN_RANGE_IDS as string[]).includes(range);
 }
 
-export function rangeLabelKey(_range?: string | null): MessageKey {
+export function rangeLabelKey(range?: string | null): MessageKey {
+  const id = normalizeQuranRange(range);
+  if (id === 'all_30') return 'competition.rangeAll';
+  if (id === 'first_10') return 'competition.rangeFirst10';
+  if (id === 'first_20') return 'competition.rangeFirst20';
   return 'competition.juzLabel';
+}
+
+export function rangeLabelArgs(range?: string | null): {
+  key: MessageKey;
+  vars?: { n: number };
+} {
+  const id = normalizeQuranRange(range);
+  const key = rangeLabelKey(id);
+  if (key === 'competition.juzLabel') {
+    return { key, vars: { n: juzNumberFromRange(id) } };
+  }
+  return { key };
 }

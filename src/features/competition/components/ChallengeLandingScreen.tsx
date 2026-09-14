@@ -12,7 +12,7 @@ import {
   savePendingChallengeCode,
 } from '../services';
 import type { CompetitionPreview } from '../types';
-import { rangeLabelKey, juzNumberFromRange } from '../services/quranRange';
+import { rangeLabelArgs } from '../services/quranRange';
 
 export function ChallengeLandingScreen({ codeParam }: { codeParam: string }) {
   const router = useRouter();
@@ -65,6 +65,8 @@ export function ChallengeLandingScreen({ codeParam }: { codeParam: string }) {
     );
   }
 
+  const previewRange = preview?.quran_range ? rangeLabelArgs(preview.quran_range) : null;
+
   return (
     <SafeAreaView className="flex-1 bg-brand-600 px-6 pt-10">
       <Text className="text-3xl font-bold text-white">{t('competition.title')}</Text>
@@ -73,11 +75,9 @@ export function ChallengeLandingScreen({ codeParam }: { codeParam: string }) {
         <Text className="text-base font-semibold text-brand-800">
           {t('competition.codeLabel', { code: code || '------' })}
         </Text>
-          {preview?.quran_range ? (
+        {previewRange ? (
           <Text className="mt-2 text-sm text-brand-700">
-            {t(rangeLabelKey(preview.quran_range), {
-              n: juzNumberFromRange(preview.quran_range),
-            })}
+            {t(previewRange.key, previewRange.vars)}
           </Text>
         ) : null}
         {preview?.is_full ? (
