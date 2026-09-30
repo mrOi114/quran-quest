@@ -1,9 +1,9 @@
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton, TextField, useAuth } from '@/features/auth';
+import { PrimaryButton, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
 import {
@@ -25,6 +25,7 @@ export function MadarasahRoomScreen() {
   const { activeLearner } = useAuth();
   const [phase, setPhase] = useState<'loading' | 'locked' | 'open'>('loading');
   const [code, setCode] = useState('');
+  const [codeVisible, setCodeVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [quranRange, setQuranRange] = useState<QuranRangeId>(DEFAULT_QURAN_RANGE);
@@ -138,16 +139,33 @@ export function MadarasahRoomScreen() {
         {phase === 'locked' ? (
           <View className="mt-5 rounded-3xl bg-white px-5 py-5">
             <Text className="text-base text-brand-700">{t('competition.madarasahHelp')}</Text>
-            <View className="mt-4">
-              <TextField
-                label={t('competition.madarasahCode')}
-                value={code}
-                onChangeText={setCode}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                accessibilityLabel={t('competition.madarasahCode')}
-              />
+            <View className="mt-4 mb-4">
+              <Text className="mb-2 text-sm font-medium text-brand-800">{t('competition.madarasahCode')}</Text>
+              <View className="flex-row items-center rounded-xl border border-brand-100 bg-brand-50">
+                <TextInput
+                  value={code}
+                  onChangeText={setCode}
+                  secureTextEntry={!codeVisible}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  spellCheck={false}
+                  accessibilityLabel={t('competition.madarasahCode')}
+                  className="min-h-12 flex-1 px-4 py-3 text-base text-brand-900"
+                  placeholderTextColor="#6BC2A2"
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    codeVisible ? t('competition.madarasahHideCode') : t('competition.madarasahShowCode')
+                  }
+                  onPress={() => setCodeVisible((visible) => !visible)}
+                  className="min-h-12 items-center justify-center px-4"
+                >
+                  <Text className="text-sm font-semibold text-brand-700">
+                    {codeVisible ? t('competition.madarasahHideCode') : t('competition.madarasahShowCode')}
+                  </Text>
+                </Pressable>
+              </View>
             </View>
             <PrimaryButton
               label={t('competition.madarasahEnter')}

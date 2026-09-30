@@ -107,7 +107,14 @@ assert(screen.includes('competition.madarasahUnavailable'), 'Missing room uses i
 assert(screen.includes('competition.madarasahDenied') || read('src/features/competition/services/competitionService.ts').includes('competition.madarasahDenied'), 'Wrong code keeps the access-denied message');
 assert(screen.includes('autoCapitalize="none"'), 'Access code keeps the typed characters');
 assert(!screen.includes('number-pad'), 'Access code can include letters');
-assert(screen.includes('secureTextEntry'), 'Access code is not shown while typing');
+assert(screen.includes('secureTextEntry={!codeVisible}'), 'Access code stays hidden until Show is tapped');
+assert(screen.includes('competition.madarasahShowCode'), 'Show code control exists');
+assert(screen.includes('competition.madarasahHideCode'), 'Hide code control exists');
+assert(room.includes('ensureMadarasahRoom'), 'A valid code can create the Madarasah 1 room record');
+assert(room.includes('display_name: MADARASAH_ROOM_NAME'), 'Created room is named Madarasah 1');
+assert(en.includes('competition.madarasahShowCode'), 'English show-code label');
+assert(so.includes('competition.madarasahShowCode'), 'Somali show-code label');
+assert(ar.includes('competition.madarasahShowCode'), 'Arabic show-code label');
 assert(screen.includes('leaveMadarasahRoom'), 'Leave Competition clears the private room');
 assert(match.includes('privateRoom'), 'Private matches keep the room name');
 assert(match.includes('!privateRoom'), 'Private matches do not show or share a room code');

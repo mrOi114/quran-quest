@@ -1026,6 +1026,8 @@ export const so = {
   'competition.madarasahOpen': 'Gal Madarasah 1',
   'competition.madarasahHelp': 'Qol gaar ah. Geli koodhka gelitaanka lagu siiyay. Koodhka halkan lama muujiyo.',
   'competition.madarasahCode': 'Koodhka gelitaanka',
+  'competition.madarasahShowCode': '👁️ Muuji',
+  'competition.madarasahHideCode': '👁️ Qari',
   'competition.madarasahEnter': 'Gal qolka',
   'competition.madarasahDenied': 'Koodhka gelitaanka sax ma aha.',
   'competition.madarasahUnavailable': 'Madarasah 1 hadda lama heli karo.',

@@ -66,12 +66,34 @@ function labelOf(raw: string): string {
 }
 
 async function loadRoom(service: Service): Promise<RoomRow | null> {
-  const { data } = await service
+  const { data, error } = await service
     .from('competition_private_rooms')
     .select('id, slug, display_name')
     .eq('slug', MADARASAH_ROOM_SLUG)
     .maybeSingle();
-  return (data as RoomRow | null) ?? null;
+  if (error || !data) {
+    return null;
+  }
+  return data as RoomRow;
+}
+
+async function ensureMadarasahRoom(service: Service): Promise<RoomRow | null> {
+  const existing = await loadRoom(service);
+  if (existing) {
+    return existing;
+  }
+  const { data } = await service
+    .from('competition_private_rooms')
+    .insert({
+      slug: MADARASAH_ROOM_SLUG,
+      display_name: MADARASAH_ROOM_NAME,
+    })
+    .select('id, slug, display_name')
+    .single();
+  if (data) {
+    return data as RoomRow;
+  }
+  return loadRoom(service);
 }
 
 export async function findActiveMadarasahMember(
@@ -317,7 +339,7 @@ async function enterRoom(
     await recordCodeFailure(service, keyHash);
     return denied();
   }
-  const room = await loadRoom(service);
+  const room = await ensureMadarasahRoom(service);
   if (!room) {
     return { status: 404, body: { error: 'room_unavailable' } };
   }

@@ -1006,6 +1006,8 @@ export const en = {
   'competition.madarasahOpen': 'Enter Madarasah 1',
   'competition.madarasahHelp': 'Private room. Enter the access code you were given. The code is not shown here.',
   'competition.madarasahCode': 'Access code',
+  'competition.madarasahShowCode': '👁️ Show',
+  'competition.madarasahHideCode': '👁️ Hide',
   'competition.madarasahEnter': 'Enter room',
   'competition.madarasahDenied': 'That access code is not correct.',
   'competition.madarasahUnavailable': 'Madarasah 1 is not available right now.',

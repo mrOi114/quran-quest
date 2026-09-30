@@ -1001,6 +1001,8 @@ export const ar = {
   'competition.madarasahOpen': 'ادخل Madarasah 1',
   'competition.madarasahHelp': 'غرفة خاصة. أدخل رمز الدخول الذي أُعطيت إياه. الرمز لا يظهر هنا.',
   'competition.madarasahCode': 'رمز الدخول',
+  'competition.madarasahShowCode': '👁️ إظهار',
+  'competition.madarasahHideCode': '👁️ إخفاء',
   'competition.madarasahEnter': 'ادخل الغرفة',
   'competition.madarasahDenied': 'رمز الدخول غير صحيح.',
   'competition.madarasahUnavailable': 'Madarasah 1 غير متاحة الآن.',
