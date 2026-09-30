@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton, useAuth } from '@/features/auth';
@@ -17,7 +17,8 @@ export function MadarasahRoomScreen() {
   const [codeVisible, setCodeVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const roomName = t('competition.madarasahTitle');
+  const roomName = t('competition.madarasahHeading');
+  const adminEmail = t('competition.madarasahAdminEmail');
 
   useEffect(() => {
     let cancelled = false;
@@ -85,12 +86,12 @@ export function MadarasahRoomScreen() {
           {t('nav.competition')}
         </Text>
         <Text className="mt-2 text-3xl font-bold text-white">{roomName}</Text>
+        <Text className="mt-2 text-lg font-semibold text-white">{t('competition.madarasahSubtitle')}</Text>
 
         {phase === 'locked' ? (
           <View className="mt-5 rounded-3xl bg-white px-5 py-5">
-            <Text className="text-base text-brand-700">{t('competition.madarasahHelp')}</Text>
-            <View className="mt-4 mb-4">
-              <Text className="mb-2 text-sm font-medium text-brand-800">{t('competition.madarasahCode')}</Text>
+            <Text className="mb-2 text-sm font-medium text-brand-800">{t('competition.madarasahCode')}</Text>
+            <View className="mb-4">
               <View className="flex-row items-center rounded-xl border border-brand-100 bg-brand-50">
                 <TextInput
                   value={code}
@@ -99,6 +100,7 @@ export function MadarasahRoomScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   spellCheck={false}
+                  placeholder={t('competition.madarasahCodeHint')}
                   accessibilityLabel={t('competition.madarasahCode')}
                   className="min-h-12 flex-1 px-4 py-3 text-base text-brand-900"
                   placeholderTextColor="#6BC2A2"
@@ -125,9 +127,44 @@ export function MadarasahRoomScreen() {
                 void enter();
               }}
             />
-            {error ? <Text className="text-sm text-red-700">{error}</Text> : null}
+            {error ? <Text className="mt-4 text-sm text-red-700">{error}</Text> : null}
+            <Text className="mt-4 text-base text-brand-700">{t('competition.madarasahHelp')}</Text>
           </View>
         ) : null}
+
+        <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+          <Text className="text-base leading-6 text-brand-800">{t('competition.madarasahAbout')}</Text>
+        </View>
+
+        <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+          <Text className="text-xl font-bold text-brand-800">{t('competition.madarasahPromoTitle')}</Text>
+          <Text className="mt-2 text-base leading-6 text-brand-700">{t('competition.madarasahPromoLead')}</Text>
+          <Text className="mt-3 text-base text-brand-800">{t('competition.madarasahPromoChallenge')}</Text>
+          <Text className="mt-2 text-base text-brand-800">{t('competition.madarasahPromoLearn')}</Text>
+          <Text className="mt-2 text-base text-brand-800">{t('competition.madarasahPromoTimer')}</Text>
+          <Text className="mt-2 text-base text-brand-800">{t('competition.madarasahPromoChat')}</Text>
+          <Text className="mt-2 text-base text-brand-800">{t('competition.madarasahPromoCalls')}</Text>
+          <Text className="mt-2 text-base text-brand-800">{t('competition.madarasahPromoResults')}</Text>
+          <Text className="mt-3 text-base font-semibold text-brand-800">{t('competition.madarasahPromoLimit')}</Text>
+          <Text className="mt-4 text-base font-semibold text-brand-800">{t('competition.madarasahPromoAsk')}</Text>
+          <Text className="mt-1 text-base text-brand-700">{t('competition.madarasahPromoContact')}</Text>
+        </View>
+
+        <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+          <Text className="text-xl font-bold text-brand-800">{t('competition.madarasahAdminTitle')}</Text>
+          <Text className="mt-2 text-base font-semibold text-brand-800">{t('competition.madarasahAdminHelp')}</Text>
+          <Text className="mt-2 text-base leading-6 text-brand-700">{t('competition.madarasahAdminBody')}</Text>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => {
+              void Linking.openURL(`mailto:${adminEmail}`);
+            }}
+          >
+            <Text className="mt-3 text-base font-semibold text-brand-700 underline" style={{ writingDirection: 'ltr' }}>
+              {adminEmail}
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
