@@ -1028,8 +1028,37 @@ export const en = {
   'competition.madarasahAdminTitle': '👤 Room Admin',
   'competition.madarasahAdminHelp': 'Need Help? Contact Admin',
   'competition.madarasahAdminBody':
-    'For access, technical support, or questions about your Madarasah room, contact the administrator.',
+    'For access, technical support, or questions about your Madrasah room, contact the administrator.',
   'competition.madarasahAdminEmail': 'mamiin37@gmail.com',
+  'competition.madarasahChooseJuz': '📖 Choose Juz',
+  'competition.madarasahInviteFriends': '👥 Invite Friends',
+  'competition.madarasahCreateCode': '🔐 Create Private Code',
+  'competition.madarasahJoinCode': '🔑 Join with Code',
+  'competition.familyWelcomeTitle': '🌸💖 Welcome to Madarasah 1, My Family 💖🌸',
+  'competition.familyWelcomeGreeting':
+    'My beautiful daughters, my beloved sons, and my dear family,',
+  'competition.familyWelcomeMore': 'This is more than a competition. ❤️',
+  'competition.familyWelcomeDream':
+    'This is a dream I carried in my heart, and seeing us here together makes me so proud to be your father and the founder of this little Qur’an journey. 🌙📖',
+  'competition.familyWelcomeHope':
+    'I hope you enjoy every challenge, every question, every laugh, and every moment we share together. 🌸',
+  'competition.familyWelcomeGoal':
+    'But always remember: our goal is not to defeat each other. Our goal is Jannah. 🤲🏻❤️',
+  'competition.familyWelcomeTogether':
+    'We are one family. We help each other, encourage each other, and remind each other of the Qur’an.',
+  'competition.familyWelcomeProud': 'I am so proud of every one of you. I love you, my children. ❤️',
+  'competition.familyWelcomeBismillah': 'Bismillah — our goal is Jannah. 🤲🏻💖',
+  'competition.familyPromoTitle': '🌙 Have Your Own Family or Madrasah?',
+  'competition.familyPromoLead':
+    'Bring your family, students, or classmates together for your own Qur’an competition space. 📖❤️',
+  'competition.familyPromoChallenge': '🏆 Challenge each other',
+  'competition.familyPromoMemorise': '📖 Memorise Qur’an together',
+  'competition.familyPromoFamily': '👨‍👩‍👧‍👦 Build your family learning group',
+  'competition.familyPromoMadrasah': '🕌 Organise your Madrasah students',
+  'competition.familyPromoChat': '💬 Chat and connect together',
+  'competition.familyPromoAllah': '🌙 Learn together for the sake of Allah',
+  'competition.familyPromoAsk': 'Want your own private Family or Madrasah room?',
+  'competition.familyPromoContact': '👤 Contact Admin',
   'competition.madarasahShowCode': '👁️ Show',
   'competition.madarasahHideCode': '👁️ Hide',
   'competition.madarasahEnter': 'Enter room',

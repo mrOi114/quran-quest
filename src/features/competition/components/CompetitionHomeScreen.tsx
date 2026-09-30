@@ -1,6 +1,6 @@
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton, TextField, isReservedFounderNickname, useAuth } from '@/features/auth';
@@ -146,8 +146,48 @@ export function CompetitionHomeScreen({ variant = 'public' }: { variant?: 'publi
           </Text>
         ) : null}
 
+        {privateRoom ? (
+          <View className="mt-5 rounded-3xl bg-white px-5 py-4">
+            <Text className="text-center text-lg font-bold text-brand-800">
+              {t('competition.familyWelcomeTitle')}
+            </Text>
+            {(
+              [
+                'competition.familyWelcomeGreeting',
+                'competition.familyWelcomeMore',
+                'competition.familyWelcomeDream',
+                'competition.familyWelcomeHope',
+                'competition.familyWelcomeGoal',
+                'competition.familyWelcomeTogether',
+                'competition.familyWelcomeProud',
+                'competition.familyWelcomeBismillah',
+              ] as const
+            ).map((key) => (
+              <Text key={key} className="mt-2 text-sm leading-5 text-brand-700">
+                {t(key)}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
         <View className="mt-5 rounded-3xl bg-white px-5 py-5">
-          <QuranRangePicker value={quranRange} onChange={setQuranRange} />
+          <QuranRangePicker
+            value={quranRange}
+            onChange={setQuranRange}
+            heading={privateRoom ? t('competition.madarasahChooseJuz') : undefined}
+          />
+          {privateRoom ? (
+            <PrimaryButton
+              label={t('competition.startChallenge')}
+              loading={joining}
+              disabled={!rangeReady}
+              onPress={() => {
+                if (!rangeReady) return;
+                playGreetingOnce({ enabled: soundEnabled, tone });
+                void joinMadarasah(quranRange).then((state) => go(state?.challenge.code));
+              }}
+            />
+          ) : null}
         </View>
 
         {progress ? (
@@ -183,24 +223,67 @@ export function CompetitionHomeScreen({ variant = 'public' }: { variant?: 'publi
         </View>
 
         <View className="mt-5 rounded-3xl bg-white px-5 py-5">
-          <PrimaryButton
-            label={t('competition.startChallenge')}
-            loading={joining}
-            disabled={!rangeReady}
-            onPress={() => {
-              if (!rangeReady) return;
-              playGreetingOnce({ enabled: soundEnabled, tone });
-              void (privateRoom ? joinMadarasah(quranRange) : joinPublic(quranRange)).then((state) =>
-                go(state?.challenge.code),
-              );
-            }}
-          />
-          {privateRoom ? null : (
+          {privateRoom ? (
             <>
+              <PrimaryButton
+                label={t('competition.madarasahInviteFriends')}
+                variant="secondary"
+                loading={joining}
+                disabled={!rangeReady}
+                onPress={() => {
+                  if (!rangeReady) return;
+                  playGreetingOnce({ enabled: soundEnabled, tone });
+                  void createInvite(quranRange, 'madarasah').then((state) => go(state?.challenge.code));
+                }}
+              />
+              <PrimaryButton
+                label={t('competition.madarasahCreateCode')}
+                variant="secondary"
+                loading={joining}
+                disabled={!rangeReady}
+                onPress={() => {
+                  if (!rangeReady) return;
+                  playGreetingOnce({ enabled: soundEnabled, tone });
+                  void createInvite(quranRange, 'madarasah').then((state) => go(state?.challenge.code));
+                }}
+              />
+              <TextField
+                label={t('competition.madarasahJoinCode')}
+                value={code}
+                onChangeText={(value) => setCode(value.toUpperCase())}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                accessibilityLabel={t('competition.madarasahJoinCode')}
+              />
+              <Pressable
+                accessibilityRole="button"
+                disabled={joining}
+                onPress={() => {
+                  playGreetingOnce({ enabled: soundEnabled, tone });
+                  void joinCode(code, 'madarasah').then((state) => go(state?.challenge.code));
+                }}
+                className="min-h-12 items-center justify-center rounded-xl border border-brand-600 px-4 py-3"
+              >
+                <Text className="text-sm font-semibold text-brand-700">
+                  {t('competition.madarasahJoinCode')}
+                </Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <PrimaryButton
+                label={t('competition.startChallenge')}
+                loading={joining}
+                disabled={!rangeReady}
+                onPress={() => {
+                  if (!rangeReady) return;
+                  playGreetingOnce({ enabled: soundEnabled, tone });
+                  void joinPublic(quranRange).then((state) => go(state?.challenge.code));
+                }}
+              />
               <Text className="mb-4 mt-2 text-sm leading-5 text-brand-600">
                 {t('competition.publicHelp')}
               </Text>
-
               <PrimaryButton
                 label={t('competition.invite')}
                 variant="secondary"
@@ -215,7 +298,6 @@ export function CompetitionHomeScreen({ variant = 'public' }: { variant?: 'publi
               <Text className="mb-4 text-sm leading-5 text-brand-600">
                 {t('competition.inviteHelp')}
               </Text>
-
               <TextField
                 label={t('competition.enterCode')}
                 value={code}
@@ -261,17 +343,78 @@ export function CompetitionHomeScreen({ variant = 'public' }: { variant?: 'publi
                 }}
               />
             </View>
+            <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+              <Text className="text-xl font-bold text-brand-800">{t('competition.madarasahAdminTitle')}</Text>
+              <Text className="mt-2 text-base font-semibold text-brand-800">
+                {t('competition.madarasahAdminHelp')}
+              </Text>
+              <Text className="mt-2 text-sm leading-5 text-brand-700">
+                {t('competition.madarasahAdminBody')}
+              </Text>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => {
+                  void Linking.openURL(`mailto:${t('competition.madarasahAdminEmail')}`);
+                }}
+              >
+                <Text
+                  className="mt-3 text-base font-semibold text-brand-700 underline"
+                  style={{ writingDirection: 'ltr' }}
+                >
+                  {t('competition.madarasahAdminEmail')}
+                </Text>
+              </Pressable>
+            </View>
           </>
         ) : (
-          <View className="mt-5 rounded-3xl bg-white px-5 py-5">
-            <Text className="text-xl font-bold text-brand-800">{t('competition.madarasahLocked')}</Text>
-            <Text className="mt-2 text-sm leading-5 text-brand-600">{t('competition.madarasahHelp')}</Text>
-            <PrimaryButton
-              label={t('competition.madarasahOpen')}
-              variant="secondary"
-              onPress={() => router.push('/(app)/competition/madarasah' as Href)}
-            />
-          </View>
+          <>
+            <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+              <Text className="text-xl font-bold text-brand-800">{t('competition.madarasahLocked')}</Text>
+              <Text className="mt-2 text-sm leading-5 text-brand-600">{t('competition.madarasahHelp')}</Text>
+              <PrimaryButton
+                label={t('competition.madarasahOpen')}
+                variant="secondary"
+                onPress={() => router.push('/(app)/competition/madarasah' as Href)}
+              />
+            </View>
+            <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+              <Text className="text-xl font-bold text-brand-800">{t('competition.familyPromoTitle')}</Text>
+              <Text className="mt-2 text-sm leading-5 text-brand-700">{t('competition.familyPromoLead')}</Text>
+              {(
+                [
+                  'competition.familyPromoChallenge',
+                  'competition.familyPromoMemorise',
+                  'competition.familyPromoFamily',
+                  'competition.familyPromoMadrasah',
+                  'competition.familyPromoChat',
+                  'competition.familyPromoAllah',
+                ] as const
+              ).map((key) => (
+                <Text key={key} className="mt-2 text-sm text-brand-800">
+                  {t(key)}
+                </Text>
+              ))}
+              <Text className="mt-3 text-sm font-semibold text-brand-800">
+                {t('competition.familyPromoAsk')}
+              </Text>
+              <Text className="mt-2 text-base font-semibold text-brand-800">
+                {t('competition.familyPromoContact')}
+              </Text>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => {
+                  void Linking.openURL(`mailto:${t('competition.madarasahAdminEmail')}`);
+                }}
+              >
+                <Text
+                  className="mt-3 text-base font-semibold text-brand-700 underline"
+                  style={{ writingDirection: 'ltr' }}
+                >
+                  {t('competition.madarasahAdminEmail')}
+                </Text>
+              </Pressable>
+            </View>
+          </>
         )}
       </ScrollView>
     </SafeAreaView>

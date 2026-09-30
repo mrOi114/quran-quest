@@ -1050,6 +1050,35 @@ export const so = {
   'competition.madarasahAdminBody':
     'Gelitaanka, taageerada farsamada, ama su’aalaha ku saabsan qolkaaga Madarasadda, la xiriir maamulaha.',
   'competition.madarasahAdminEmail': 'mamiin37@gmail.com',
+  'competition.madarasahChooseJuz': '📖 Dooro Jus',
+  'competition.madarasahInviteFriends': '👥 Casuum asxaabta',
+  'competition.madarasahCreateCode': '🔐 Samee koodh gaar ah',
+  'competition.madarasahJoinCode': '🔑 Ku biir koodhka',
+  'competition.familyWelcomeTitle': '🌸💖 Ku soo dhawaada Madarasah 1, Qoyskayga 💖🌸',
+  'competition.familyWelcomeGreeting':
+    'Gabdhihayda quruxda badan, wiilashayda aan jeclahay, iyo qoyskayga qaaliga ah,',
+  'competition.familyWelcomeMore': 'Tani waa wax ka badan tartan. ❤️',
+  'competition.familyWelcomeDream':
+    'Tani waa riyo aan qalbigayga ku sidnay, oo inaan halkan ku wada joogno ayaa iga dhigaysa mid aad ugu faanaya inaan ahay aabbahiinna iyo aasaasaha safarkan yar ee Qur’aanka. 🌙📖',
+  'competition.familyWelcomeHope':
+    'Waxaan rajeynayaa inaad ku raaxaysataan tartan kasta, su’aal kasta, qosol kasta, iyo daqiiqad kasta oo aan wadaagayno. 🌸',
+  'competition.familyWelcomeGoal':
+    'Laakiin had iyo jeer xasuusta: ujeeddadeenu ma aha inaan midba midka kale ka adkaano. Ujeeddadeenu waa Janno. 🤲🏻❤️',
+  'competition.familyWelcomeTogether':
+    'Waxaan nahay hal qoys. Waan is caawinaa, waan is dhiirrigelinaa, oo Qur’aanka ayaan isku xusuusinnaa.',
+  'competition.familyWelcomeProud': 'Aad baan idiin ku faanayaa midkiin kasta. Waan idin jecelahay, carruurtayda. ❤️',
+  'competition.familyWelcomeBismillah': 'Bismillah — ujeeddadeenu waa Janno. 🤲🏻💖',
+  'competition.familyPromoTitle': '🌙 Ma leedahay Qoys ama Madarasad gaar ah?',
+  'competition.familyPromoLead':
+    'Keen qoyskaaga, ardaydaada, ama saaxiibbada fasalka si aad u heshaan meel tartan Qur’aan oo tiinna ah. 📖❤️',
+  'competition.familyPromoChallenge': '🏆 Midba midka kale ha caqabado',
+  'competition.familyPromoMemorise': '📖 Wada xifdi Qur’aanka',
+  'competition.familyPromoFamily': '👨‍👩‍👧‍👦 Dhis kooxda barashada qoyskaaga',
+  'competition.familyPromoMadrasah': '🕌 Abaabul ardayda Madarasaddaada',
+  'competition.familyPromoChat': '💬 Wada sheekaysta oo wada xirma',
+  'competition.familyPromoAllah': '🌙 Wada baro Alle dartii',
+  'competition.familyPromoAsk': 'Ma rabtaa qol gaar ah oo Qoys ama Madarasad?',
+  'competition.familyPromoContact': '👤 La xiriir Maamulaha',
   'competition.madarasahShowCode': '👁️ Muuji',
   'competition.madarasahHideCode': '👁️ Qari',
   'competition.madarasahEnter': 'Gal qolka',

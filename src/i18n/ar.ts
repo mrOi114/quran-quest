@@ -1025,6 +1025,34 @@ export const ar = {
   'competition.madarasahAdminBody':
     'للدخول أو الدعم الفني أو الأسئلة حول غرفة المدرسة، تواصل مع المسؤول.',
   'competition.madarasahAdminEmail': 'mamiin37@gmail.com',
+  'competition.madarasahChooseJuz': '📖 اختر الجزء',
+  'competition.madarasahInviteFriends': '👥 ادعُ الأصدقاء',
+  'competition.madarasahCreateCode': '🔐 أنشئ رمزاً خاصاً',
+  'competition.madarasahJoinCode': '🔑 انضم بالرمز',
+  'competition.familyWelcomeTitle': '🌸💖 أهلاً بكم في Madarasah 1، يا عائلتي 💖🌸',
+  'competition.familyWelcomeGreeting': 'بناتي الجميلات، وأبنائي الأحباء، وعائلتي الغالية،',
+  'competition.familyWelcomeMore': 'هذا أكثر من مسابقة. ❤️',
+  'competition.familyWelcomeDream':
+    'هذا حلم حملته في قلبي، ورؤيتنا هنا معاً يجعلني فخوراً جداً بأن أكون أباكم ومؤسس هذه الرحلة الصغيرة مع القرآن. 🌙📖',
+  'competition.familyWelcomeHope':
+    'أتمنى أن تستمتعوا بكل تحدٍّ، وكل سؤال، وكل ضحكة، وكل لحظة نشاركها معاً. 🌸',
+  'competition.familyWelcomeGoal':
+    'لكن تذكروا دائماً: هدفنا ليس أن يهزم بعضنا بعضاً. هدفنا الجنة. 🤲🏻❤️',
+  'competition.familyWelcomeTogether':
+    'نحن عائلة واحدة. نساعد بعضنا، ونشجع بعضنا، ونذكّر بعضنا بالقرآن.',
+  'competition.familyWelcomeProud': 'أنا فخور بكل واحد منكم. أحبكم يا أبنائي. ❤️',
+  'competition.familyWelcomeBismillah': 'بسم الله — هدفنا الجنة. 🤲🏻💖',
+  'competition.familyPromoTitle': '🌙 هل تريد غرفة لعائلتك أو لمدرستك؟',
+  'competition.familyPromoLead':
+    'اجمع عائلتك أو طلابك أو زملاءك في الصف في مساحة مسابقة قرآن خاصة بكم. 📖❤️',
+  'competition.familyPromoChallenge': '🏆 تحدّوا بعضكم بعضًا',
+  'competition.familyPromoMemorise': '📖 احفظوا القرآن معًا',
+  'competition.familyPromoFamily': '👨‍👩‍👧‍👦 ابنوا مجموعة تعلم لعائلتكم',
+  'competition.familyPromoMadrasah': '🕌 نظّموا طلاب مدرستكم',
+  'competition.familyPromoChat': '💬 تحدثوا وتواصلوا معًا',
+  'competition.familyPromoAllah': '🌙 تعلموا معًا لوجه الله',
+  'competition.familyPromoAsk': 'هل تريدون غرفة خاصة لعائلتكم أو مدرستكم؟',
+  'competition.familyPromoContact': '👤 تواصل مع المسؤول',
   'competition.madarasahShowCode': '👁️ إظهار',
   'competition.madarasahHideCode': '👁️ إخفاء',
   'competition.madarasahEnter': 'ادخل الغرفة',

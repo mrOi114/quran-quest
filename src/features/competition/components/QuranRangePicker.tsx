@@ -13,10 +13,12 @@ export function QuranRangePicker({
   value,
   onChange,
   locked = false,
+  heading,
 }: {
   value: QuranRangeId;
   onChange?: (next: QuranRangeId) => void;
   locked?: boolean;
+  heading?: string;
 }) {
   const { t } = useI18n();
   const bundles = QURAN_RANGE_OPTIONS.filter((option) => option.bundle);
@@ -25,7 +27,7 @@ export function QuranRangePicker({
   return (
     <View>
       <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
-        {t('competition.chooseJuz')}
+        {heading ?? t('competition.chooseJuz')}
       </Text>
       {locked ? (
         <Text className="mt-1 text-xs text-brand-600">{t('competition.rangeLocked')}</Text>
