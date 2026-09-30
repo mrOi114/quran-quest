@@ -238,14 +238,33 @@ export function useCompetitionChallenge(code?: string) {
     }
   }, [apply, fail, state]);
 
+  const answerChain = useRef(Promise.resolve());
+  const latestChoice = useRef<string | null>(null);
+
   const submit = useCallback(
-    async (choiceId: string) => {
-      if (!state || state.me.my_choice_id) return;
-      try {
-        apply(await submitChallengeAnswer(state.challenge.code, choiceId));
-      } catch (caught) {
-        fail(caught);
+    (choiceId: string) => {
+      const code = state?.challenge.code;
+      if (!code || state.challenge.status !== 'question') {
+        return Promise.resolve(false);
       }
+      latestChoice.current = choiceId;
+      const pending = answerChain.current.then(async () => {
+        if (latestChoice.current !== choiceId) {
+          return true;
+        }
+        try {
+          apply(await submitChallengeAnswer(code, choiceId));
+          return true;
+        } catch (caught) {
+          fail(caught);
+          return false;
+        }
+      });
+      answerChain.current = pending.then(
+        () => undefined,
+        () => undefined,
+      );
+      return pending;
     },
     [apply, fail, state],
   );

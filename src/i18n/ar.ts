@@ -898,6 +898,7 @@ export const ar = {
   'competition.waitingReady': 'بانتظار أن يصبح خصمك جاهزًا.',
   'competition.questionProgress': 'سؤال {current} / {total}',
   'competition.timer': '⏱ {time}',
+  'competition.changeAnswer': 'يمكنك تغيير إجابتك حتى ينتهي الوقت.',
   'competition.correctAnswer': 'الإجابة الصحيحة: {answer}',
   'competition.youCorrect': 'أنت: صحيح ✅',
   'competition.youIncorrect': 'أنت: خطأ ❌',

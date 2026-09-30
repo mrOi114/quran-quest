@@ -923,6 +923,7 @@ export const so = {
   'competition.waitingReady': 'Sugayaa in qofka kula tartamayaa diyaar noqdo.',
   'competition.questionProgress': 'Suâ€™aasha {current} / {total}',
   'competition.timer': 'â± {time}',
+  'competition.changeAnswer': 'Waad bedeli kartaa jawaabta ilaa waqtigu dhammaado.',
   'competition.correctAnswer': 'Jawaabta saxda ah: {answer}',
   'competition.youCorrect': 'Adiga: Sax âœ…',
   'competition.youIncorrect': 'Adiga: Khalad âŒ',

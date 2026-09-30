@@ -903,6 +903,7 @@ export const en = {
   'competition.waitingReady': 'Waiting for your opponent to be ready.',
   'competition.questionProgress': 'Question {current} / {total}',
   'competition.timer': '⏱ {time}',
+  'competition.changeAnswer': 'You can change your answer until the time ends.',
   'competition.correctAnswer': 'Correct answer: {answer}',
   'competition.youCorrect': 'You: Correct ✅',
   'competition.youIncorrect': 'You: Incorrect ❌',

@@ -62,6 +62,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [challengeRange, setChallengeRange] = useState<QuranRangeId>(DEFAULT_QURAN_RANGE);
   const [receivedCode, setReceivedCode] = useState('');
+  const [draftChoiceId, setDraftChoiceId] = useState<string | null>(null);
 
   const remaining = useLiveRemaining(
     state?.challenge.question_ends_at ?? null,
@@ -82,6 +83,10 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
       setChallengeRange(normalizeQuranRange(state.challenge.quran_range));
     }
   }, [state?.challenge.quran_range]);
+
+  useEffect(() => {
+    setDraftChoiceId(null);
+  }, [state?.challenge.code, state?.challenge.current_index, state?.challenge.status]);
 
   const localized = useMemo(() => {
     if (!state?.challenge.question) {
@@ -152,6 +157,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
   const waiting = state.challenge.status === 'waiting';
   const readyCheck = state.challenge.status === 'ready_check';
   const inQuestion = state.challenge.status === 'question';
+  const chosenId = draftChoiceId ?? state.me.my_choice_id;
   const revealing = state.challenge.status === 'reveal';
   const complete = state.challenge.status === 'complete';
   const privateRoom = state.challenge.room_name ?? null;
@@ -438,22 +444,27 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
 
             <View className="mt-4 gap-3">
               {localized.choices.map((choice) => {
-                const selected = state.me.my_choice_id === choice.id;
+                const selected = chosenId === choice.id;
                 const showCorrect = revealing && last?.correct_choice_id === choice.id;
                 return (
                   <Pressable
                     key={choice.id}
                     accessibilityRole="button"
+                    accessibilityState={{ selected }}
                     accessibilityLabel={`${choice.letter}. ${choice.label}`}
-                    disabled={!inQuestion || Boolean(state.me.my_choice_id)}
+                    disabled={!inQuestion}
                     onPress={() => {
-                      void submit(choice.id);
+                      if (!inQuestion || chosenId === choice.id) return;
+                      setDraftChoiceId(choice.id);
+                      void submit(choice.id).then((saved) => {
+                        if (!saved) setDraftChoiceId(null);
+                      });
                     }}
                     className={`min-h-14 justify-center rounded-2xl border px-4 py-3 ${
                       showCorrect
                         ? 'border-emerald-600 bg-emerald-50'
                         : selected
-                          ? 'border-brand-600 bg-brand-50'
+                          ? 'border-brand-700 bg-brand-100'
                           : 'border-brand-200 bg-brand-50'
                     }`}
                   >
@@ -469,6 +480,9 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 );
               })}
             </View>
+            {inQuestion && chosenId ? (
+              <Text className="mt-3 text-sm text-brand-600">{t('competition.changeAnswer')}</Text>
+            ) : null}
 
             {revealing ? (
               <View className="mt-5 rounded-2xl bg-brand-50 px-4 py-4">
