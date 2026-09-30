@@ -6,7 +6,7 @@ export const MADARASAH_ROOM_NAME = 'Madarasah 1';
  * The raw code is not stored in client code or database fields.
  */
 export const MADARASAH_ACCESS_CODE_SHA256 =
-  '28fdc24c9abb066ea7343dc47c79a7cce15a581bcb30002a96903450bbe641a5';
+  '53fd8e7a39afcd3dd71535d68c131269c92fd692a5225307f381c269af348c17';
 
 export async function sha256Hex(value: string): Promise<string> {
   const data = new TextEncoder().encode(value);

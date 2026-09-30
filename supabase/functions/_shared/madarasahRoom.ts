@@ -319,7 +319,7 @@ async function enterRoom(
   }
   const room = await loadRoom(service);
   if (!room) {
-    return { status: 404, body: { error: 'not_found' } };
+    return { status: 404, body: { error: 'room_unavailable' } };
   }
   await clearCodeFailures(service, keyHash);
   const display = labelOf(typeof body.display_label === 'string' ? body.display_label : '');

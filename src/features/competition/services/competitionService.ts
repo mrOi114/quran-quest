@@ -182,7 +182,7 @@ export async function fetchWeeklyLeaders(): Promise<{
 
 export function localizeCompetitionError(
   message: string,
-  t: (key: 'competition.notFound' | 'competition.expired' | 'competition.roomFull' | 'competition.ageMismatch' | 'competition.error' | 'competition.rangeUnavailable' | 'competition.madarasahDenied') => string,
+  t: (key: 'competition.notFound' | 'competition.expired' | 'competition.roomFull' | 'competition.ageMismatch' | 'competition.error' | 'competition.rangeUnavailable' | 'competition.madarasahDenied' | 'competition.madarasahUnavailable') => string,
 ): string {
   if (message === 'not_found') return t('competition.notFound');
   if (message === 'expired') return t('competition.expired');
@@ -192,5 +192,6 @@ export function localizeCompetitionError(
   if (message === 'range_unavailable') return t('competition.rangeUnavailable');
   if (message === 'not_member') return t('competition.notFound');
   if (message === 'code_denied') return t('competition.madarasahDenied');
+  if (message === 'room_unavailable') return t('competition.madarasahUnavailable');
   return t('competition.error');
 }

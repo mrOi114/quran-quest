@@ -63,7 +63,11 @@ export function MadarasahRoomScreen() {
       setPhase('open');
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'code_denied';
-      setError(localizeCompetitionError(message, (key) => t(key)));
+      setError(
+        message === 'not_found' || message === 'room_unavailable'
+          ? t('competition.madarasahUnavailable')
+          : localizeCompetitionError(message, (key) => t(key)),
+      );
       setPhase('locked');
     } finally {
       setBusy(false);
@@ -140,7 +144,7 @@ export function MadarasahRoomScreen() {
                 value={code}
                 onChangeText={setCode}
                 secureTextEntry
-                keyboardType="number-pad"
+                autoCapitalize="none"
                 autoCorrect={false}
                 accessibilityLabel={t('competition.madarasahCode')}
               />

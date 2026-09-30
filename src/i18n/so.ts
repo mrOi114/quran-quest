@@ -1028,6 +1028,7 @@ export const so = {
   'competition.madarasahCode': 'Koodhka gelitaanka',
   'competition.madarasahEnter': 'Gal qolka',
   'competition.madarasahDenied': 'Koodhka gelitaanka sax ma aha.',
+  'competition.madarasahUnavailable': 'Madarasah 1 hadda lama heli karo.',
   'competition.madarasahRoomChat': 'Sheekada qolka',
   'competition.madarasahDirectChat': 'Sheeko gaar ah oo aad la leedahay {name}',
   'competition.madarasahMembers': 'Xubnaha',

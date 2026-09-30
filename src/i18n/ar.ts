@@ -1003,6 +1003,7 @@ export const ar = {
   'competition.madarasahCode': 'رمز الدخول',
   'competition.madarasahEnter': 'ادخل الغرفة',
   'competition.madarasahDenied': 'رمز الدخول غير صحيح.',
+  'competition.madarasahUnavailable': 'Madarasah 1 غير متاحة الآن.',
   'competition.madarasahRoomChat': 'دردشة الغرفة',
   'competition.madarasahDirectChat': 'دردشة خاصة مع {name}',
   'competition.madarasahMembers': 'الأعضاء',

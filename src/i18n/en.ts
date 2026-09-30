@@ -1008,6 +1008,7 @@ export const en = {
   'competition.madarasahCode': 'Access code',
   'competition.madarasahEnter': 'Enter room',
   'competition.madarasahDenied': 'That access code is not correct.',
+  'competition.madarasahUnavailable': 'Madarasah 1 is not available right now.',
   'competition.madarasahRoomChat': 'Room chat',
   'competition.madarasahDirectChat': 'Private chat with {name}',
   'competition.madarasahMembers': 'Members',
