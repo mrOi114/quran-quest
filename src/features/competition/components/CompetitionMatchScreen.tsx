@@ -23,6 +23,7 @@ import { CompetitionSoundToggle } from './CompetitionSoundToggle';
 import { ListenToQuestionButton } from './ListenToQuestionButton';
 import { QuranRangePicker } from './QuranRangePicker';
 import { CompetitionCelebration } from './CompetitionCelebration';
+import { MadarasahComms } from './MadarasahComms';
 import {
   DEFAULT_QURAN_RANGE,
   normalizeQuranRange,
@@ -153,6 +154,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
   const inQuestion = state.challenge.status === 'question';
   const revealing = state.challenge.status === 'reveal';
   const complete = state.challenge.status === 'complete';
+  const privateRoom = state.challenge.room_name ?? null;
   const others = state.challenge.players.filter((player) => !player.is_you);
   const available = state.challenge.available_players ?? [];
   const pending = state.challenge.pending_challenge;
@@ -174,7 +176,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: complete ? 40 : 24 }}
       >
         <Text className="text-sm font-semibold uppercase tracking-wide text-brand-100">
-          {t('competition.title')}
+          {privateRoom ?? t('competition.title')}
         </Text>
         <Text className="mt-1 text-lg font-semibold text-white">
           {t('competition.tierLabel', { n: state.challenge.tier })}
@@ -186,9 +188,13 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
             <Text className="text-xl font-bold text-brand-800">
               {others.length > 0 ? t('competition.opponentJoined') : t('competition.waiting')}
             </Text>
-            <Text className="mt-3 text-base text-brand-700">
-              {t('competition.codeLabel', { code: state.challenge.code })}
-            </Text>
+            {privateRoom ? (
+              <Text className="mt-3 text-base font-semibold text-brand-700">{privateRoom}</Text>
+            ) : (
+              <Text className="mt-3 text-base text-brand-700">
+                {t('competition.codeLabel', { code: state.challenge.code })}
+              </Text>
+            )}
             <Text className="mt-2 text-sm text-brand-600">
               {t('competition.playersCount', {
                 count: state.challenge.participant_count,
@@ -263,7 +269,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
               <QuranRangePicker value={challengeRange} locked />
             </View>
 
-            {state.challenge.visibility === 'public' ? (
+            {state.challenge.visibility === 'public' || privateRoom ? (
               <View className="mt-4">
                 <Text className="text-sm font-semibold uppercase tracking-wide text-brand-500">
                   {t('competition.waitingPlayers')}
@@ -317,14 +323,14 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
               </View>
             ) : null}
 
-            {!state.challenge.is_full ? (
+            {!state.challenge.is_full && !privateRoom ? (
               <>
                 <PrimaryButton label={t('competition.invite')} onPress={() => void onInvite()} />
                 {shareNote ? <Text className="mb-3 text-sm text-brand-600">{shareNote}</Text> : null}
               </>
             ) : null}
 
-            {waiting && others.length === 0 ? (
+            {waiting && others.length === 0 && !privateRoom ? (
               <View className="mt-4">
                 <Text className="mb-2 text-sm leading-5 text-brand-600">
                   {t('competition.waitingEnterCode')}
@@ -384,6 +390,13 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
             ) : null}
 
             <View className="mt-4">
+              {privateRoom ? (
+                <PrimaryButton
+                  label={t('competition.madarasahBack')}
+                  variant="secondary"
+                  onPress={() => router.replace('/(app)/competition/madarasah' as Href)}
+                />
+              ) : null}
               <PrimaryButton
                 label={t('competition.leaveCompetition')}
                 variant="secondary"
@@ -499,9 +512,15 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 }
               });
             }}
-            onBack={() => router.replace('/(app)/competition' as Href)}
+            onBack={() =>
+              router.replace(
+                (privateRoom ? '/(app)/competition/madarasah' : '/(app)/competition') as Href,
+              )
+            }
           />
         ) : null}
+
+        {privateRoom ? <MadarasahComms /> : null}
 
         {error ? <Text className="mt-4 text-sm text-red-100">{error}</Text> : null}
       </ScrollView>

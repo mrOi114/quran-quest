@@ -19,6 +19,12 @@ export {
   localizeCompetitionError,
 } from './competitionService';
 export {
+  enterMadarasahRoom,
+  joinMadarasahChallenge,
+  leaveMadarasahRoom,
+  madarasahStatus,
+} from './madarasahService';
+export {
   saveActiveChallengeCode,
   peekActiveChallengeCode,
   clearActiveChallengeCode,

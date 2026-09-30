@@ -106,6 +106,7 @@ export type CompetitionChallengeView = {
   available_players: CompetitionLobbyPlayer[];
   pending_challenge: CompetitionPendingChallenge | null;
   quran_range?: string;
+  room_name?: string | null;
   rematch_code: string | null;
   expires_at: string;
 };

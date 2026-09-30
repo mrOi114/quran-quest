@@ -8,3 +8,5 @@ export { CompetitionCelebration } from './CompetitionCelebration';
 export { CompetitionSoundToggle } from './CompetitionSoundToggle';
 export { CompetitionVoiceHost } from './CompetitionVoiceHost';
 export { CompetitionMembershipHost } from './CompetitionMembershipHost';
+export { MadarasahComms } from './MadarasahComms';
+export { MadarasahRoomScreen } from './MadarasahRoomScreen';

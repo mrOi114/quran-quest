@@ -16,6 +16,12 @@ import {
   type PublicQuestion,
   type QuranRangeId,
 } from '../_shared/competitionQuestions.ts';
+import { MADARASAH_ROOM_NAME } from '../_shared/madarasahAccess.ts';
+import {
+  dispatchMadarasah,
+  findActiveMadarasahMember,
+  revokeMadarasahMember,
+} from '../_shared/madarasahRoom.ts';
 
 type Action =
   | 'preview'
@@ -33,7 +39,17 @@ type Action =
   | 'respond_challenge'
   | 'weekly_leaders'
   | 'resume'
-  | 'leave';
+  | 'leave'
+  | 'madarasah_enter'
+  | 'madarasah_status'
+  | 'madarasah_leave'
+  | 'madarasah_join'
+  | 'madarasah_sync'
+  | 'madarasah_send'
+  | 'madarasah_call_start'
+  | 'madarasah_call_respond'
+  | 'madarasah_call_signal'
+  | 'madarasah_call_end';
 
 type Body = {
   action?: Action;
@@ -47,6 +63,13 @@ type Body = {
   target_code?: string;
   accept?: boolean;
   quran_range?: string;
+  access_code?: string;
+  peer_member_id?: string;
+  message_body?: string;
+  channel?: string;
+  call_id?: string;
+  signal?: unknown;
+  signal_after?: string;
 };
 
 type ChallengeRow = {
@@ -70,6 +93,7 @@ type ChallengeRow = {
   expires_at: string;
   completed_at: string | null;
   quran_range?: string;
+  private_room_id?: string | null;
 };
 
 type ParticipantRow = {
@@ -283,7 +307,7 @@ async function handleAction(
       return { status: 400, body: { error: 'Enter a valid challenge code' } };
     }
     const challenge = await fetchChallengeByCode(service, code);
-    if (!challenge || isExpired(challenge)) {
+    if (!challenge || isExpired(challenge) || challenge.private_room_id) {
       return { status: 404, body: { error: 'not_found' } };
     }
     const participants = await fetchParticipants(service, challenge.id);
@@ -305,6 +329,48 @@ async function handleAction(
   const displayName = typeof body.display_label === 'string' ? body.display_label : '';
   const profileId =
     typeof body.profile_id === 'string' && body.profile_id.length > 0 ? body.profile_id : null;
+
+  if (
+    action === 'madarasah_enter' ||
+    action === 'madarasah_status' ||
+    action === 'madarasah_sync' ||
+    action === 'madarasah_send' ||
+    action === 'madarasah_call_start' ||
+    action === 'madarasah_call_respond' ||
+    action === 'madarasah_call_signal' ||
+    action === 'madarasah_call_end'
+  ) {
+    return dispatchMadarasah(service, action, keyHash, body);
+  }
+
+  if (action === 'madarasah_leave') {
+    const member = await findActiveMadarasahMember(service, keyHash);
+    if (member) {
+      await leaveMadarasahSeats(service, keyHash, member.room_id);
+      await revokeMadarasahMember(service, keyHash, member.room_id);
+    }
+    return { status: 200, body: { ok: true, left: true } };
+  }
+
+  if (action === 'madarasah_join') {
+    const member = await findActiveMadarasahMember(service, keyHash);
+    if (!member) {
+      return { status: 403, body: { error: 'not_member' } };
+    }
+    const quranRange = resolveRequestedRange(body.quran_range);
+    if (!quranRange) {
+      return { status: 400, body: { error: 'range_unavailable' } };
+    }
+    const joined = await joinPrivate(service, {
+      keyHash,
+      ageBand: ageBand ?? 'adult',
+      displayName: displayName || member.display_label,
+      profileId,
+      quranRange,
+      privateRoomId: member.room_id,
+    });
+    return { status: 200, body: await buildState(service, joined.challenge, joined.me) };
+  }
 
   if (action === 'join_public') {
     const quranRange = resolveRequestedRange(body.quran_range);
@@ -351,7 +417,7 @@ async function handleAction(
     if (!quranRange) {
       return { status: 400, body: { error: 'range_unavailable' } };
     }
-    const live = await resumeActiveSeat(service, keyHash);
+    const live = await resumeActiveSeat(service, keyHash, { privateRoomId: null });
     if (live) {
       return { status: 200, body: await buildState(service, live.challenge, live.me) };
     }
@@ -373,7 +439,7 @@ async function handleAction(
     if (code.length < 4) {
       return { status: 400, body: { error: 'Enter a valid challenge code' } };
     }
-    const live = await resumeActiveSeat(service, keyHash);
+    const live = await resumeActiveSeat(service, keyHash, { privateRoomId: null });
     const joined = await joinByCode(service, {
       code,
       keyHash,
@@ -393,7 +459,7 @@ async function handleAction(
   }
 
   if (action === 'resume') {
-    const found = await resumeActiveSeat(service, keyHash);
+    const found = await resumeActiveSeat(service, keyHash, { privateRoomId: null });
     if (!found) {
       return { status: 200, body: { ok: true, challenge: null } };
     }
@@ -430,6 +496,9 @@ async function handleAction(
 
   if (action === 'leave') {
     await leaveChallengeSeat(service, challenge.row, challenge.me);
+    if (challenge.row.private_room_id) {
+      await revokeMadarasahMember(service, keyHash, challenge.row.private_room_id);
+    }
     return { status: 200, body: { ok: true, left: true } };
   }
 
@@ -444,6 +513,17 @@ async function handleAction(
     }
     if (target.id === challenge.row.id) {
       return { status: 400, body: { error: 'error' } };
+    }
+    const sourcePrivate = challenge.row.private_room_id ?? null;
+    const targetPrivate = target.private_room_id ?? null;
+    if (sourcePrivate !== targetPrivate) {
+      return { status: 404, body: { error: 'not_found' } };
+    }
+    if (sourcePrivate) {
+      const member = await findActiveMadarasahMember(service, keyHash);
+      if (!member || member.room_id !== sourcePrivate) {
+        return { status: 403, body: { error: 'not_member' } };
+      }
     }
     const targetPeople = await fetchParticipants(service, target.id);
     if (targetPeople.length >= roomCap()) {
@@ -497,6 +577,12 @@ async function handleAction(
     }
     if (!isQuranRangePlayable(pending.quran_range)) {
       return { status: 400, body: { error: 'range_unavailable' } };
+    }
+    if (fresh.private_room_id) {
+      const challenger = await findActiveMadarasahMember(service, pending.from_key_hash);
+      if (!challenger || challenger.room_id !== fresh.private_room_id) {
+        return { status: 403, body: { error: 'not_member' } };
+      }
     }
     await applyLockedRange(service, fresh, pending.quran_range, pending.tier, fresh.age_band);
     const joined = await joinExisting(service, fresh, {
@@ -680,6 +766,7 @@ async function handleAction(
       parentId: fresh.id,
       excludeIds: usedIds,
       quranRange: challengeRange(fresh),
+      privateRoomId: fresh.private_room_id ?? null,
     });
     await service
       .from('competition_challenges')
@@ -716,6 +803,12 @@ async function loadChallengeForParticipant(
   if (!me) {
     return { error: 'not_member', status: 403 };
   }
+  if (fresh.private_room_id) {
+    const member = await findActiveMadarasahMember(service, keyHash);
+    if (!member || member.room_id !== fresh.private_room_id) {
+      return { error: 'not_member', status: 403 };
+    }
+  }
   return { row: fresh, me: me as ParticipantRow };
 }
 
@@ -729,7 +822,7 @@ async function joinPublic(
     quranRange: QuranRangeId;
   },
 ) {
-  const live = await resumeActiveSeat(service, input.keyHash);
+  const live = await resumeActiveSeat(service, input.keyHash, { privateRoomId: null });
   if (live) {
     const room = live.challenge;
     if (
@@ -747,7 +840,7 @@ async function joinPublic(
     return { challenge: room, me: live.me };
   }
 
-  const sameJuzRoom = await findSameJuzWaitingRoom(service, input.quranRange, input.keyHash);
+  const sameJuzRoom = await findSameJuzWaitingRoom(service, input.quranRange, input.keyHash, null);
   if (sameJuzRoom) {
     const joined = await joinExisting(service, sameJuzRoom, input);
     if (joined.challenge && joined.me && !joined.errorStatus) {
@@ -767,20 +860,64 @@ async function joinPublic(
   });
 }
 
+async function joinPrivate(
+  service: ReturnType<typeof createServiceClient>,
+  input: {
+    keyHash: string;
+    ageBand: CompetitionAgeBand;
+    displayName: string;
+    profileId: string | null;
+    quranRange: QuranRangeId;
+    privateRoomId: string;
+  },
+) {
+  const live = await resumeActiveSeat(service, input.keyHash, { privateRoomId: input.privateRoomId });
+  if (live) {
+    return { challenge: live.challenge, me: live.me };
+  }
+  const sameJuzRoom = await findSameJuzWaitingRoom(
+    service,
+    input.quranRange,
+    input.keyHash,
+    input.privateRoomId,
+  );
+  if (sameJuzRoom) {
+    const joined = await joinExisting(service, sameJuzRoom, input);
+    if (joined.challenge && joined.me && !joined.errorStatus) {
+      return { challenge: joined.challenge, me: joined.me };
+    }
+  }
+  return createChallenge(service, {
+    visibility: 'invite',
+    ageBand: input.ageBand,
+    tier: 1,
+    keyHash: input.keyHash,
+    displayName: input.displayName,
+    profileId: input.profileId,
+    ttlHours: 4,
+    quranRange: input.quranRange,
+    privateRoomId: input.privateRoomId,
+  });
+}
+
 async function findSameJuzWaitingRoom(
   service: ReturnType<typeof createServiceClient>,
   quranRange: QuranRangeId,
   excludeKeyHash: string,
+  privateRoomId: string | null,
 ) {
   const nowIso = new Date().toISOString();
-  const { data: rooms } = await service
+  let query = service
     .from('competition_challenges')
     .select('*')
-    .eq('visibility', 'public')
     .eq('status', 'waiting')
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: true })
     .limit(40);
+  query = privateRoomId
+    ? query.eq('private_room_id', privateRoomId)
+    : query.eq('visibility', 'public').is('private_room_id', null);
+  const { data: rooms } = await query;
 
   for (const room of (rooms ?? []) as ChallengeRow[]) {
     if (challengeRange(room) !== quranRange) {
@@ -815,6 +952,12 @@ async function joinByCode(
   if (!challenge || isExpired(challenge)) {
     return { errorStatus: 404, body: { error: 'not_found' } };
   }
+  if (challenge.private_room_id) {
+    const member = await findActiveMadarasahMember(service, input.keyHash);
+    if (!member || member.room_id !== challenge.private_room_id) {
+      return { errorStatus: 404, body: { error: 'not_found' } };
+    }
+  }
   return joinExisting(service, challenge, input);
 }
 
@@ -834,6 +977,12 @@ async function joinExisting(
   me?: ParticipantRow;
 }> {
   let challenge = incoming;
+  if (challenge.private_room_id) {
+    const member = await findActiveMadarasahMember(service, input.keyHash);
+    if (!member || member.room_id !== challenge.private_room_id) {
+      return { errorStatus: 403, body: { error: 'not_member' } };
+    }
+  }
   if (isExpired(challenge)) {
     return { errorStatus: 410, body: { error: 'expired' } };
   }
@@ -929,6 +1078,7 @@ async function createChallenge(
     parentId?: string;
     excludeIds?: string[];
     quranRange?: QuranRangeId;
+    privateRoomId?: string | null;
   },
 ) {
   const quranRange = normalizeQuranRange(input.quranRange);
@@ -961,6 +1111,7 @@ async function createChallenge(
       questions_public: picked.questions,
       parent_challenge_id: input.parentId ?? null,
       quran_range: quranRange,
+      private_room_id: input.privateRoomId ?? null,
       expires_at: hoursFromNow(input.ttlHours),
     })
     .select('*')
@@ -1167,9 +1318,17 @@ async function buildState(
 
   const humans = participants.filter((person) => !isFakeLabel(person.display_label));
   const available_players =
-    (fresh.status === 'waiting' || fresh.status === 'ready_check') && fresh.visibility === 'public'
-      ? await listAvailablePublic(service, challengeRange(fresh), fresh.id, mine.participant_key_hash)
-      : [];
+    (fresh.status === 'waiting' || fresh.status === 'ready_check') && fresh.private_room_id
+      ? await listAvailablePublic(
+          service,
+          challengeRange(fresh),
+          fresh.id,
+          mine.participant_key_hash,
+          fresh.private_room_id,
+        )
+      : (fresh.status === 'waiting' || fresh.status === 'ready_check') && fresh.visibility === 'public'
+        ? await listAvailablePublic(service, challengeRange(fresh), fresh.id, mine.participant_key_hash, null)
+        : [];
 
   return {
     ok: true,
@@ -1211,6 +1370,7 @@ async function buildState(
           is_you: person.id === mine.id,
         })),
       available_players,
+      room_name: fresh.private_room_id ? MADARASAH_ROOM_NAME : null,
       pending_challenge: pending
         ? {
             label: pending.from_label,
@@ -1261,16 +1421,20 @@ async function listAvailablePublic(
   preferredRange: QuranRangeId,
   excludeChallengeId: string | null,
   excludeKeyHash: string,
+  privateRoomId: string | null = null,
 ) {
   const nowIso = new Date().toISOString();
-  const { data: rooms } = await service
+  let query = service
     .from('competition_challenges')
     .select('*')
-    .eq('visibility', 'public')
     .eq('status', 'waiting')
     .gt('expires_at', nowIso)
     .order('created_at', { ascending: true })
     .limit(40);
+  query = privateRoomId
+    ? query.eq('private_room_id', privateRoomId)
+    : query.eq('visibility', 'public').is('private_room_id', null);
+  const { data: rooms } = await query;
 
   const players = [];
   for (const room of (rooms ?? []) as ChallengeRow[]) {
@@ -1375,6 +1539,7 @@ async function weeklyLeaders(service: ReturnType<typeof createServiceClient>) {
     .from('competition_challenges')
     .select('id')
     .eq('status', 'complete')
+    .is('private_room_id', null)
     .gte('completed_at', since)
     .limit(200);
   const ids = (completed ?? []).map((row) => row.id as string);
@@ -1505,6 +1670,7 @@ async function pruneStaleWaitingSeats(
 async function resumeActiveSeat(
   service: ReturnType<typeof createServiceClient>,
   keyHash: string,
+  scope?: { privateRoomId: string | null },
 ) {
   const { data: seats } = await service
     .from('competition_participants')
@@ -1514,6 +1680,12 @@ async function resumeActiveSeat(
   for (const seat of seats ?? []) {
     const room = await refetchChallenge(service, seat.challenge_id);
     if (!room || isExpired(room) || !LIVE_ROOM_STATUSES.has(room.status)) {
+      continue;
+    }
+    if (scope?.privateRoomId === null && room.private_room_id) {
+      continue;
+    }
+    if (typeof scope?.privateRoomId === 'string' && room.private_room_id !== scope.privateRoomId) {
       continue;
     }
     await pruneStaleWaitingSeats(service, room, seat.id);
@@ -1529,6 +1701,28 @@ async function resumeActiveSeat(
     return { challenge: fresh, me };
   }
   return null;
+}
+
+async function leaveMadarasahSeats(
+  service: ReturnType<typeof createServiceClient>,
+  keyHash: string,
+  roomId: string,
+) {
+  const { data: seats } = await service
+    .from('competition_participants')
+    .select('id, challenge_id')
+    .eq('participant_key_hash', keyHash);
+  for (const seat of seats ?? []) {
+    const room = await refetchChallenge(service, seat.challenge_id as string);
+    if (!room || room.private_room_id !== roomId) {
+      continue;
+    }
+    const me = await refetchParticipant(service, seat.id as string);
+    if (!me) {
+      continue;
+    }
+    await leaveChallengeSeat(service, room, me);
+  }
 }
 
 async function leaveChallengeSeat(

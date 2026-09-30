@@ -224,6 +224,16 @@ export function CompetitionHomeScreen() {
 
           {error ? <Text className="mt-4 text-sm text-red-700">{error}</Text> : null}
         </View>
+
+        <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+          <Text className="text-xl font-bold text-brand-800">{t('competition.madarasahTitle')}</Text>
+          <Text className="mt-2 text-sm leading-5 text-brand-600">{t('competition.madarasahHelp')}</Text>
+          <PrimaryButton
+            label={t('competition.madarasahOpen')}
+            variant="secondary"
+            onPress={() => router.push('/(app)/competition/madarasah' as Href)}
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
