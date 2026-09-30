@@ -195,50 +195,50 @@ export function CompetitionHomeScreen({ variant = 'public' }: { variant?: 'publi
               );
             }}
           />
-          <Text className="mb-4 mt-2 text-sm leading-5 text-brand-600">
-            {t('competition.publicHelp')}
-          </Text>
+          {privateRoom ? null : (
+            <>
+              <Text className="mb-4 mt-2 text-sm leading-5 text-brand-600">
+                {t('competition.publicHelp')}
+              </Text>
 
-          <PrimaryButton
-            label={t('competition.invite')}
-            variant="secondary"
-            loading={joining}
-            disabled={!rangeReady}
-            onPress={() => {
-              if (!rangeReady) return;
-              playGreetingOnce({ enabled: soundEnabled, tone });
-              void createInvite(quranRange, privateRoom ? 'madarasah' : undefined).then((state) =>
-                go(state?.challenge.code),
-              );
-            }}
-          />
-          <Text className="mb-4 text-sm leading-5 text-brand-600">
-            {t('competition.inviteHelp')}
-          </Text>
+              <PrimaryButton
+                label={t('competition.invite')}
+                variant="secondary"
+                loading={joining}
+                disabled={!rangeReady}
+                onPress={() => {
+                  if (!rangeReady) return;
+                  playGreetingOnce({ enabled: soundEnabled, tone });
+                  void createInvite(quranRange).then((state) => go(state?.challenge.code));
+                }}
+              />
+              <Text className="mb-4 text-sm leading-5 text-brand-600">
+                {t('competition.inviteHelp')}
+              </Text>
 
-          <TextField
-            label={t('competition.enterCode')}
-            value={code}
-            onChangeText={(value) => setCode(value.toUpperCase())}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            accessibilityLabel={t('competition.enterCode')}
-          />
-          <Pressable
-            accessibilityRole="button"
-            disabled={joining}
-            onPress={() => {
-              playGreetingOnce({ enabled: soundEnabled, tone });
-              void joinCode(code, privateRoom ? 'madarasah' : undefined).then((state) =>
-                go(state?.challenge.code),
-              );
-            }}
-            className="min-h-12 items-center justify-center rounded-xl border border-brand-600 px-4 py-3"
-          >
-            <Text className="text-sm font-semibold text-brand-700">
-              {t('competition.joinWithCode')}
-            </Text>
-          </Pressable>
+              <TextField
+                label={t('competition.enterCode')}
+                value={code}
+                onChangeText={(value) => setCode(value.toUpperCase())}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                accessibilityLabel={t('competition.enterCode')}
+              />
+              <Pressable
+                accessibilityRole="button"
+                disabled={joining}
+                onPress={() => {
+                  playGreetingOnce({ enabled: soundEnabled, tone });
+                  void joinCode(code).then((state) => go(state?.challenge.code));
+                }}
+                className="min-h-12 items-center justify-center rounded-xl border border-brand-600 px-4 py-3"
+              >
+                <Text className="text-sm font-semibold text-brand-700">
+                  {t('competition.joinWithCode')}
+                </Text>
+              </Pressable>
+            </>
+          )}
 
           {error ? <Text className="mt-4 text-sm text-red-700">{error}</Text> : null}
         </View>
