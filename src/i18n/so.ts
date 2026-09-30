@@ -1023,6 +1023,7 @@ export const so = {
   'competition.cheerComplete': '🎉🏆 MashaAllah! Waad dhammaystay tartanka!',
   'competition.playfulWelcome': '⭐ Diyaar ma tahay?',
   'competition.madarasahTitle': 'Madarasah 1',
+  'competition.madarasahLocked': 'Madarasah 1 🔒',
   'competition.madarasahOpen': 'Gal Madarasah 1',
   'competition.madarasahHelp': 'Qol gaar ah. Geli koodhka gelitaanka lagu siiyay. Koodhka halkan lama muujiyo.',
   'competition.madarasahCode': 'Koodhka gelitaanka',

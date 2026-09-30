@@ -6,9 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton, TextField, isReservedFounderNickname, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
+import { MadarasahComms } from './MadarasahComms';
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
-import { fetchWeeklyLeaders, resumeActiveChallenge } from '../services';
-import { rememberLiveChallenge } from '../services/activeRoom';
+import { fetchWeeklyLeaders, leaveMadarasahRoom, resumeActiveChallenge } from '../services';
+import { clearActiveChallengeCode, rememberLiveChallenge } from '../services/activeRoom';
 import { playGreetingOnce } from '../services/competitionVoice';
 import { motivationToneForLearner } from '../services/motivationClips';
 import { useMotivationSound } from '../services/voicePreference';
@@ -32,14 +33,15 @@ function powerLevelLabel(
   return t('competition.level.beginner');
 }
 
-export function CompetitionHomeScreen() {
+export function CompetitionHomeScreen({ variant = 'public' }: { variant?: 'public' | 'madarasah' }) {
+  const privateRoom = variant === 'madarasah';
   const router = useRouter();
   const { t } = useI18n();
   const { activeLearner } = useAuth();
   const { enabled: soundEnabled } = useMotivationSound();
   const tone = motivationToneForLearner(activeLearner);
   const playful = tone === 'playful';
-  const { joinPublic, createInvite, joinCode, joining, error } = useCompetitionChallenge();
+  const { joinPublic, joinMadarasah, createInvite, joinCode, joining, error } = useCompetitionChallenge();
   const [code, setCode] = useState('');
   const [quranRange, setQuranRange] = useState<QuranRangeId>(DEFAULT_QURAN_RANGE);
   const [leaders, setLeaders] = useState<CompetitionWeeklyLeader[]>([]);
@@ -51,12 +53,20 @@ export function CompetitionHomeScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    void resumeActiveChallenge()
+    void resumeActiveChallenge(privateRoom ? 'madarasah' : undefined)
       .then(async (state) => {
         if (cancelled || !state?.challenge.code) {
           return false;
         }
-        await rememberLiveChallenge(state.challenge.code, state.challenge.status);
+        const privateMatch = Boolean(state.challenge.room_name);
+        if (privateRoom ? !privateMatch : privateMatch) {
+          return false;
+        }
+        await rememberLiveChallenge(
+          state.challenge.code,
+          state.challenge.status,
+          state.challenge.room_name,
+        );
         if (cancelled) {
           return false;
         }
@@ -75,7 +85,7 @@ export function CompetitionHomeScreen() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [privateRoom, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,7 +132,9 @@ export function CompetitionHomeScreen() {
         <Text className="text-sm font-semibold uppercase tracking-wide text-brand-100">
           {t('nav.competition')}
         </Text>
-        <Text className="mt-2 text-3xl font-bold text-white">{t('competition.title')}</Text>
+        <Text className="mt-2 text-3xl font-bold text-white">
+          {privateRoom ? t('competition.madarasahTitle') : t('competition.title')}
+        </Text>
         <Text className="mt-2 text-base text-brand-100">{t('competition.subtitle')}</Text>
         {playful ? (
           <Text className="mt-2 text-base font-semibold text-white">{t('competition.playfulWelcome')}</Text>
@@ -178,7 +190,9 @@ export function CompetitionHomeScreen() {
             onPress={() => {
               if (!rangeReady) return;
               playGreetingOnce({ enabled: soundEnabled, tone });
-              void joinPublic(quranRange).then((state) => go(state?.challenge.code));
+              void (privateRoom ? joinMadarasah(quranRange) : joinPublic(quranRange)).then((state) =>
+                go(state?.challenge.code),
+              );
             }}
           />
           <Text className="mb-4 mt-2 text-sm leading-5 text-brand-600">
@@ -193,7 +207,9 @@ export function CompetitionHomeScreen() {
             onPress={() => {
               if (!rangeReady) return;
               playGreetingOnce({ enabled: soundEnabled, tone });
-              void createInvite(quranRange).then((state) => go(state?.challenge.code));
+              void createInvite(quranRange, privateRoom ? 'madarasah' : undefined).then((state) =>
+                go(state?.challenge.code),
+              );
             }}
           />
           <Text className="mb-4 text-sm leading-5 text-brand-600">
@@ -213,7 +229,9 @@ export function CompetitionHomeScreen() {
             disabled={joining}
             onPress={() => {
               playGreetingOnce({ enabled: soundEnabled, tone });
-              void joinCode(code).then((state) => go(state?.challenge.code));
+              void joinCode(code, privateRoom ? 'madarasah' : undefined).then((state) =>
+                go(state?.challenge.code),
+              );
             }}
             className="min-h-12 items-center justify-center rounded-xl border border-brand-600 px-4 py-3"
           >
@@ -225,15 +243,36 @@ export function CompetitionHomeScreen() {
           {error ? <Text className="mt-4 text-sm text-red-700">{error}</Text> : null}
         </View>
 
-        <View className="mt-5 rounded-3xl bg-white px-5 py-5">
-          <Text className="text-xl font-bold text-brand-800">{t('competition.madarasahTitle')}</Text>
-          <Text className="mt-2 text-sm leading-5 text-brand-600">{t('competition.madarasahHelp')}</Text>
-          <PrimaryButton
-            label={t('competition.madarasahOpen')}
-            variant="secondary"
-            onPress={() => router.push('/(app)/competition/madarasah' as Href)}
-          />
-        </View>
+        {privateRoom ? (
+          <>
+            <MadarasahComms />
+            <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+              <PrimaryButton
+                label={t('competition.leaveCompetition')}
+                variant="secondary"
+                loading={joining}
+                onPress={() => {
+                  void leaveMadarasahRoom()
+                    .catch(() => undefined)
+                    .then(async () => {
+                      await clearActiveChallengeCode();
+                      router.replace('/(app)/competition' as Href);
+                    });
+                }}
+              />
+            </View>
+          </>
+        ) : (
+          <View className="mt-5 rounded-3xl bg-white px-5 py-5">
+            <Text className="text-xl font-bold text-brand-800">{t('competition.madarasahLocked')}</Text>
+            <Text className="mt-2 text-sm leading-5 text-brand-600">{t('competition.madarasahHelp')}</Text>
+            <PrimaryButton
+              label={t('competition.madarasahOpen')}
+              variant="secondary"
+              onPress={() => router.push('/(app)/competition/madarasah' as Href)}
+            />
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

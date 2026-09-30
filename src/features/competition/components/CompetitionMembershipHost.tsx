@@ -49,7 +49,11 @@ export function CompetitionMembershipHost() {
         ) {
           state = await advanceChallenge(code);
         }
-        await rememberLiveChallenge(state.challenge.code, state.challenge.status);
+        await rememberLiveChallenge(
+          state.challenge.code,
+          state.challenge.status,
+          state.challenge.room_name,
+        );
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : '';
         if (

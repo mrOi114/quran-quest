@@ -4,7 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { usePathname, useRouter } from 'expo-router';
 
 import { GuestExitWarning, isReservedFounderNickname, useAuth, useGuestExitWarning } from '@/features/auth';
-import { peekActiveChallengeCode } from '@/features/competition/services/activeRoom';
+import {
+  peekActiveChallengeCode,
+  peekActiveChallengeRoom,
+} from '@/features/competition/services/activeRoom';
 import { StudentFeedbackModal } from '@/features/feedback';
 import { useI18n, type MessageKey } from '@/i18n';
 
@@ -290,16 +293,18 @@ export function WebAppShell({ children }: WebAppShellProps) {
   function navigate(href: string, navId?: NavId) {
     setDrawerOpen(false);
     if (navId === 'competition') {
-      void peekActiveChallengeCode().then((code) => {
-        if (code) {
-          router.push({
-            pathname: '/(app)/competition/[code]',
-            params: { code },
-          } as never);
-          return;
-        }
-        router.push(href as never);
-      });
+      void Promise.all([peekActiveChallengeCode(), peekActiveChallengeRoom()]).then(
+        ([code, room]) => {
+          if (code && !room) {
+            router.push({
+              pathname: '/(app)/competition/[code]',
+              params: { code },
+            } as never);
+            return;
+          }
+          router.push(href as never);
+        },
+      );
       return;
     }
     router.push(href as never);

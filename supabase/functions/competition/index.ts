@@ -417,7 +417,14 @@ async function handleAction(
     if (!quranRange) {
       return { status: 400, body: { error: 'range_unavailable' } };
     }
-    const live = await resumeActiveSeat(service, keyHash, { privateRoomId: null });
+    const madarasahInvite = body.room === 'madarasah';
+    const member = madarasahInvite ? await findActiveMadarasahMember(service, keyHash) : null;
+    if (madarasahInvite && !member) {
+      return { status: 403, body: { error: 'not_member' } };
+    }
+    const live = await resumeActiveSeat(service, keyHash, {
+      privateRoomId: member?.room_id ?? null,
+    });
     if (live) {
       return { status: 200, body: await buildState(service, live.challenge, live.me) };
     }
@@ -430,6 +437,7 @@ async function handleAction(
       profileId,
       ttlHours: 24,
       quranRange,
+      privateRoomId: member?.room_id ?? null,
     });
     return { status: 200, body: await buildState(service, created.challenge, created.me) };
   }
@@ -439,13 +447,21 @@ async function handleAction(
     if (code.length < 4) {
       return { status: 400, body: { error: 'Enter a valid challenge code' } };
     }
-    const live = await resumeActiveSeat(service, keyHash, { privateRoomId: null });
+    const madarasahJoin = body.room === 'madarasah';
+    const member = madarasahJoin ? await findActiveMadarasahMember(service, keyHash) : null;
+    if (madarasahJoin && !member) {
+      return { status: 403, body: { error: 'not_member' } };
+    }
+    const live = await resumeActiveSeat(service, keyHash, {
+      privateRoomId: member?.room_id ?? null,
+    });
     const joined = await joinByCode(service, {
       code,
       keyHash,
       ageBand: ageBand ?? 'adult',
       displayName,
       profileId,
+      privateRoomId: member?.room_id ?? null,
     });
     if (
       joined.challenge &&
@@ -459,7 +475,14 @@ async function handleAction(
   }
 
   if (action === 'resume') {
-    const found = await resumeActiveSeat(service, keyHash, { privateRoomId: null });
+    const madarasahResume = body.room === 'madarasah';
+    const member = madarasahResume ? await findActiveMadarasahMember(service, keyHash) : null;
+    if (madarasahResume && !member) {
+      return { status: 200, body: { ok: true, challenge: null } };
+    }
+    const found = await resumeActiveSeat(service, keyHash, {
+      privateRoomId: member?.room_id ?? null,
+    });
     if (!found) {
       return { status: 200, body: { ok: true, challenge: null } };
     }
@@ -946,10 +969,14 @@ async function joinByCode(
     ageBand: CompetitionAgeBand;
     displayName: string;
     profileId: string | null;
+    privateRoomId?: string | null;
   },
 ) {
   const challenge = await fetchChallengeByCode(service, input.code);
   if (!challenge || isExpired(challenge)) {
+    return { errorStatus: 404, body: { error: 'not_found' } };
+  }
+  if (input.privateRoomId && challenge.private_room_id !== input.privateRoomId) {
     return { errorStatus: 404, body: { error: 'not_found' } };
   }
   if (challenge.private_room_id) {

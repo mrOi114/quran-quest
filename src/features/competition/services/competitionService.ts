@@ -52,6 +52,7 @@ export async function joinPublicChallenge(
 export async function createInviteChallenge(
   identity: Identity,
   quranRange: QuranRangeId = DEFAULT_QURAN_RANGE,
+  room?: 'madarasah',
 ): Promise<CompetitionState> {
   return invokeCompetition({
     action: 'create_invite',
@@ -59,12 +60,14 @@ export async function createInviteChallenge(
     age_band: identity.ageBand,
     profile_id: identity.profileId,
     quran_range: quranRange,
+    ...(room ? { room } : {}),
   });
 }
 
 export async function joinChallengeByCode(
   code: string,
   identity: Identity,
+  room?: 'madarasah',
 ): Promise<CompetitionState> {
   const parsed = challengeCodeSchema.parse(code);
   return invokeCompetition({
@@ -73,13 +76,14 @@ export async function joinChallengeByCode(
     display_label: identity.displayLabel,
     age_band: identity.ageBand,
     profile_id: identity.profileId,
+    ...(room ? { room } : {}),
   });
 }
 
-export async function resumeActiveChallenge(): Promise<CompetitionState | null> {
+export async function resumeActiveChallenge(room?: 'madarasah'): Promise<CompetitionState | null> {
   const participant_key = await getOrCreateParticipantKey();
   const result = await supabase.functions.invoke('competition', {
-    body: { action: 'resume', participant_key },
+    body: { action: 'resume', participant_key, ...(room ? { room } : {}) },
   });
   const data = await assertFunctionOk<{ ok?: true; challenge?: CompetitionState['challenge'] | null } & Partial<CompetitionState>>(
     result,

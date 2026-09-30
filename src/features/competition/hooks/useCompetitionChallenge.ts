@@ -12,6 +12,7 @@ import {
   getChallengeState,
   joinChallengeByCode,
   joinPublicChallenge,
+  joinMadarasahChallenge,
   leaveChallenge,
   listPublicPlayers,
   localizeCompetitionError,
@@ -49,7 +50,11 @@ export function useCompetitionChallenge(code?: string) {
   const apply = useCallback((next: CompetitionState) => {
     setState(next);
     setError(null);
-    void rememberLiveChallenge(next.challenge.code, next.challenge.status);
+    void rememberLiveChallenge(
+      next.challenge.code,
+      next.challenge.status,
+      next.challenge.room_name,
+    );
   }, []);
 
   const fail = useCallback(
@@ -78,12 +83,31 @@ export function useCompetitionChallenge(code?: string) {
     }
   }, [activeLearner, apply, fail]);
 
-  const createInvite = useCallback(async (quranRange: QuranRangeId = DEFAULT_QURAN_RANGE) => {
+  const joinMadarasah = useCallback(async (quranRange: QuranRangeId = DEFAULT_QURAN_RANGE) => {
     if (!activeLearner) return null;
     setJoining(true);
     setError(null);
     try {
-      const next = await createInviteChallenge(identityFromLearner(activeLearner), quranRange);
+      const next = await joinMadarasahChallenge(identityFromLearner(activeLearner), quranRange);
+      apply(next);
+      return next;
+    } catch (caught) {
+      fail(caught);
+      return null;
+    } finally {
+      setJoining(false);
+    }
+  }, [activeLearner, apply, fail]);
+
+  const createInvite = useCallback(async (
+    quranRange: QuranRangeId = DEFAULT_QURAN_RANGE,
+    room?: 'madarasah',
+  ) => {
+    if (!activeLearner) return null;
+    setJoining(true);
+    setError(null);
+    try {
+      const next = await createInviteChallenge(identityFromLearner(activeLearner), quranRange, room);
       apply(next);
       return next;
     } catch (caught) {
@@ -95,12 +119,12 @@ export function useCompetitionChallenge(code?: string) {
   }, [activeLearner, apply, fail]);
 
   const joinCode = useCallback(
-    async (nextCode: string) => {
+    async (nextCode: string, room?: 'madarasah') => {
       if (!activeLearner) return null;
       setJoining(true);
       setError(null);
       try {
-        const next = await joinChallengeByCode(nextCode, identityFromLearner(activeLearner));
+        const next = await joinChallengeByCode(nextCode, identityFromLearner(activeLearner), room);
         apply(next);
         return next;
       } catch (caught) {
@@ -283,6 +307,7 @@ export function useCompetitionChallenge(code?: string) {
     error,
     remainingMs,
     joinPublic,
+    joinMadarasah,
     createInvite,
     joinCode,
     refresh,

@@ -20,13 +20,40 @@ export async function saveActiveChallengeCode(code: string): Promise<void> {
   await AsyncStorage.setItem(ACTIVE_CHALLENGE_STORAGE, normalized);
 }
 
-export async function peekActiveChallengeCode(): Promise<string | null> {
-  const raw = await AsyncStorage.getItem(ACTIVE_CHALLENGE_STORAGE);
+type StoredChallenge = {
+  code: string;
+  roomName: string | null;
+};
+
+function readStoredChallenge(raw: string | null): StoredChallenge | null {
   if (!raw) {
     return null;
   }
-  const normalized = normalizeChallengeCode(raw);
-  return normalized.length >= 4 ? normalized : null;
+  if (raw.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(raw) as { code?: string; room?: string };
+      const code = normalizeChallengeCode(parsed.code ?? '');
+      if (code.length < 4) {
+        return null;
+      }
+      const roomName = parsed.room?.trim() ? parsed.room : null;
+      return { code, roomName };
+    } catch {
+      return null;
+    }
+  }
+  const code = normalizeChallengeCode(raw);
+  return code.length >= 4 ? { code, roomName: null } : null;
+}
+
+export async function peekActiveChallengeCode(): Promise<string | null> {
+  const stored = readStoredChallenge(await AsyncStorage.getItem(ACTIVE_CHALLENGE_STORAGE));
+  return stored?.code ?? null;
+}
+
+export async function peekActiveChallengeRoom(): Promise<string | null> {
+  const stored = readStoredChallenge(await AsyncStorage.getItem(ACTIVE_CHALLENGE_STORAGE));
+  return stored?.roomName ?? null;
 }
 
 export async function clearActiveChallengeCode(): Promise<void> {
@@ -36,9 +63,21 @@ export async function clearActiveChallengeCode(): Promise<void> {
 export async function rememberLiveChallenge(
   code: string | undefined,
   status: string | undefined,
+  roomName?: string | null,
 ): Promise<void> {
   if (code && isLiveStatus(status)) {
-    await saveActiveChallengeCode(code);
+    const normalized = normalizeChallengeCode(code);
+    if (normalized.length < 4) {
+      return;
+    }
+    if (roomName) {
+      await AsyncStorage.setItem(
+        ACTIVE_CHALLENGE_STORAGE,
+        JSON.stringify({ code: normalized, room: roomName }),
+      );
+      return;
+    }
+    await saveActiveChallengeCode(normalized);
     return;
   }
   await clearActiveChallengeCode();

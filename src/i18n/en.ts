@@ -1003,6 +1003,7 @@ export const en = {
   'competition.cheerComplete': '🎉🏆 MashaAllah! You completed the challenge!',
   'competition.playfulWelcome': '⭐ Are you ready?',
   'competition.madarasahTitle': 'Madarasah 1',
+  'competition.madarasahLocked': 'Madarasah 1 🔒',
   'competition.madarasahOpen': 'Enter Madarasah 1',
   'competition.madarasahHelp': 'Private room. Enter the access code you were given. The code is not shown here.',
   'competition.madarasahCode': 'Access code',

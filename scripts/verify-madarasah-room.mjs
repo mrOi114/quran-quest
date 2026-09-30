@@ -115,7 +115,14 @@ assert(room.includes('display_name: MADARASAH_ROOM_NAME'), 'Created room is name
 assert(en.includes('competition.madarasahShowCode'), 'English show-code label');
 assert(so.includes('competition.madarasahShowCode'), 'Somali show-code label');
 assert(ar.includes('competition.madarasahShowCode'), 'Arabic show-code label');
-assert(screen.includes('leaveMadarasahRoom'), 'Leave Competition clears the private room');
+assert(home.includes('leaveMadarasahRoom'), 'Leave Competition clears the private room');
+assert(screen.includes('variant="madarasah"'), 'Madarasah 1 opens the existing Competition screen');
+assert(home.includes('joinMadarasah'), 'Madarasah 1 starts the same Competition program');
+assert(home.includes('competition.madarasahLocked'), 'Madarasah 1 is listed with a lock');
+assert(
+  home.indexOf('competition.startChallenge') < home.indexOf('competition.madarasahLocked'),
+  'The existing Competition stays above Madarasah 1',
+);
 assert(match.includes('privateRoom'), 'Private matches keep the room name');
 assert(match.includes('!privateRoom'), 'Private matches do not show or share a room code');
 assert(match.includes('MadarasahComms'), 'Private matches keep chat and calls');

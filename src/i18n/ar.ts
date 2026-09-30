@@ -998,6 +998,7 @@ export const ar = {
   'competition.cheerComplete': '🎉🏆 ما شاء الله! أكملت التحدّي!',
   'competition.playfulWelcome': '⭐ هل أنت جاهز؟',
   'competition.madarasahTitle': 'Madarasah 1',
+  'competition.madarasahLocked': 'Madarasah 1 🔒',
   'competition.madarasahOpen': 'ادخل Madarasah 1',
   'competition.madarasahHelp': 'غرفة خاصة. أدخل رمز الدخول الذي أُعطيت إياه. الرمز لا يظهر هنا.',
   'competition.madarasahCode': 'رمز الدخول',
