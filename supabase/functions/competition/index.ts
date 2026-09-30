@@ -131,7 +131,7 @@ function asPending(value: Record<string, unknown> | null | undefined): PendingCh
     quran_range: quranRange,
     tier,
     question_count: typeof pending.question_count === 'number' ? pending.question_count : 5,
-    question_seconds: typeof pending.question_seconds === 'number' ? pending.question_seconds : 60,
+    question_seconds: typeof pending.question_seconds === 'number' ? pending.question_seconds : QUESTION_SECONDS,
   };
 }
 

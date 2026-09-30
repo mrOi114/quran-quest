@@ -150,7 +150,7 @@ assert(edge.includes('participant_key_hash'), 'Duplicate seats use the participa
 assert(edge.includes('MAX_PARTICIPANTS_V1'), 'Room capacity constant exists');
 assert(questions.includes('MAX_PARTICIPANTS_V1 = 5'), 'Server max is 5 players');
 assert(read('src/features/competition/constants.ts').includes('COMPETITION_MAX_PARTICIPANTS = 5'), 'Client max is 5');
-assert(questions.includes('QUESTION_SECONDS = 60'), 'Timer is 60 seconds');
+assert(questions.includes('QUESTION_SECONDS = 30'), 'Timer is 30 seconds');
 assert(!edge.includes('play_against_ai'), 'No AI opponent action');
 assert(!edge.includes('pickAiChoice'), 'No AI answer picker');
 assert(edge.includes('challenge_player'), 'Public challenge request exists');

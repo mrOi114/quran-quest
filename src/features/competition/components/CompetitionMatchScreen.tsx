@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton, TextField, useAuth } from '@/features/auth';
 import { useI18n } from '@/i18n';
 
+import { COMPETITION_QUESTION_SECONDS } from '../constants';
 import { useCompetitionChallenge } from '../hooks/useCompetitionChallenge';
 import { useCompetitionVoiceFeedback } from '../hooks/useCompetitionVoice';
 import {
@@ -239,7 +240,7 @@ export function CompetitionMatchScreen({ code }: { code: string }) {
                 </Text>
                 <Text className="text-sm text-brand-700">
                   {t('competition.requestSeconds', {
-                    seconds: pending.question_seconds ?? 60,
+                    seconds: pending.question_seconds ?? COMPETITION_QUESTION_SECONDS,
                   })}
                 </Text>
                 <PrimaryButton

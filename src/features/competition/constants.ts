@@ -1,5 +1,5 @@
 export const COMPETITION_MAX_PARTICIPANTS = 5;
-export const COMPETITION_QUESTION_SECONDS = 60;
+export const COMPETITION_QUESTION_SECONDS = 30;
 export const PRODUCTION_WEB_ORIGIN = 'https://quran-quest-5640.vercel.app';
 export const PARTICIPANT_KEY_STORAGE = 'qq.competition.participant_key';
 export const PENDING_CHALLENGE_STORAGE = 'qq.competition.pending_code';

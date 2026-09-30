@@ -840,7 +840,7 @@ export const QUESTION_COUNT_BY_TIER: Record<1 | 2 | 3, number> = {
   3: 5,
 };
 
-export const QUESTION_SECONDS = 60;
+export const QUESTION_SECONDS = 30;
 export const REVEAL_SECONDS = 4;
 export const MAX_PARTICIPANTS_V1 = 5;
 export const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
